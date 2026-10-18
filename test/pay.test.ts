@@ -1,25 +1,8 @@
 // The paying side: spend limits stop a payment before anything is signed, and the URL, body and redirect rules hold.
 import { describe, expect, it, vi } from 'vitest'
-import { createApp } from '../src/app.ts'
 import { PaymentRefused, checkUrl, createBuyer, readCapped } from '../src/pay.ts'
 import { SpendGuard } from '../src/spend.ts'
-import { PAYEE, TROVE, fakeFacilitator, fakeLens, testAccount, zeroReader } from './helpers/x402.ts'
-import { parseUnits } from 'viem'
-
-const musd = (x: string) => parseUnits(x, 18)
-
-function world(o: { price?: string; perCall?: string; perSession?: string; allowedHosts?: string[] } = {}) {
-  const facilitator = fakeFacilitator()
-  const app = createApp({ lens: fakeLens(), payTo: PAYEE, facilitator, price: o.price })
-  const calls: string[] = []
-  const fetchImpl: typeof fetch = (input, init) => {
-    calls.push(input instanceof Request ? input.url : String(input))
-    return Promise.resolve(app.fetch(new Request(input as Request | string, init)))
-  }
-  const guard = new SpendGuard({ perCall: musd(o.perCall ?? '0.01'), perSession: musd(o.perSession ?? '0.1') })
-  const buyer = createBuyer({ account: testAccount(), chainReader: zeroReader, guard, fetchImpl, allowedHosts: o.allowedHosts })
-  return { buyer, guard, facilitator, calls }
-}
+import { TROVE, payWorld as world, testAccount, zeroReader } from './helpers/x402.ts'
 
 const url = `http://app.test/v1/trove/${TROVE}`
 
@@ -136,5 +119,48 @@ describe('readCapped', () => {
 
   it('handles an empty body', async () => {
     expect(await readCapped(new Response(null), 10)).toEqual({ text: '', truncated: false })
+  })
+})
+
+// Only the paid retry carries the payment header; these tests break the network at exactly that point.
+const paidRetry = (input: RequestInfo | URL) => (input as Request).headers?.has('payment-signature') === true
+
+describe('after the payment has left', () => {
+  it('reports a dropped connection as an unconfirmed payment, not as an error that says nothing happened', async () => {
+    const { buyer, guard } = world({ wrap: (real) => (input, init) => (paidRetry(input) ? Promise.reject(new TypeError('fetch failed')) : real(input, init)) })
+    const r = await buyer.fetchPaid(url)
+    expect(r).toMatchObject({ status: 0, ok: false, paid: false, authorizedMusd: '0.001', settlement: null, unsettled: { reason: 'request_failed', detail: 'fetch failed' } })
+    expect(guard.snapshot()).toMatchObject({ spentMusd: '0.001', payments: 1 })
+  })
+
+  it('throws an ordinary error when the request fails before any payment left, and counts nothing', async () => {
+    const { buyer, guard } = world({ wrap: () => () => Promise.reject(new TypeError('fetch failed')) })
+    await expect(buyer.fetchPaid(url)).rejects.toThrow('fetch failed')
+    expect(guard.snapshot()).toMatchObject({ spentMusd: '0', payments: 0 })
+  })
+
+  it('flags a 200 that comes with no settlement receipt after a payment was sent', async () => {
+    const { buyer } = world({
+      wrap: (real) => async (input, init) => {
+        const res = await real(input, init)
+        return paidRetry(input) ? new Response('{"ok":true}', { status: 200, headers: { 'content-type': 'application/json' } }) : res
+      },
+    })
+    const r = await buyer.fetchPaid(url)
+    expect(r).toMatchObject({ status: 200, ok: true, paid: false, unsettled: { reason: 'no_settlement_receipt' } })
+  })
+
+  it('keeps the settlement when the body is cut off after it', async () => {
+    const { buyer } = world({
+      wrap: (real) => async (input, init) => {
+        const res = await real(input, init)
+        if (!paidRetry(input)) return res
+        const broken = new ReadableStream({ pull: (c) => c.error(new Error('connection reset')) })
+        return new Response(broken, { status: res.status, headers: res.headers })
+      },
+    })
+    const r = await buyer.fetchPaid(url)
+    expect(r).toMatchObject({ status: 200, paid: true, bodyTruncated: true, body: '', unsettled: null })
+    expect(r.settlement?.transaction).toMatch(/^0x[0-9a-f]{64}$/)
   })
 })

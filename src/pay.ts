@@ -21,6 +21,7 @@ export class PaymentRefused extends Error {
 
 export interface PaidResult {
   url: string
+  /** HTTP status; 0 when the request failed after a payment had been sent (see `unsettled`). */
   status: number
   /** True when the server answered 2xx. */
   ok: boolean
@@ -30,8 +31,8 @@ export interface PaidResult {
   authorizedMusd: string | null
   settlement: { transaction: string; network: string; payer: string | null; explorer: string } | null
   /**
-   * Set when a payment was signed but the server did not confirm settlement. The money may still have moved (a facilitator can fail after it
-   * has broadcast the transfer), so check the payer's MUSD balance or the explorer before paying again.
+   * Set when a payment was sent but the server did not confirm settlement. The money may still have moved (a facilitator can fail after it
+   * has broadcast the transfer, and a dropped connection hides the answer), so check the payer's MUSD balance or the explorer before paying again.
    */
   unsettled: { reason: string; detail: string | null } | null
   contentType: string | null
@@ -66,12 +67,12 @@ const REFUSAL = /Payment creation aborted: ([^]*)|rejected by spendControls/
 export function createBuyer(opts: BuyerOptions): Buyer {
   const { account, guard } = opts
   const baseFetch = opts.fetchImpl ?? fetch
-  const timeoutMs = opts.timeoutMs ?? 20_000
+  const timeoutMs = opts.timeoutMs ?? 45_000
   const maxBodyBytes = opts.maxBodyBytes ?? 64 * 1024
   const hosts = (opts.allowedHosts ?? []).map((h) => h.toLowerCase())
 
-  // The ticket records what the hook authorised for the call that is running now. Calls run one at a time, so there is only ever one.
-  let ticket: { amount?: bigint } = {}
+  // The ticket records what the hook authorised for the call that is running now, and whether a payment has left this process. Calls run one at a time, so there is only ever one.
+  let ticket: { amount?: bigint; sent?: boolean } = {}
 
   const client = new x402Client()
   registerExactEvmScheme(client, { signer: toClientEvmSigner(account, opts.chainReader as never), networks: [NETWORK] })
@@ -84,7 +85,12 @@ export function createBuyer(opts: BuyerOptions): Buyer {
   })
 
   // Never follow redirects with a payment attached: a 3xx comes back to the caller, who decides.
-  const noRedirect: typeof fetch = (input, init) => baseFetch(input, { ...init, redirect: 'manual' })
+  const noRedirect: typeof fetch = (input, init) => {
+    // Only the paid retry carries a payment header. From the moment it goes out the payment may reach the server, whatever happens next.
+    const headers = (input as Partial<Request>).headers
+    if (headers?.has('payment-signature') || headers?.has('x-payment')) ticket.sent = true
+    return baseFetch(input, { ...init, redirect: 'manual' })
+  }
   const payFetch = wrapFetchWithPayment(noRedirect, client)
 
   let queue: Promise<unknown> = Promise.resolve()
@@ -98,7 +104,24 @@ export function createBuyer(opts: BuyerOptions): Buyer {
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e)
       const m = REFUSAL.exec(message)
-      if (!m) throw e
+      if (!m) {
+        // A failure before the payment left (bad URL, no route, signing trouble) is an ordinary error: nothing was sent. A failure after it (timeout, dropped
+        // connection) may have happened on either side of the transfer, so it comes back as a result that says the payment is unconfirmed.
+        if (!ticket.sent) throw e
+        return {
+          url,
+          status: 0,
+          ok: false,
+          paid: false,
+          authorizedMusd: ticket.amount === undefined ? null : formatUnits(ticket.amount, MUSD_DECIMALS),
+          settlement: null,
+          unsettled: { reason: 'request_failed', detail: message.slice(0, 200) },
+          contentType: null,
+          body: '',
+          bodyTruncated: false,
+          spend: guard.snapshot(),
+        }
+      }
       // The x402 library's own cap speaks in terms of options the operator cannot change from here; say what happened in plain words instead.
       if (/spendControls\.maxAmountPerPayment/.test(message)) throw new PaymentRefused(`the price is over the per-call limit of ${formatUnits(guard.perCall, MUSD_DECIMALS)} MUSD`)
       throw new PaymentRefused(m[1] ? m[1].trim() : message.replace(/^Failed to create payment payload: /, ''))
@@ -113,7 +136,8 @@ export function createBuyer(opts: BuyerOptions): Buyer {
         // An unreadable settlement header counts as no settlement: paid stays false.
       }
     }
-    const { text, truncated } = await readCapped(res, maxBodyBytes)
+    // A body that cannot be read to the end (dropped connection) must not hide a settlement that already happened: it counts as cut off.
+    const { text, truncated } = await readCapped(res, maxBodyBytes).catch(() => ({ text: '', truncated: true }))
     const contentType = res.headers.get('content-type')
     const result: PaidResult = {
       url,
@@ -122,7 +146,7 @@ export function createBuyer(opts: BuyerOptions): Buyer {
       paid: settlement !== null,
       authorizedMusd: ticket.amount === undefined ? null : formatUnits(ticket.amount, MUSD_DECIMALS),
       settlement,
-      unsettled: ticket.amount !== undefined && !settlement && !res.ok ? whyUnsettled(res) : null,
+      unsettled: ticket.sent && !settlement ? whyUnsettled(res) : null,
       contentType,
       body: text,
       bodyTruncated: truncated,
@@ -168,7 +192,7 @@ function whyUnsettled(res: Response): { reason: string; detail: string | null } 
       // Unreadable: fall through.
     }
   }
-  return { reason: `http_${res.status}`, detail: null }
+  return res.ok ? { reason: 'no_settlement_receipt', detail: 'the server answered but sent no settlement receipt' } : { reason: `http_${res.status}`, detail: null }
 }
 
 /** http or https only, no credentials in the URL, and the host must be on the allow list when there is one. */

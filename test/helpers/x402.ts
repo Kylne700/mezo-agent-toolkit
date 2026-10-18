@@ -1,10 +1,13 @@
 // Offline stand-ins for the outside world of the paid endpoint: the facilitator, the lens and the chain. Nothing here touches the network.
 import type { FacilitatorClient } from '@x402/core/server'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
-import type { Address, Hex } from 'viem'
+import { parseUnits, type Address, type Hex } from 'viem'
+import { createApp } from '../../src/app.ts'
 import { NETWORK } from '../../src/config.ts'
 import type { Lens } from '../../src/lens.ts'
+import { createBuyer } from '../../src/pay.ts'
 import type { LogReader } from '../../src/recover.ts'
+import { SpendGuard } from '../../src/spend.ts'
 import supported from '../fixtures/facilitator-supported.json' with { type: 'json' }
 
 export const PAYEE: Address = '0xa37a04189696C371f487ff8da414192D62f39A4f'
@@ -104,4 +107,22 @@ export function fakeChain(transfers: FakeTransfer[], o: { failReads?: boolean } 
     },
   }
   return chain
+}
+
+/**
+ * A complete paying world with no network: the real app (priced `price`) behind a fake facilitator, and a real buyer whose fetch goes straight into the app.
+ * `wrap` lets a test break or rewrite the network, for example to drop the connection exactly when the payment is sent.
+ */
+export function payWorld(o: { price?: string; perCall?: string; perSession?: string; allowedHosts?: string[]; wrap?: (real: typeof fetch) => typeof fetch } = {}) {
+  const facilitator = fakeFacilitator()
+  const app = createApp({ lens: fakeLens(), payTo: PAYEE, facilitator, price: o.price })
+  const calls: string[] = []
+  const real: typeof fetch = (input, init) => {
+    calls.push(input instanceof Request ? input.url : String(input))
+    return Promise.resolve(app.fetch(new Request(input as Request | string, init)))
+  }
+  const fetchImpl = o.wrap ? o.wrap(real) : real
+  const guard = new SpendGuard({ perCall: parseUnits(o.perCall ?? '0.01', 18), perSession: parseUnits(o.perSession ?? '0.1', 18) })
+  const buyer = createBuyer({ account: testAccount(), chainReader: zeroReader, guard, fetchImpl, allowedHosts: o.allowedHosts })
+  return { buyer, guard, facilitator, calls }
 }
