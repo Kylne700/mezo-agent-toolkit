@@ -5,10 +5,10 @@ Let an AI agent read Mezo and pay for those reads in MUSD, with no BTC for gas.
 Three parts, all on **Mezo testnet (chain 31611)**:
 
 1. **`MezoLens`**, a read-only contract that answers the questions an agent actually asks about Mezo in one `eth_call` each: how healthy is this MUSD trove, where does it stand in the redemption queue, what does this swap quote and cost in price impact, which veBTC / veMEZO locks does this wallet hold.
-2. **A pay-per-call HTTP endpoint** (`npm run serve`) that serves those reads for 0.001 MUSD per call using [x402](https://www.x402.org) through the public Mezo facilitator. The buyer signs a permit; the facilitator sends the transaction and pays the BTC gas. The same app also runs as a **Cloudflare Worker** with a console page (see [Live](#live) and [Deploy your own](#deploy-your-own)).
+2. **A pay-per-call HTTP endpoint** (`npm run serve`) that serves those reads for 0.001 MUSD per call using [x402](https://www.x402.org) through the public Mezo facilitator. The buyer signs a permit; the facilitator sends the transaction and pays the BTC gas. The same app is also packaged as a **Cloudflare Worker** with a console page; it has run locally under `wrangler dev` (see [Live](#live) and [Deploy your own](#deploy-your-own)).
 3. **An MCP server** (`npm run mcp`, stdio) with five tools: `trove_health`, `redemption_risk`, `pool_quote`, `ve_locks` and `pay_and_fetch`. `pay_and_fetch` pays x402 servers in MUSD under **hard spend limits that the operator sets in the server's environment and that no tool call can change**.
 
-Everything below was run for real on testnet. The logs are in [`evidence/`](evidence/).
+Everything below was run for real on testnet, except the Cloudflare deploy, which is prepared but not run. The logs are in [`evidence/`](evidence/).
 
 ## Mezo integration: contract, address, call, why
 
@@ -55,7 +55,7 @@ Every answer carries the block it was read at, exact integers under `raw` (big o
 
 The Worker on Cloudflare, Mezo testnet only: **{{LIVE_URL}}**
 
-<!-- Replace every {{LIVE_URL}} in this file with the address `npm run deploy` printed (https://..., no trailing slash), then delete this comment and the next paragraph. -->
+<!-- Replace every {{LIVE_URL}} in this file with the address `npm run deploy` printed (https://..., no trailing slash), then delete this comment and the next paragraph, and the words ", except the Cloudflare deploy, which is prepared but not run" in the first lines of this file once the live Worker has been checked. -->
 
 Not deployed yet. Until the address above is filled in, `npm run dev` runs the same Worker on your machine, at `http://127.0.0.1:8787`.
 
@@ -108,7 +108,7 @@ Add it to the host's MCP configuration with the repository as the working direct
 }
 ```
 
-The four read tools work with no environment at all. `pay_and_fetch` is **off** unless `MEZO_KEY_FILE` names a file with a funded Mezo testnet key (64 hex characters, the server reads it itself and never prints it). Limits default to 0.01 MUSD per call and 0.1 MUSD per session; a value that does not parse switches payments off instead of falling back. `MEZO_PAY_ALLOWED_HOSTS` is a comma-separated list of the only hosts the tool may call (`host` means any port, `host:port` that port only). Unset or blank, it is `127.0.0.1:8402,localhost:8402`: our own endpoint as `npm run serve` starts it, and nothing else. Add a seller's host to pay it. After you deploy the Worker, its host (host only, no `https://`) goes into the `LIVE_HOSTS` list in `src/mcp-env.ts`, which is empty on purpose until then, or into `MEZO_PAY_ALLOWED_HOSTS`; a test covers both, and the console page's MCP snippet already names the host it is served from.
+The four read tools work with no environment at all. `pay_and_fetch` is **off** unless `MEZO_KEY_FILE` names a file with a funded Mezo testnet key (64 hex characters, the server reads it itself and never prints it). Limits default to 0.01 MUSD per call and 0.1 MUSD per session; a value that does not parse switches payments off instead of falling back. `MEZO_PAY_ALLOWED_HOSTS` is a comma-separated list of the only hosts the tool may call (`host` means any port, `host:port` that port only). Unset or blank, it is `127.0.0.1:8402,localhost:8402`: our own endpoint as `npm run serve` starts it, and nothing else. Add a seller's host to pay it. After you deploy the Worker, its host (host only, no `https://`) goes into the `LIVE_HOSTS` list in `src/mcp-env.ts`, which is empty on purpose until then, or into `MEZO_PAY_ALLOWED_HOSTS`; a test covers the `LIVE_HOSTS` line, the environment variable is what the Worker smoke uses to pay (it lists `127.0.0.1:8787`), and the console page's MCP snippet already names the host it is served from.
 
 ### Scripts that spend a little testnet MUSD
 
