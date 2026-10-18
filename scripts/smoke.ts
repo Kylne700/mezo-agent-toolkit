@@ -59,7 +59,7 @@ verdict(`redemption_risk, one call, for ${fifth}: ${single.redeemableTrovesAhead
 ])
 const pages = Math.ceil(Number(wantQueue.fields.stepsWalked) / 2)
 const paged = await lens.redemptionRisk(fifth, { blockNumber: B, pageSteps: 2 })
-verdict(`redemption_risk, paged two nodes per call (${pages} calls): same result as the direct walk`, differences('answer', paged, wantQueue))
+verdict(`redemption_risk, paged two nodes per call (${pages} calls): same result as the direct walk, and the same system part`, [...differences('answer', paged, wantQueue), ...systemDifferences('system', paged.system, wantSystem)])
 const wantCapped = await directQueue(pub, fifth, B, 2)
 const capped = await lens.redemptionRisk(fifth, { blockNumber: B, pageSteps: 2, maxSteps: 2 })
 verdict('redemption_risk, stopped by the step cap: walkComplete is false and the counters equal a direct 2-node walk', [...differences('answer', capped, wantCapped), ...(capped.walkComplete ? ['walkComplete should be false'] : [])])

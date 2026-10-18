@@ -1,22 +1,22 @@
-smoke test, Mezo testnet (chain 31611), read-only, no key   2026-10-18T17:56:24.778Z
+smoke test, Mezo testnet (chain 31611), read-only, no key   2026-10-18T18:02:04.307Z
 PASS  the RPC is chain 31611
 PASS  eth_getCode(0xBDfD1C0B544319E25b4b99ee1f355e55230f6130) is not empty
 PASS  the lens code is 10651 bytes, as recorded when it was deployed
 
-pinned block 16230229 (2026-10-18T17:56:07.000Z): each number is read once through the lens and once straight from the protocol contracts
+pinned block 16230300 (2026-10-18T18:01:47.000Z): each number is read once through the lens and once straight from the protocol contracts
 PASS  trove_health, tail trove 0xDA04759E54728B6636Fe48F7c9795c7B609bAaAa: 10 raw integers and 9 shown amounts equal the direct reads
-    Trove is below the 110% minimum ratio (109.74%) and can be liquidated.
+    Trove is below the 110% minimum ratio (109.8%) and can be liquidated.
 PASS  trove_health, fifth trove from the tail 0xbe65D538E887D09a73354172c4411335fC2cbDb6: 10 raw integers and 9 shown amounts equal the direct reads
-    Trove holds 115.24% collateral against a 110% minimum; BTC can fall 4.55% to about $77393.37 before liquidation.
+    Trove holds 115.31% collateral against a 110% minimum; BTC can fall 4.6% to about $77393.38 before liquidation.
 PASS  system_snapshot: 14 raw values equal the direct reads, and the first redeemable trove equals the HintHelpers answer (0x03ffb3720214bDB0DB5F5F71b6cE16B008f762d2)
-PASS  redemption_risk, one call, for 0xbe65D538E887D09a73354172c4411335fC2cbDb6: 3 redeemable troves and 5655.127447 MUSD ahead equal a node-by-node walk from the tail
-PASS  redemption_risk, paged two nodes per call (3 calls): same result as the direct walk
+PASS  redemption_risk, one call, for 0xbe65D538E887D09a73354172c4411335fC2cbDb6: 3 redeemable troves and 5655.128119 MUSD ahead equal a node-by-node walk from the tail
+PASS  redemption_risk, paged two nodes per call (3 calls): same result as the direct walk, and the same system part
 PASS  redemption_risk, stopped by the step cap: walkComplete is false and the counters equal a direct 2-node walk
 PASS  pool_quote 0.001 BTC -> 78.70721395 MUSD (impact 0%): equals the router's own getAmountsOut and reserves
 PASS  pool_quote 100 MUSD -> 0.00126951 BTC (impact 0%): equals the router's own getAmountsOut and reserves
 PASS  pool_quote 100 BTC -> 7309883.06764521 MUSD (impact 7.05%): equals the router's own getAmountsOut and reserves
 PASS  ve_locks for 0x86969a3C99dAEaC9572E579a453593AA9f78A10e: 1 of 1 veBTC + 0 veMEZO locks equal the direct reads (unlock time, seconds left, voting power, voted)
-PASS  ve_locks reports a running lock (veBTC #381, 2095433 seconds left at the pinned block)
+PASS  ve_locks reports a running lock (veBTC #381, 2095093 seconds left at the pinned block)
 
 PASS  GET /health answers 200 without payment (got 200)
 PASS  unpaid GET /v1/trove/:address answers 402 with a challenge for 0.001 MUSD to the payee on eip155:31611

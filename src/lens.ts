@@ -351,7 +351,7 @@ export function createLens(client: ReadClient, address: Address = deployedLensAd
       const [m, health, sys] = await Promise.all([
         meta(block),
         read<TroveHealthRaw>(block, 'troveHealth', [borrower]),
-        read<SystemSnapshotRaw>(block, 'systemSnapshot', [BigInt(pageSteps)]),
+        read<SystemSnapshotRaw>(block, 'systemSnapshot', [BigInt(DEFAULT_PAGE_STEPS)]), // its own scan, as in systemSnapshot(): a small page size must not cut it short
       ])
       // Page through the queue at this one block, adding up the per-page counters. Stop when the borrower is found, the list ends or the global cap hits.
       let cursor: Address = zeroAddress

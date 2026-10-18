@@ -23,7 +23,7 @@ if (hasList) {
   if (n !== 0) { bad++; console.log(`DENYLIST ${n} line(s) in commit metadata`) }
 }
 const home = /(\/home\/[a-z]|\/Users\/[A-Za-z]|[A-Z]:\\Users\\)/
-const email = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}/g
+const email = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/g
 const okEmail = (e) => e.endsWith('@users.noreply.github.com') || e === 'noreply@anthropic.com'
 for (const f of files) {
   const text = readFileSync(root + f, 'latin1')

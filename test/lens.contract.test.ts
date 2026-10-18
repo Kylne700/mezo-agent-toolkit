@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { type Hex, getAddress, zeroAddress } from 'viem'
 import { buildLensArtifact, buildMocks } from '../scripts/compile.mjs'
 import { Chain, NOW, type Compiled } from './helpers/evm.ts'
+import { createLens, type ReadClient } from '../src/lens.ts'
 
 const E18 = 10n ** 18n
 const PRICE = 80_000n * E18
@@ -267,6 +268,47 @@ describe('MezoLens contract (against mock Mezo contracts in an in-process EVM)',
       expect(await locks(addr(0x0ab3), 10n)).toEqual([[], 0n, 0n])
       const [list] = await locks(other, 10n)
       expect(list[0].amount).toBe(0n)
+    })
+  })
+  describe('redemption_risk in the TypeScript lens (the pages of the walk are added up)', () => {
+    const calls: { functionName: string; blockNumber?: bigint }[] = []
+    const client: ReadClient = {
+      getBlockNumber: async () => 7n,
+      getBlock: async () => ({ timestamp: NOW }),
+      readContract: async ({ functionName, args, blockNumber }: { functionName: string; args: unknown[]; blockNumber?: bigint }) => {
+        calls.push({ functionName, blockNumber })
+        return w.lens(functionName, ...args)
+      },
+    }
+    const risk = (borrower: Hex, o?: { pageSteps?: number; maxSteps?: number }) => createLens(client, w.a.lens).redemptionRisk(borrower, o)
+    const queueReads = () => calls.filter((c) => c.functionName === 'redemptionQueue').length
+
+    it('pages of any size add up to the single call, and every page is read at the one pinned block', async () => {
+      const whole = await risk(T.t4)
+      expect(whole).toMatchObject({ found: true, walkComplete: true, stepsWalked: 5, redeemableTrovesAhead: 2, redeemableMusdAhead: '9200', skippedBelowMcr: 2 }) // 3300 + 5900 MUSD
+      calls.length = 0
+      // 5 nodes in front of and including the borrower: 0 is clamped to 1 node per page, 1000 to one page of up to 300
+      const pages = [[0, 5], [1, 5], [2, 3], [3, 2], [1000, 1]] as const
+      for (const [pageSteps, reads] of pages) {
+        const before = queueReads()
+        expect(await risk(T.t4, { pageSteps })).toEqual(whole)
+        expect(queueReads() - before).toBe(reads)
+      }
+      expect(calls.every((c) => c.blockNumber === 7n)).toBe(true)
+    })
+
+    it('stops at the global step cap, says the walk is incomplete, and keeps what it counted', async () => {
+      for (const o of [{ pageSteps: 1, maxSteps: 2 }, { pageSteps: 2, maxSteps: 2 }]) {
+        expect(await risk(T.t4, o)).toMatchObject({ found: false, walkComplete: false, stepsWalked: 2, redeemableTrovesAhead: 0, skippedBelowMcr: 2 })
+      }
+      // a cap exactly as long as the walk still finds the borrower
+      expect(await risk(T.t4, { pageSteps: 2, maxSteps: 5 })).toMatchObject({ found: true, walkComplete: true, stepsWalked: 5 })
+    })
+
+    it('reads one page for a borrower without a trove', async () => {
+      calls.length = 0
+      expect(await risk(addr(0x0ab4))).toMatchObject({ listed: false, found: false, walkComplete: true })
+      expect(queueReads()).toBe(1)
     })
   })
 })
