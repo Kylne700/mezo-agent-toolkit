@@ -217,6 +217,14 @@ describe('buyerFromEnv', () => {
     const r = buyerFromEnv({ MEZO_KEY_FILE: keyFile, MEZO_PAY_ALLOWED_HOSTS: ' a.test , b.test ' }, zeroReader)
     await expect(r.buyer!.fetchPaid('http://evil.test/')).rejects.toThrow(/not on the allow list/)
   })
+
+  it('allows only our own endpoint when the allow list is unset or blank, never any host', async () => {
+    for (const hosts of [undefined, ' , ']) {
+      const r = buyerFromEnv({ MEZO_KEY_FILE: keyFile, MEZO_PAY_ALLOWED_HOSTS: hosts }, zeroReader)
+      // Port 9 is closed here: without the default these would be real requests and fail with a connection error instead.
+      for (const u of ['http://127.0.0.1:9/', 'http://localhost:9/']) await expect(r.buyer!.fetchPaid(u), `${hosts} ${u}`).rejects.toThrow(/not on the allow list/)
+    }
+  })
 })
 
 describe('the real stdio entry', () => {

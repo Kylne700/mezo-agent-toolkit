@@ -50,7 +50,7 @@ export interface BuyerOptions {
   guard: SpendGuard
   /** Replace the network layer (tests). Defaults to global fetch. */
   fetchImpl?: typeof fetch
-  /** Only these hostnames may be called. Empty or missing means any host. */
+  /** Only these hosts may be called: a hostname means any port, `host:port` that port only. Empty or missing means any host (mcp-env never passes that). */
   allowedHosts?: string[]
   timeoutMs?: number
   maxBodyBytes?: number
@@ -208,7 +208,7 @@ export function checkUrl(raw: string, allowedHosts: string[]): string {
   }
   if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('url must start with http:// or https://')
   if (u.username || u.password) throw new Error('url must not contain a user name or password')
-  if (allowedHosts.length > 0 && !allowedHosts.includes(u.hostname.toLowerCase())) throw new Error(`host ${u.hostname} is not on the allow list (MEZO_PAY_ALLOWED_HOSTS)`)
+  if (allowedHosts.length > 0 && !allowedHosts.includes(u.hostname) && !allowedHosts.includes(u.host)) throw new Error(`host ${u.host} is not on the allow list (MEZO_PAY_ALLOWED_HOSTS)`)
   return u.toString()
 }
 

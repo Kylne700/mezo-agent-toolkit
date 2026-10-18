@@ -115,6 +115,12 @@ describe('checkUrl', () => {
     expect(checkUrl('https://API.example.com/x', ['api.example.com'])).toBe('https://api.example.com/x')
     expect(() => checkUrl('https://api.example.com.evil.test/x', ['api.example.com'])).toThrow(/allow list/)
   })
+
+  it('takes an entry with a port to mean that port only', () => {
+    expect(checkUrl('http://127.0.0.1:8402/v1/x', ['127.0.0.1:8402'])).toBe('http://127.0.0.1:8402/v1/x')
+    expect(() => checkUrl('http://127.0.0.1:8403/', ['127.0.0.1:8402'])).toThrow(/allow list/)
+    expect(checkUrl('http://127.0.0.1:8403/', ['127.0.0.1'])).toBe('http://127.0.0.1:8403/')
+  })
 })
 
 describe('readCapped', () => {

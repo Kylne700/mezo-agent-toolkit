@@ -85,7 +85,7 @@ Add it to the host's MCP configuration with the repository as the working direct
 }
 ```
 
-The four read tools work with no environment at all. `pay_and_fetch` is **off** unless `MEZO_KEY_FILE` names a file with a funded Mezo testnet key (64 hex characters, the server reads it itself and never prints it). Limits default to 0.01 MUSD per call and 0.1 MUSD per session; a value that does not parse switches payments off instead of falling back. `MEZO_PAY_ALLOWED_HOSTS` is an optional comma-separated list of the only hosts the tool may call.
+The four read tools work with no environment at all. `pay_and_fetch` is **off** unless `MEZO_KEY_FILE` names a file with a funded Mezo testnet key (64 hex characters, the server reads it itself and never prints it). Limits default to 0.01 MUSD per call and 0.1 MUSD per session; a value that does not parse switches payments off instead of falling back. `MEZO_PAY_ALLOWED_HOSTS` is a comma-separated list of the only hosts the tool may call (`host` means any port, `host:port` that port only). Unset or blank, it is `127.0.0.1:8402,localhost:8402`: our own endpoint as `npm run serve` starts it, and nothing else. Add a seller's host to pay it.
 
 ### Scripts that spend a little testnet MUSD
 
@@ -126,7 +126,7 @@ The paid endpoint now asks the chain itself after a reported settlement failure:
 * **The MCP read tools are free direct lens reads.** They do not go through x402. The paid path is the HTTP endpoint and `pay_and_fetch`; this keeps reads usable with no wallet, and shows paying in MUSD where an agent needs to buy data from someone else.
 * **The session limit belongs to one server process.** A host that restarts the server starts a new session total. The guard never refunds: a payment that was charged but not confirmed still counts as spent.
 * **The per-call branch of the guard is proven by unit tests only.** In a live over-price case the x402 client library's own spend control, set to the same limit, refuses first; the log says so.
-* **`pay_and_fetch` is a general GET.** Without `MEZO_PAY_ALLOWED_HOSTS` it will call any http or https host, local ones included, and it only ever pays MUSD on Mezo testnet. Set the allow list.
+* **`pay_and_fetch` calls only the hosts on its allow list**, by default just our local endpoint, and it only ever pays MUSD on Mezo testnet. Listing a bare host such as `127.0.0.1` opens every port on it to a plain GET.
 * Cancelling an MCP request does not abort a payment that is already in flight. The recovery memory is per process.
 * The readable fields are cut off at a fixed number of places; `raw` is exact.
 * The demo payee is a throwaway testnet address. Total paid in x402 payments during development: 0.025 MUSD (the payee holds exactly that).
