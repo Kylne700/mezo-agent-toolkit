@@ -19,7 +19,7 @@ export interface LogReader {
   getTransaction(args: any): Promise<unknown> // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
-type TransferLog = { transactionHash: string | null; args: { value?: bigint } }
+type TransferLog = { transactionHash: string | null; blockNumber: bigint | null; transactionIndex: number | null; args: { value?: bigint } }
 
 export interface RecoveryOptions {
   /** How far back to look for the transfer, in blocks (about 5 seconds each on Mezo). Default 150, about 12 minutes. */
@@ -81,10 +81,11 @@ export function settlementRecovery(chain: LogReader, o: RecoveryOptions = {}): S
       }
       for (const log of [...logs].reverse()) {
         const hash = log.transactionHash
-        if (!hash || log.args.value !== want || used.has(hash.toLowerCase())) continue
+        if (!hash || log.blockNumber == null || log.transactionIndex == null || log.args.value !== want || used.has(hash.toLowerCase())) continue
         try {
-          const tx = (await chain.getTransaction({ hash })) as { input?: string } | null
-          if (!tx?.input?.toLowerCase().includes(needle)) continue
+          // By block and index, not by hash: Mezo's RPC was seen answering null by hash for every mined transaction for minutes while this still worked.
+          const tx = (await chain.getTransaction({ blockNumber: log.blockNumber, index: log.transactionIndex })) as { hash?: string; input?: string } | null
+          if (tx?.hash?.toLowerCase() !== hash.toLowerCase() || !tx.input?.toLowerCase().includes(needle)) continue
         } catch {
           continue // This transaction could not be read just now; the next look tries again.
         }

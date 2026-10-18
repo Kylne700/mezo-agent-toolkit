@@ -89,8 +89,9 @@ export interface FakeTransfer {
   input: string | (() => string)
 }
 
-/** A chain with a fixed list of MUSD transfers. getLogs answers with all of them (none for the first blindLooks calls, like a node that lags); getTransaction knows only their hashes. */
-export function fakeChain(transfers: FakeTransfer[], o: { failReads?: boolean; blindLooks?: number } = {}): LogReader & { logCalls: unknown[] } {
+/** A chain with a fixed list of MUSD transfers, all in block 999. getLogs answers with all of them (none for the first blindLooks calls, like a node that lags);
+ *  getTransaction finds them by hash (unless hashIndexDown, as seen live on Mezo's RPC) or by block and index. */
+export function fakeChain(transfers: FakeTransfer[], o: { failReads?: boolean; blindLooks?: number; hashIndexDown?: boolean } = {}): LogReader & { logCalls: unknown[] } {
   const chain = {
     logCalls: [] as unknown[],
     async getBlockNumber() {
@@ -100,12 +101,12 @@ export function fakeChain(transfers: FakeTransfer[], o: { failReads?: boolean; b
     async getLogs(args: unknown) {
       chain.logCalls.push(args)
       if (chain.logCalls.length <= (o.blindLooks ?? 0)) return []
-      return transfers.map((t) => ({ transactionHash: t.hash, args: { value: t.value } }))
+      return transfers.map((t, i) => ({ transactionHash: t.hash, blockNumber: 999n, transactionIndex: i, args: { value: t.value } }))
     },
-    async getTransaction({ hash }: { hash: Hex }) {
-      const t = transfers.find((x) => x.hash === hash)
+    async getTransaction(q: { hash?: Hex; blockNumber?: bigint; index?: number }) {
+      const t = q.hash ? (o.hashIndexDown ? undefined : transfers.find((x) => x.hash === q.hash)) : q.blockNumber === 999n ? transfers[q.index!] : undefined
       if (!t) throw new Error('transaction not found')
-      return { input: typeof t.input === 'function' ? t.input() : t.input }
+      return { hash: t.hash, input: typeof t.input === 'function' ? t.input() : t.input }
     },
   }
   return chain

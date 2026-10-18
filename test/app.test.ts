@@ -192,6 +192,12 @@ describe('when the facilitator reports a failed settlement', () => {
     expect(results.filter((r) => r && r.recovered)).toHaveLength(1)
   })
 
+  it('finds the payment while the RPC answers null by hash for every mined transaction (seen live for minutes), by reading it by block and index', async () => {
+    const facilitator = fakeFacilitator(receiptCrash)
+    const { buyer } = setup({ facilitator, chain: fakeChain([theTransfer(facilitator)], { hashIndexDown: true }) })
+    expect(await buyer.fetchPaid(`http://app.test/v1/trove/${TROVE}`)).toMatchObject({ status: 200, paid: true })
+  })
+
   it('keeps looking while the node does not show the mined payment yet (seen live: three looks were not enough)', async () => {
     const facilitator = fakeFacilitator(receiptCrash)
     const { buyer } = setup({ facilitator, chain: fakeChain([theTransfer(facilitator)], { blindLooks: 3 }) })
