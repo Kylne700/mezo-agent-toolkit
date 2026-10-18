@@ -5,7 +5,7 @@ Let an AI agent read Mezo and pay for those reads in MUSD, with no BTC for gas.
 Three parts, all on **Mezo testnet (chain 31611)**:
 
 1. **`MezoLens`**, a read-only contract that answers the questions an agent actually asks about Mezo in one `eth_call` each: how healthy is this MUSD trove, where does it stand in the redemption queue, what does this swap quote and cost in price impact, which veBTC / veMEZO locks does this wallet hold.
-2. **A pay-per-call HTTP endpoint** (`npm run serve`) that serves those reads for 0.001 MUSD per call using [x402](https://www.x402.org) through the public Mezo facilitator. The buyer signs a permit; the facilitator sends the transaction and pays the BTC gas.
+2. **A pay-per-call HTTP endpoint** (`npm run serve`) that serves those reads for 0.001 MUSD per call using [x402](https://www.x402.org) through the public Mezo facilitator. The buyer signs a permit; the facilitator sends the transaction and pays the BTC gas. The same app also runs as a **Cloudflare Worker** with a console page (see [Live](#live) and [Deploy your own](#deploy-your-own)).
 3. **An MCP server** (`npm run mcp`, stdio) with five tools: `trove_health`, `redemption_risk`, `pool_quote`, `ve_locks` and `pay_and_fetch`. `pay_and_fetch` pays x402 servers in MUSD under **hard spend limits that the operator sets in the server's environment and that no tool call can change**.
 
 Everything below was run for real on testnet. The logs are in [`evidence/`](evidence/).
@@ -39,6 +39,7 @@ Also used: Mezo's native BTC and MEZO ERC-20 precompiles (`0x7b7C…0000`, `0x7b
 | 402 then 200 on all four paid routes ([`evidence/gate-402-then-200.log`](evidence/gate-402-then-200.log)) | [`0xb2063d3a…2aa8`](https://explorer.test.mezo.org/tx/0xb2063d3a1c8c38ea19bdefd537938c528affc2fce3fcf4dc7218eeaa31752aa8), [`0x2697a4f4…6a9c`](https://explorer.test.mezo.org/tx/0x2697a4f4189a5559b19815ebd7f7a7bea5e4e703a4400d703136e7c3929a6a9c), [`0x21e1ec30…81ea`](https://explorer.test.mezo.org/tx/0x21e1ec30d4a3e78abac9ac74ceceef7e89f794da6c4ac4eb6d89d382941881ea), [`0x591aa181…6b18`](https://explorer.test.mezo.org/tx/0x591aa18114ded99f9f574addc25d283d703b6a6eafa36ec87302c8235faf6b18) |
 | Two payments made by an AI-agent tool call over MCP ([`evidence/mcp-session.log`](evidence/mcp-session.log)) | [`0x7b35e64c…0fcb`](https://explorer.test.mezo.org/tx/0x7b35e64ca7e324b39f26a0bf302a60ab407313bdf18d03c1b80bb69cfd3d0fcb), [`0xcbca7dd3…3893c`](https://explorer.test.mezo.org/tx/0xcbca7dd38472da280e4d69fb8aa84db70fe1e8b6742b963e692effba3463893c) |
 | The same two payments on the code after the payment review ([`evidence/mcp-session-review-1-final.log`](evidence/mcp-session-review-1-final.log)) | [`0xb15e02af…9119`](https://explorer.test.mezo.org/tx/0xb15e02af41c68da22d05e63afeeed84165cfb8f6446224a83504e97ee9cd9119), [`0x1113ccc1…b1c9`](https://explorer.test.mezo.org/tx/0x1113ccc138a4583ef40290af749641ad8fd951a255c740167829ed7df8a6b1c9) |
+| Two payments to the Worker running under `wrangler dev`, made by `pay_and_fetch` ([`evidence/worker-smoke-run1.log`](evidence/worker-smoke-run1.log), [`evidence/worker-smoke.log`](evidence/worker-smoke.log)) | [`0xaad142ca…84b1`](https://explorer.test.mezo.org/tx/0xaad142ca68e61a9735dc6bd078bfdc6041922cccaeb2444293068dd2210984b1), [`0x779df435…d4d8`](https://explorer.test.mezo.org/tx/0x779df435a79b4a61486b17ebb300898a2f63590c2188974f9c94a46f4a89d4d8) |
 
 In every settlement the explorer shows the transaction sent by the facilitator to the x402 proxy, one MUSD `Transfer` of exactly 0.001 MUSD from the buyer to the payee, and a buyer BTC balance and nonce that did not change.
 
@@ -50,15 +51,36 @@ In every settlement the explorer shows the transaction sent by the facilitator t
 
 Every answer carries the block it was read at, exact integers under `raw` (big ones as strings), and readable numbers that are cut off, never rounded. `redemption_risk` answers: how many redeemable troves and how much MUSD stand in front of this trove, how many below-minimum troves a redemption skips, which trove would be hit first, and whether the walk finished or hit the step cap.
 
+## Live
+
+The Worker on Cloudflare, Mezo testnet only: **{{LIVE_URL}}**
+
+<!-- Replace every {{LIVE_URL}} in this file with the address `npm run deploy` printed (https://..., no trailing slash), then delete this comment and the next paragraph. -->
+
+Not deployed yet. Until the address above is filled in, `npm run dev` runs the same Worker on your machine, at `http://127.0.0.1:8787`.
+
+* `{{LIVE_URL}}/` is the console page: what this is, the network, the price of one call in MUSD, the payee and the lens with explorer links, a `curl` that prints the live 402 challenge, an MCP configuration for `pay_and_fetch`, and the latest paid calls, read from the chain.
+* `{{LIVE_URL}}/v1/trove/<address>` (also `/v1/redemption/<address>`, `/v1/ve/<address>` and `/v1/pool/quote`) is the paid API. Without a payment it answers `402` and the x402 challenge; with one, `200` and the data.
+* `{{LIVE_URL}}/status` is the price, the payee and the last settlement that Worker instance saw, as JSON. `{{LIVE_URL}}/api/payments` is the recent payments to the payee, as JSON, read from the chain and kept for 45 seconds.
+
+The same challenge from a terminal:
+
+```
+curl -si {{LIVE_URL}}/v1/trove/0xDA04759E54728B6636Fe48F7c9795c7B609bAaAa | grep -i '^payment-required:' | cut -d' ' -f2 | tr -d '\r' | base64 -d
+```
+
+To let an agent pay it with `pay_and_fetch`, list its host first (step 5 of [Deploy your own](#deploy-your-own)); until then the tool refuses it.
+
 ## Run it
 
 Needs Node 22.12 or newer (22, 24 or 26). Reading needs no key and no funds.
 
 ```
 npm ci
-npm test                  # 112 unit and contract tests, offline
+npm test                  # 173 unit and contract tests, offline
 npm run smoke             # live, read-only: the lens against direct reads of the protocol, plus the unpaid 402 challenge
 npm run serve             # the pay-per-call endpoint on 127.0.0.1:8402 (PORT, HOST, PAYEE_ADDRESS)
+npm run dev               # the same endpoint plus the console page, as a Cloudflare Worker on 127.0.0.1:8787, through wrangler dev (no login, no deploy)
 npm run mcp               # the MCP server on stdio
 ```
 
@@ -86,7 +108,7 @@ Add it to the host's MCP configuration with the repository as the working direct
 }
 ```
 
-The four read tools work with no environment at all. `pay_and_fetch` is **off** unless `MEZO_KEY_FILE` names a file with a funded Mezo testnet key (64 hex characters, the server reads it itself and never prints it). Limits default to 0.01 MUSD per call and 0.1 MUSD per session; a value that does not parse switches payments off instead of falling back. `MEZO_PAY_ALLOWED_HOSTS` is a comma-separated list of the only hosts the tool may call (`host` means any port, `host:port` that port only). Unset or blank, it is `127.0.0.1:8402,localhost:8402`: our own endpoint as `npm run serve` starts it, and nothing else. Add a seller's host to pay it.
+The four read tools work with no environment at all. `pay_and_fetch` is **off** unless `MEZO_KEY_FILE` names a file with a funded Mezo testnet key (64 hex characters, the server reads it itself and never prints it). Limits default to 0.01 MUSD per call and 0.1 MUSD per session; a value that does not parse switches payments off instead of falling back. `MEZO_PAY_ALLOWED_HOSTS` is a comma-separated list of the only hosts the tool may call (`host` means any port, `host:port` that port only). Unset or blank, it is `127.0.0.1:8402,localhost:8402`: our own endpoint as `npm run serve` starts it, and nothing else. Add a seller's host to pay it. After you deploy the Worker, its host (host only, no `https://`) goes into the `LIVE_HOSTS` list in `src/mcp-env.ts`, which is empty on purpose until then, or into `MEZO_PAY_ALLOWED_HOSTS`; a test covers both, and the console page's MCP snippet already names the host it is served from.
 
 ### Scripts that spend a little testnet MUSD
 
@@ -95,7 +117,18 @@ These need `MEZO_KEY_FILE` pointing at a funded Mezo testnet key (the faucet giv
 ```
 npm run gate              # 402 then 200 on the four paid routes, four payments of 0.001 MUSD
 npm run mcp:session       # the real stdio server, every tool, two payments of 0.001 MUSD
+npm run worker:smoke      # starts the Worker with wrangler dev, checks it, pays it once (0.001 MUSD) and rewrites evidence/worker-smoke.log; add `-- --no-pay` to pay nothing and write no log
 ```
+
+## Deploy your own
+
+You need a free Cloudflare account. The Worker holds no secret, only the payee's address. `wrangler` is not a dependency of this repository (it would add LGPL image libraries, which `npm run check:licences` rejects); `npm run dev` and `npm run deploy` run `wrangler@4.151.1` through `npx --yes`, which downloads it on first use.
+
+1. `npm ci`
+2. `npx --yes wrangler@4.151.1 login` and sign in to Cloudflare in the browser.
+3. Optional: in `wrangler.toml`, set `PAYEE_ADDRESS` to your own testnet address to receive the payments (the default is a throwaway one). `PRICE`, `RPC_URL` and `FACILITATOR_URL` are in the same `[vars]` block.
+4. `npm run deploy` publishes the Worker `mezo-agent-toolkit` and prints its address, which looks like `https://mezo-agent-toolkit.<your-subdomain>.workers.dev`. Open it and check that `<address>/status` answers with JSON.
+5. Let agents pay it: add the host (host only) to `LIVE_HOSTS` in `src/mcp-env.ts`, or to `MEZO_PAY_ALLOWED_HOSTS` in the MCP server's environment. Then fill in the address in the Live section above (its comment says how).
 
 ## How payments and limits work
 
@@ -114,10 +147,12 @@ The paid endpoint asks the chain itself about every settlement, whatever the fac
 
 | Check | Result (committed evidence) |
 |---|---|
-| `npm test` | 125 tests in 8 files: the lens contract against mock Mezo contracts in an in-process EVM (including the paged redemption walk), the spend guard, the buyer against a stub facilitator, the HTTP app, the MCP server over stdio, and negative tests that plant a fake key, a fake denylist term, a home path, an email and bad licences and expect the three repo checks to fail |
-| `npm run smoke` | 23 checks passed ([`evidence/smoke.log`](evidence/smoke.log)). At one pinned block, the lens's trove health (two troves), system snapshot, redemption queue (one call, paged two nodes per call, and stopped by the step cap), three pool quotes (one with 7.05% price impact) and a live veBTC lock equal reads taken straight from TroveManager, SortedTroves, PriceFeed, HintHelpers, the router and veBTC/veMEZO, field by field, and the shown text equals the exact value cut off. Mutating the comparison code made them fail. It also checks that every address in the table above has code on chain and is one the code uses, and that the 11 transactions linked here succeeded on the explorer |
+| `npm test` | 173 tests in 10 files: the lens contract against mock Mezo contracts in an in-process EVM (including the paged redemption walk), the spend guard, the buyer against a stub facilitator, the HTTP app, the MCP server over stdio, the Worker (its entry file, its settings, the console page with its security headers, the recent-payments reader and the allowed-host list), and negative tests that plant a fake key, a fake denylist term, a home path, an email and bad licences and expect the three repo checks to fail |
+| `npm run smoke` | 23 checks passed ([`evidence/smoke.log`](evidence/smoke.log)). At one pinned block, the lens's trove health (two troves), system snapshot, redemption queue (one call, paged two nodes per call, and stopped by the step cap), three pool quotes (one with 7.05% price impact) and a live veBTC lock equal reads taken straight from TroveManager, SortedTroves, PriceFeed, HintHelpers, the router and veBTC/veMEZO, field by field, and the shown text equals the exact value cut off. Mutating the comparison code made them fail. It also checks that every address in the table above has code on chain and is one the code uses, and that every transaction this README links succeeded on the explorer (11 when the committed log was taken; the README links more now and the script checks whatever it finds) |
 | x402 gate | 402 then 200 on all four paid routes, four settlements confirmed ([`evidence/gate-402-then-200.log`](evidence/gate-402-then-200.log)) |
 | `npm run mcp:session` | 29 checks passed ([`evidence/mcp-session.log`](evidence/mcp-session.log)): the five tools are listed, `pay_and_fetch` takes only a `url`, every read answer equals direct reads at the block it names, two payments settle (explorer confirms status, block, sender, token transfer), a $0.05 price is refused against a 0.002 MUSD limit, a third payment is refused by the session limit with the facilitator never asked, a host outside the allow list and a bad URL are refused, a free URL is fetched without paying, the buyer's MUSD fell by exactly 0.002 while its BTC balance and nonce did not move, the server process exited, and no answer or log line contained the key, its path or a home path. After the payment review the same 29 checks passed on the final code ([`evidence/mcp-session-review-1-final.log`](evidence/mcp-session-review-1-final.log)) |
+| `npm run worker:smoke` | 28 checks passed against the Worker under `wrangler dev` ([`evidence/worker-smoke.log`](evidence/worker-smoke.log); the first paid run, with an earlier console page, also passed 28: [`evidence/worker-smoke-run1.log`](evidence/worker-smoke-run1.log)): the console page (a CSP that allows only its own inline script and style, nothing loaded from outside, the price, payee and lens as `/status` reports them, and the `curl` line on the page prints the same challenge); `/status`; `/api/payments` (10 payments read from the chain, the second call answered from the cache); the 402 challenge (x402 v2, 0.001 MUSD to the payee, gas sponsoring); a bad address gets `400` before any challenge and a malformed payment header gets `402`. Through the MCP server (limits 0.01 per call, 0.1 in total, only `127.0.0.1:8787` allowed) `localhost:8787` is refused and no MUSD moves, then one `pay_and_fetch` pays 0.001 MUSD and returns the trove health that was asked for. The buyer's MUSD fell by exactly 0.001 and the payee's rose by exactly that, the buyer sent no transaction, the explorer confirms the settlement, `/status` and `/api/payments` show it, and nothing the MCP server or the Worker printed contains the key |
+| Console page in a browser | 51 checks passed ([`evidence/console-qa.log`](evidence/console-qa.log); `scripts/console-qa.mjs`, headless Chromium, run by hand because playwright-core and axe-core are not dependencies): light and dark at 1280 px and 390 px, and light at 320 px. The page's own script runs under its CSP and an injected script does not; nothing is requested from outside; no console error; no sideways overflow; axe-core 4.14.0 finds 0 violations; Tab reaches every focusable element once with a focus ring of at least 2 px and 3:1 contrast; every link is at least 44 x 44 px. A script cannot judge how the page looks: the screenshots were looked at by hand and are not kept in the repository |
 | `npm run check` | no key value anywhere git could publish it (working tree, index and all history), no GPL, LGPL or AGPL package (the one weak-copyleft licence, MPL-2.0, appears only in dev tools), and the privacy denylist, home path and email scan are clean over every committed and evidence file |
 
 ## Limits, stated plainly
@@ -128,9 +163,13 @@ The paid endpoint asks the chain itself about every settlement, whatever the fac
 * **The session limit belongs to one server process.** A host that restarts the server starts a new session total. The guard never refunds: a payment that was charged but not confirmed still counts as spent.
 * **The per-call branch of the guard is proven by unit tests only.** In a live over-price case the x402 client library's own spend control, set to the same limit, refuses first; the log says so.
 * **`pay_and_fetch` calls only the hosts on its allow list**, by default just our local endpoint, and it only ever pays MUSD on Mezo testnet. Listing a bare host such as `127.0.0.1` opens every port on it to a plain GET.
-* Cancelling an MCP request does not abort a payment that is already in flight. The recovery memory is per process.
+* Cancelling an MCP request does not abort a payment that is already in flight. The recovery memory is per process (on the Worker: per instance, see below).
 * The readable fields are cut off at a fixed number of places; `raw` is exact.
-* The demo payee is a throwaway testnet address. Total paid in x402 payments during development: 0.030 MUSD (the payee holds exactly that): 0.025 in build stage 1 and 0.005 in the payment review.
+* **The Worker's memory belongs to one instance.** Which transaction already paid for an answer, and the last settlement that `/status` shows, are kept in the running instance, and Cloudflare decides how many instances run and when one is replaced. Another instance does not know them: a payment sent at the same moment to two instances could be served twice (the answers are public chain data), and `/status` can show a different last settlement or none. This follows from reading the code and was not tested.
+* **The Worker needs the facilitator once per instance.** Every route except `/`, `/api/payments` and the favicon asks the facilitator what it supports before it answers (the x402 library does that when the app is built). If the facilitator is down they answer `502` and say so; the console page and the payments list still work.
+* **`/api/payments` reads the public RPC.** At most one scan per 45 seconds per instance; if the RPC fails, the last good answer is served and marked stale. A scan goes back at most 114,000 blocks (12 windows of 9,500, because the RPC refuses queries over 10,000 blocks), roughly six days, and the page says which blocks it covered. An older payment is not listed.
+* **Cloudflare's limits were not measured.** This build only ran under `wrangler dev`. Cloudflare's documentation (read 2026-10-18) gives the free plan 10 ms of CPU time per request, 50 subrequests per request and 1 s of startup; the Worker's real figures on Cloudflare are unknown. Under Node, a cold paid call used about 2 to 5 ms of CPU, which is only an indication. `wrangler deploy --dry-run` reports a bundle of 2.66 MiB (0.48 MiB compressed).
+* The demo payee is a throwaway testnet address. Total paid in x402 payments during development: 0.032 MUSD (the payee holds exactly that): 0.025 in build stage 1, 0.005 in the payment review and 0.002 in the two Worker runs of stage 2.
 
 ## Reused code
 
