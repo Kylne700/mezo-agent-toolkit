@@ -2,10 +2,12 @@
 //   1. the deployed lens has code;
 //   2. at one pinned block, the lens (and its paged walk of the redemption queue) gives the same numbers as reading TroveManager, SortedTroves,
 //      PriceFeed, HintHelpers, the DEX router and veBTC/veMEZO directly, and the text shown to people is the exact value cut off, not rounded;
-//   3. the paid endpoint, started locally with the real facilitator client, answers an unpaid call with a proper x402 challenge for MUSD.
+//   3. the paid endpoint, started locally with the real facilitator client, answers an unpaid call with a proper x402 challenge for MUSD;
+//   4. the README matches the chain: every address in its integration table has code and is one the toolkit uses, and every transaction it links succeeded.
 // Exit code is non-zero if any check fails. `--log` also writes evidence/smoke.log.
 import { decodePaymentRequiredHeader } from '@x402/core/http'
 import { HTTPFacilitatorClient } from '@x402/core/server'
+import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { parseUnits, type Address } from 'viem'
 import deployment from '../deployments/testnet.json' with { type: 'json' }
@@ -14,6 +16,7 @@ import { ADDRESSES, CHAIN_ID, FACILITATOR_URL, NETWORK } from '../src/config.ts'
 import { createLens } from '../src/lens.ts'
 import { startServer } from '../src/serve.ts'
 import { differences, directPool, directQueue, directSystem, directTrove, directVe, lockDifferences, systemDifferences, troveFromTail } from './lib/direct.ts'
+import { explorerGet } from './lib/explorer.ts'
 import { discoverLiveLock, discoverVeHolder } from './lib/holders.ts'
 import { createReport } from './lib/report.ts'
 
@@ -109,6 +112,29 @@ try {
 } finally {
   await srv.close()
 }
+
+// ---- 4. the README matches the chain --------------------------------------------------------------------------------------------------------
+log('')
+const readme = readFileSync(fileURLToPath(new URL('../README.md', import.meta.url)), 'utf8')
+const table = readme.slice(readme.indexOf('## Mezo integration'), readme.indexOf('### Transactions'))
+const listed = [...new Set(table.match(/0x[0-9a-fA-F]{40}\b/g) ?? [])]
+const known = new Set([...Object.values(ADDRESSES), lens.address].map((a) => a.toLowerCase()))
+check(listed.length >= 10, `the README integration table lists ${listed.length} addresses (at least 10 expected)`)
+verdict('every address in the README table is one the toolkit uses (src/config.ts or the lens)', listed.filter((a) => !known.has(a.toLowerCase())).map((a) => `${a} is in the README but not in the code`))
+const empty: string[] = []
+for (const a of listed) {
+  const c = await pub.getCode({ address: a as Address })
+  if (!c || c === '0x') empty.push(`${a} has no code on chain`)
+}
+verdict(`every address in the README table has code on chain (${listed.length} checked)`, empty)
+const hashes = [...new Set([...readme.matchAll(/\/tx\/(0x[0-9a-fA-F]{64})/g)].map((m) => m[1]!))]
+const failed: string[] = []
+for (const h of hashes) {
+  const t = await explorerGet(`transactions/${h}`, (j) => !!j?.status, 3, 3000)
+  if (t?.status !== 'ok') failed.push(`${h}: explorer status is ${t?.status}`)
+}
+check(hashes.length >= 10, `the README links ${hashes.length} transactions (at least 10 expected)`)
+verdict(`every transaction the README links succeeded on chain (${hashes.length} checked on the explorer)`, failed)
 
 log('')
 log(failures() === 0 ? 'SMOKE PASSED' : `SMOKE FAILED (${failures()} failed check(s))`)
