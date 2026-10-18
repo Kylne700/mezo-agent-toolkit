@@ -169,11 +169,13 @@ The paid endpoint asks the chain itself about every settlement, whatever the fac
 * **The Worker needs the facilitator once per instance.** Every route except `/`, `/api/payments` and the favicon asks the facilitator what it supports before it answers (the x402 library does that when the app is built). If the facilitator is down they answer `502` and say so; the console page and the payments list still work.
 * **`/api/payments` reads the public RPC.** At most one scan per 45 seconds per instance; if the RPC fails, the last good answer is served and marked stale. A scan goes back at most 114,000 blocks (12 windows of 9,500, because the RPC refuses queries over 10,000 blocks), roughly six days, and the page says which blocks it covered. An older payment is not listed.
 * **Cloudflare's limits were not measured.** This build only ran under `wrangler dev`. Cloudflare's documentation (read 2026-10-18) gives the free plan 10 ms of CPU time per request, 50 subrequests per request and 1 s of startup; the Worker's real figures on Cloudflare are unknown. Under Node, a cold paid call used about 2 to 5 ms of CPU, which is only an indication. `wrangler deploy --dry-run` reports a bundle of 2.66 MiB (0.48 MiB compressed).
-* The demo payee is a throwaway testnet address. Total paid in x402 payments during development: 0.032 MUSD (the payee holds exactly that): 0.025 in build stage 1, 0.005 in the payment review and 0.002 in the two Worker runs of stage 2.
+* The demo payee is a throwaway testnet address. Total paid in x402 payments during development: 0.034 MUSD (the payee holds exactly that): 0.025 in build stage 1, 0.005 in the payment review, 0.002 in the two Worker runs of stage 2 and 0.002 in the two payments of the video take of 2026-10-18 ([`evidence/video-take-2026-10-18.log`](evidence/video-take-2026-10-18.log)).
 
 ## Reused code
 
-None copied. The code in this repository was written for it; it depends on the packages in `package.json` (viem, hono, zod, the MCP SDK and the x402 packages, MIT or Apache-2.0).
+The code in this repository was written for it, with one exception: the video scripts in `scripts/video` start from the author's own MIT-licensed Sealdrop video chain (github.com/Kylne700/sealdrop). `lib.mjs` and `listen.py` are copied; `config.mjs`, `tts.mjs`, `narration.mjs` and `asr-compare.mjs` are adapted (the first lines of each file say so). The other video scripts (`take.ts`, `record-live.mjs`, `scenes.mjs`, `assemble.mjs`, `post.mjs`, `build.sh`) and `scripts/deck/build.mjs` were written for this repository.
+
+Assets: `docs/fonts/` holds Inter and JetBrains Mono (SIL Open Font License 1.1, the licence texts sit next to the files); the deck and the video use them. The video's synthetic voice is Kokoro, run from a folder outside this repository, and its files are not included. The code depends on the packages in `package.json` (viem, hono, zod, the MCP SDK and the x402 packages, MIT or Apache-2.0).
 
 ## Licence
 

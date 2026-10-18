@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mezo Agent Toolkit - pitch deck</title>
+<style>
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;src:url('fonts/Inter-Regular.otf') format('opentype')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:600;src:url('fonts/Inter-SemiBold.otf') format('opentype')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:700;src:url('fonts/Inter-Bold.otf') format('opentype')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;src:url('fonts/JetBrainsMono-Regular.ttf') format('truetype')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:700;src:url('fonts/JetBrainsMono-Bold.ttf') format('truetype')}
+@page{size:1280px 720px;margin:0}
+:root{--bg:#0e1113;--surface:#161a1d;--ink:#ecebe5;--muted:#a7adb3;--line:#2b3338;--accent:#6ec3c8;--warn:#ff9f97}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:'Inter',sans-serif;font-weight:400;font-size:22px;line-height:1.4;color:var(--ink)}
+.slide{position:relative;width:1280px;height:720px;overflow:hidden;background:var(--bg);padding:50px 64px 0;break-after:page;page-break-after:always}
+.slide:last-of-type{break-after:auto;page-break-after:auto}
+@media screen{body{background:#07090a}.slide{margin:0 auto 24px}}
+.kicker{margin:0 0 8px;font-size:18px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{margin:0 0 24px;font-size:44px;font-weight:700;line-height:1.12;letter-spacing:-.015em;max-width:1152px}
+h2{margin:0 0 10px;font-size:28px;font-weight:700;line-height:1.2}
+.label{margin:0 0 10px;font-size:18px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.foot{position:absolute;left:64px;right:64px;bottom:24px;display:flex;justify-content:space-between;padding-top:10px;border-top:1px solid var(--line);font-size:18px;color:var(--muted)}
+.mono{font-family:'JetBrains Mono',monospace;font-feature-settings:"liga" 0,"calt" 0}
+.accent{color:var(--accent)}
+.muted{color:var(--muted)}
+a{color:var(--accent);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:4px}
+.lead{margin:0 0 18px;font-size:30px;line-height:1.35}
+.note{margin:14px 0 0;font-size:18px;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:26px 30px}
+.cols{display:flex;gap:40px;align-items:flex-start}
+.tag{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent)}
+.big{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:64px;line-height:1}
+
+/* 1 */
+.stat{display:flex;align-items:center;gap:26px;padding:18px 0;border-bottom:1px solid var(--line)}
+.stat:first-child{padding-top:0}
+.stat .big{min-width:150px;font-size:80px}
+.stat-t{font-size:24px;line-height:1.3}
+/* 2 */
+.grid3{display:flex;gap:36px;margin-bottom:40px}
+.grid3 .card{flex:1;min-height:250px}
+.grid3 p{margin:0;font-size:24px;line-height:1.35}
+/* 4 */
+.kv{display:grid;grid-template-columns:230px 1fr;font-size:21px}
+.kv>div{padding:12px 0;border-bottom:1px solid var(--line)}
+.kv>div:nth-child(odd){font-weight:600;color:var(--muted)}
+.kv .mono{font-size:20px}
+.callout{margin-top:22px;padding:14px 22px;border-left:4px solid var(--accent);background:var(--surface);font-size:22px}
+/* 5 */
+.two{display:flex;gap:32px;align-items:stretch}
+.two .card{flex:1}
+.names div{padding:5px 0;font-size:24px}
+.env{padding:10px 0;border-bottom:1px solid var(--line)}
+.env:last-child{border-bottom:0}
+.env .mono{display:block;font-size:19px}
+.env span.v{display:block;margin-top:2px;font-size:20px;color:var(--muted)}
+.pills{display:flex;gap:20px;margin-top:22px}
+.pills div{flex:1;padding:14px 18px;border:1px solid var(--accent);border-radius:10px;font-size:20px;line-height:1.3}
+/* 6 */
+.meta{display:flex;align-items:baseline;gap:22px;margin-bottom:18px;font-size:20px;color:var(--muted)}
+.meta .mono{font-size:20px}
+.reads{width:100%;border-collapse:collapse}
+.reads td{padding:14px 14px;border-bottom:1px solid var(--line);font-size:23px;vertical-align:top}
+.reads td:first-child{width:300px;font-size:23px;color:var(--accent)}
+/* 7 */
+.fix{display:grid;grid-template-columns:62px 1fr;gap:10px;padding:16px 0;border-bottom:1px solid var(--line);font-size:24px;line-height:1.3}
+.fix:last-child{border-bottom:0}
+.two .card.pad0{padding-top:20px}
+/* 8 */
+.tx{width:100%;border-collapse:collapse;margin-bottom:18px}
+.tx td{padding:11px 12px;border-bottom:1px solid var(--line);font-size:20px;vertical-align:middle}
+.tx td:last-child{width:250px;font-size:19px;white-space:nowrap}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 20px}
+.tile{padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.tile b{display:block;font-family:'JetBrains Mono',monospace;font-size:34px;line-height:1.1}
+.tile span{font-size:18px;color:var(--muted)}
+.big-t{font-size:22px}
+/* 9 */
+.ms .big{display:block;margin-bottom:14px;font-size:56px;color:var(--accent)}
+.ms p{margin:0;font-size:22px;line-height:1.4}
+/* 10 */
+.handle{margin:0 0 6px;font-size:76px;font-weight:700;letter-spacing:-.02em;line-height:1.05}
+.links div{padding:14px 0;border-bottom:1px solid var(--line);font-size:22px}
+.links div:last-child{border-bottom:0}
+.links b{display:block;font-size:18px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.links .mono{font-size:20px}
+/* 3 */
+svg.seq{display:block}
+svg.seq text{font-family:'Inter',sans-serif;font-size:18px;fill:#ecebe5}
+svg.seq .hd{font-weight:600}
+svg.seq .m{font-family:'JetBrains Mono',monospace;font-feature-settings:"liga" 0,"calt" 0}
+svg.seq .n{font-family:'JetBrains Mono',monospace;font-weight:700;fill:#6ec3c8}
+svg.seq .mu{fill:#a7adb3}
+</style>
+</head>
+<body>
+
+<!-- 1 Problem -->
+<section class="slide" id="s1">
+  <p class="kicker">Problem</p>
+  <h1>Agents can read Mezo but cannot pay for data</h1>
+  <div class="cols">
+    <div style="flex:1;padding-top:6px">
+      <p class="lead">An agent has no BTC for gas and cannot click through wallet screens.</p>
+      <p class="lead">So it cannot buy data on its own.</p>
+    </div>
+    <div class="card" style="flex:1">
+      <div class="stat"><span class="big">10</span><span class="stat-t">entries on the Akindo Wave 1 page, 2026-10-18</span></div>
+      <div class="stat" style="border-bottom:0;padding-bottom:0"><span class="big accent">0</span><span class="stat-t">offer MCP tools or an x402 buyer, per their READMEs and descriptions</span></div>
+    </div>
+  </div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>1 / 10</span></div>
+</section>
+
+<!-- 2 Solution -->
+<section class="slide" id="s2">
+  <p class="kicker">Solution</p>
+  <h1>One toolkit, three parts</h1>
+  <div class="grid3">
+    <div class="card"><span class="tag">1</span><h2>Lens contract</h2><p>Read-only. One call replaces many reads.</p></div>
+    <div class="card"><span class="tag">2</span><h2>MCP server</h2><p>Five tools. The four read tools are free.</p></div>
+    <div class="card"><span class="tag">3</span><h2>Pay-per-call endpoint</h2><p>HTTP with x402. 0.001 MUSD per call.</p></div>
+  </div>
+  <p class="lead">An agent reads for free and pays 0.001 MUSD per call, with no BTC for gas.</p>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>2 / 10</span></div>
+</section>
+
+<!-- 3 How it works -->
+<section class="slide" id="s3">
+  <p class="kicker">How it works</p>
+  <h1>The agent signs, the facilitator pays gas</h1>
+  <svg class="seq" width="1152" height="466" viewBox="0 0 1152 466" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sequence of one paid call between the agent, our server, the facilitator and Mezo testnet">
+    <defs>
+      <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#6ec3c8"/></marker>
+      <marker id="am" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#a7adb3"/></marker>
+    </defs>
+    <g stroke="#2b3338" stroke-width="2" stroke-dasharray="6 6">
+      <line x1="140" y1="40" x2="140" y2="466"/><line x1="480" y1="40" x2="480" y2="466"/><line x1="790" y1="40" x2="790" y2="466"/><line x1="1060" y1="40" x2="1060" y2="466"/>
+    </g>
+    <g fill="#161a1d" stroke="#2b3338" stroke-width="1.5">
+      <rect x="55" y="0" width="170" height="40" rx="8"/><rect x="395" y="0" width="170" height="40" rx="8"/><rect x="705" y="0" width="170" height="40" rx="8"/><rect x="975" y="0" width="170" height="40" rx="8"/>
+    </g>
+    <g text-anchor="middle" class="hd">
+      <text x="140" y="26" class="hd">Agent</text><text x="480" y="26" class="hd">Our server</text><text x="790" y="26" class="hd">Facilitator</text><text x="1060" y="26" class="hd">Mezo testnet</text>
+    </g>
+    <!-- 1 GET -->
+    <line x1="142" y1="84" x2="476" y2="84" stroke="#6ec3c8" stroke-width="2.5" marker-end="url(#ah)"/>
+    <text x="156" y="74"><tspan class="n">1</tspan><tspan dx="12">GET </tspan><tspan class="m">/v1/trove/:address</tspan></text>
+    <!-- 2 402 -->
+    <line x1="478" y1="130" x2="144" y2="130" stroke="#a7adb3" stroke-width="2.5" stroke-dasharray="9 6" marker-end="url(#am)"/>
+    <text x="156" y="120"><tspan class="n">2</tspan><tspan dx="12">402 + price: 0.001 MUSD</tspan></text>
+    <!-- 3 sign -->
+    <rect x="60" y="150" width="400" height="58" rx="10" fill="#16282b" stroke="#6ec3c8" stroke-width="1.5"/>
+    <text x="76" y="174"><tspan class="n">3</tspan><tspan dx="12" class="hd">Signs a Permit2 permit</tspan></text>
+    <text x="100" y="198" class="mu">typed data only, no transaction</text>
+    <!-- 4 retry -->
+    <line x1="142" y1="248" x2="476" y2="248" stroke="#6ec3c8" stroke-width="2.5" marker-end="url(#ah)"/>
+    <text x="156" y="238"><tspan class="n">4</tspan><tspan dx="12">Retry with </tspan><tspan class="m">PAYMENT-SIGNATURE</tspan></text>
+    <!-- 5 verify and settle -->
+    <line x1="482" y1="294" x2="786" y2="294" stroke="#6ec3c8" stroke-width="2.5" marker-end="url(#ah)"/>
+    <text x="496" y="284"><tspan class="n">5</tspan><tspan dx="12">Settle this payment</tspan></text>
+    <!-- 6 tx -->
+    <line x1="792" y1="340" x2="1056" y2="340" stroke="#6ec3c8" stroke-width="2.5" marker-end="url(#ah)"/>
+    <text x="806" y="330"><tspan class="n">6</tspan><tspan dx="12">Sends the tx, pays gas</tspan></text>
+    <!-- 7 check -->
+    <line x1="482" y1="386" x2="1056" y2="386" stroke="#6ec3c8" stroke-width="2.5" marker-end="url(#ah)"/>
+    <text x="496" y="376"><tspan class="n">7</tspan><tspan dx="12">Checks the chain</tspan></text>
+    <!-- 8 200 -->
+    <line x1="478" y1="450" x2="144" y2="450" stroke="#a7adb3" stroke-width="2.5" stroke-dasharray="9 6" marker-end="url(#am)"/>
+    <text x="156" y="418"><tspan class="n">8</tspan><tspan dx="12">200 + data +</tspan></text>
+    <text x="179" y="440" class="m">PAYMENT-RESPONSE (tx hash)</text>
+  </svg>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>3 / 10</span></div>
+</section>
+
+<!-- 4 The MUSD integration -->
+<section class="slide" id="s4">
+  <p class="kicker">The MUSD integration</p>
+  <h1>x402 on Mezo testnet, settled in MUSD</h1>
+  <div class="kv">
+    <div>Standard</div><div>x402 v2, scheme <span class="mono">exact</span></div>
+    <div>Network</div><div><span class="mono">eip155:31611</span> (Mezo testnet)</div>
+    <div>Asset</div><div>MUSD <span class="mono">0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503</span></div>
+    <div>Amount</div><div>0.001 MUSD per call</div>
+    <div>Permit2 proxy</div><div class="mono">0x402085c248EeA27D92E8b30b2C58ed07f9E20001</div>
+    <div>Gas</div><div>EIP-2612 gas-sponsoring extension: the facilitator pays the BTC</div>
+    <div>Facilitator</div><div><span class="mono">facilitator.vativ.io</span>, a third party</div>
+  </div>
+  <div class="callout">MUSD has no EIP-3009, so only Permit2 payments land.</div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>4 / 10</span></div>
+</section>
+
+<!-- 5 MCP tools and the spend cap -->
+<section class="slide" id="s5">
+  <p class="kicker">MCP tools and the spend cap</p>
+  <h1>Five tools, one spend cap</h1>
+  <div class="two">
+    <div class="card">
+      <p class="label">Free direct lens reads</p>
+      <div class="names mono"><div>trove_health</div><div>redemption_risk</div><div>pool_quote</div><div>ve_locks</div></div>
+      <p class="label" style="margin-top:18px">Pays x402 sellers</p>
+      <div class="names mono"><div class="accent">pay_and_fetch</div></div>
+    </div>
+    <div class="card">
+      <p class="label">Limits from the operator environment</p>
+      <div class="env"><span class="mono">MEZO_MAX_PER_CALL_MUSD</span><span class="v">default 0.01</span></div>
+      <div class="env"><span class="mono">MEZO_MAX_PER_SESSION_MUSD</span><span class="v">default 0.1</span></div>
+      <div class="env"><span class="mono">MEZO_PAY_ALLOWED_HOSTS</span><span class="v">default: our own endpoint only</span></div>
+    </div>
+  </div>
+  <div class="pills"><div>Never from a tool argument</div><div>Check and reserve before signing</div><div>Amounts in bigint base units</div></div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>5 / 10</span></div>
+</section>
+
+<!-- 6 The lens contract -->
+<section class="slide" id="s6">
+  <p class="kicker">The lens contract</p>
+  <h1>MezoLens: one call instead of many</h1>
+  <div class="meta"><span class="mono">0xBDfD1C0B544319E25b4b99ee1f355e55230f6130</span><span>read-only, Mezo testnet, source verified on the explorer</span></div>
+  <table class="reads mono">
+    <tr><td>troveHealth</td><td style="font-family:'Inter',sans-serif">collateral ratio, debt, liquidation price</td></tr>
+    <tr><td>systemSnapshot</td><td style="font-family:'Inter',sans-serif">system ratio, recovery mode, where a redemption starts</td></tr>
+    <tr><td>redemptionQueue</td><td style="font-family:'Inter',sans-serif">paged walk, at most 300 nodes per eth_call, continued with a cursor</td></tr>
+    <tr><td>poolQuote</td><td style="font-family:'Inter',sans-serif">swap quote and price impact</td></tr>
+    <tr><td>veLocks</td><td style="font-family:'Inter',sans-serif">veBTC and veMEZO locks of a wallet, with voting power</td></tr>
+  </table>
+  <!--facts:lens-->
+  <div class="callout">Testnet run, 2026-10-18: redemptionQueue walked <b class="mono">31</b> of 258 list nodes.</div>
+  <!--/facts:lens-->
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>6 / 10</span></div>
+</section>
+
+<!-- 7 Safety -->
+<section class="slide" id="s7">
+  <p class="kicker">Safety</p>
+  <h1>What the payment review fixed</h1>
+  <div class="two">
+    <div class="card pad0">
+      <p class="label">Buyer side</p>
+      <div class="fix"><span class="tag">B3</span><span>No unlimited approval</span></div>
+      <div class="fix"><span class="tag">B2</span><span>Validity at most 300 s</span></div>
+      <div class="fix"><span class="tag">B1</span><span>Allow list defaults to our own endpoint</span></div>
+      <div class="fix"><span class="tag">B4</span><span>No double pay: unconfirmed nonce and deadline remembered per URL</span></div>
+    </div>
+    <div class="card pad0">
+      <p class="label">Seller side</p>
+      <div class="fix"><span class="tag">R1</span><span>One tx vouches once</span></div>
+      <div class="fix"><span class="tag">R2</span><span>Data only when the chain shows the payment</span></div>
+      <div class="fix"><span class="tag">R3</span><span>Recovery by block and index, not by hash</span></div>
+    </div>
+  </div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>7 / 10</span></div>
+</section>
+
+<!-- 8 Status -->
+<section class="slide" id="s8">
+  <p class="kicker">Status</p>
+  <h1>Tested on Mezo testnet</h1>
+  <div class="cols">
+    <div style="width:420px;flex:none">
+      <div style="display:flex;align-items:center;gap:20px;margin-bottom:22px"><!--facts:tests--><span class="big accent">173</span><span class="big-t">tests passed in 10 files</span><!--/facts:tests--></div>
+      <p class="label">Earlier runs, checks passed</p>
+      <div class="tiles">
+        <div class="tile"><b>23</b><span>smoke</span></div>
+        <div class="tile"><b>29</b><span>mcp:session</span></div>
+        <div class="tile"><b>28</b><span>worker:smoke</span></div>
+        <div class="tile"><b>51</b><span>console QA</span></div>
+      </div>
+      <p class="big-t" style="margin:0"><b>0.034 MUSD</b> paid in development</p>
+      <p class="note" style="margin-top:8px">Not deployed yet.</p>
+    </div>
+    <div style="flex:1">
+      <!--facts:txs-->
+      <p class="label">Testnet runs, 2026-10-18</p>
+      <table class="tx">
+        <tr><td>x402 buyer, one paid call<span class="muted"> - block 16232870</span></td><td class="mono"><a href="https://explorer.test.mezo.org/tx/0x74fed710bac60dccb4fa2b3b1183abc59a6da47ef02c1c18577cf2b2b3dc9df1">0x74fed710...dc9df1</a></td></tr>
+        <tr><td>MCP pay_and_fetch, one paid call<span class="muted"> - block 16232873</span></td><td class="mono"><a href="https://explorer.test.mezo.org/tx/0x99a3c4a3b8f5b8a1ca301722590c5635a6af640b6175c558a4a6bf6b85d678cc">0x99a3c4a3...d678cc</a></td></tr>
+      </table>
+      <!--/facts:txs-->
+      <p class="label">Testnet transactions in the README</p>
+      <table class="tx">
+        <tr><td>MezoLens deployed</td><td class="mono"><a href="https://explorer.test.mezo.org/tx/0x4c673819554eaf1fa88131e463253cc8f40a04df01093f799b997ffe56821dd1">0x4c673819...821dd1</a></td></tr>
+        <tr><td>First paid call, via the facilitator</td><td class="mono"><a href="https://explorer.test.mezo.org/tx/0x1499eccd92b3932c53de8f0d5510ca9e8efb955c7c1c1c7ea53f9a2bfa6f7b9d">0x1499eccd...6f7b9d</a></td></tr>
+        <tr><td>pay_and_fetch, after the review</td><td class="mono"><a href="https://explorer.test.mezo.org/tx/0xb15e02af41c68da22d05e63afeeed84165cfb8f6446224a83504e97ee9cd9119">0xb15e02af...cd9119</a></td></tr>
+        <tr><td>pay_and_fetch, to the Worker</td><td class="mono"><a href="https://explorer.test.mezo.org/tx/0x779df435a79b4a61486b17ebb300898a2f63590c2188974f9c94a46f4a89d4d8">0x779df435...89d4d8</a></td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>8 / 10</span></div>
+</section>
+
+<!-- 9 Next milestones -->
+<section class="slide" id="s9">
+  <p class="kicker">Wave 2: 2026-11-02 to 2026-11-15</p>
+  <h1>Next three milestones</h1>
+  <div class="grid3 ms">
+    <div class="card"><span class="big">1</span><p>One settlement ledger for all Worker instances, so a tx vouches once everywhere. A run measured against Cloudflare's real limits (CPU time, subrequests).</p></div>
+    <div class="card"><span class="big">2</span><p>Spend limits that survive a restart (daily cap). An installable MCP server package: one config line to add it.</p></div>
+    <div class="card"><span class="big">3</span><p>A ve gauge vote helper. More pool quotes in the lens, as free reads.</p></div>
+  </div>
+  <p class="note" style="font-size:20px">Plans, not promises. Testnet only.</p>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>9 / 10</span></div>
+</section>
+
+<!-- 10 Team -->
+<section class="slide" id="s10">
+  <p class="kicker">Team</p>
+  <h1>Solo builder</h1>
+  <div class="cols" style="gap:56px">
+    <div style="flex:1">
+      <p class="handle">Kylne700</p>
+      <p class="lead muted" style="margin-top:14px">Read Mezo, pay in MUSD, no BTC for gas.</p>
+    </div>
+    <div class="card links" style="flex:1.25;padding-top:12px;padding-bottom:12px">
+      <div><b>GitHub</b><a class="mono" href="https://github.com/Kylne700">https://github.com/Kylne700</a></div>
+      <div><b>Repository</b><a class="mono" href="https://github.com/Kylne700/mezo-agent-toolkit">https://github.com/Kylne700/mezo-agent-toolkit</a></div>
+      <div><b>Live demo</b>Link in the README</div>
+    </div>
+  </div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>10 / 10</span></div>
+</section>
+
+</body>
+</html>
