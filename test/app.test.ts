@@ -99,12 +99,33 @@ describe('paid requests', () => {
   })
 })
 
-describe('when the facilitator reports a failed settlement', () => {
-  const theTransfer = (facilitator: FakeFacilitator, value = BigInt(PRICE_BASE_UNITS)) => ({
-    hash: txHash(0xabc),
-    value,
-    input: () => `0xfa340378${signatureOf(facilitator.payloads.at(-1)!).slice(2)}`,
+const theTransfer = (facilitator: FakeFacilitator, value = BigInt(PRICE_BASE_UNITS)) => ({
+  hash: txHash(0xabc),
+  value,
+  input: () => `0xfa340378${signatureOf(facilitator.payloads.at(-1)!).slice(2)}`,
+})
+
+describe('when the facilitator reports success', () => {
+  it('withholds the answer when the chain does not show this payment', async () => {
+    const { buyer } = setup({ facilitator: fakeFacilitator(), chain: fakeChain([]) })
+    const r = await buyer.fetchPaid(`http://app.test/v1/trove/${TROVE}`)
+    expect(r.status).toBe(402)
+    expect(r.paid).toBe(false)
+    expect(r.json).not.toHaveProperty('blockNumber')
   })
+
+  it('serves it once the chain shows this payment, with the transaction found on chain', async () => {
+    const facilitator = fakeFacilitator()
+    const { buyer, get } = setup({ facilitator, chain: fakeChain([theTransfer(facilitator)]) })
+    const r = await buyer.fetchPaid(`http://app.test/v1/trove/${TROVE}`)
+    expect(r).toMatchObject({ status: 200, paid: true })
+    expect(r.settlement?.transaction).toBe(txHash(0xabc))
+    const status = (await (await get('/status')).json()) as { recoveredSettlements: number }
+    expect(status.recoveredSettlements).toBe(0)
+  })
+})
+
+describe('when the facilitator reports a failed settlement', () => {
 
   it('serves the answer when the payment is on chain and was made by this payment (signature in the calldata)', async () => {
     const facilitator = fakeFacilitator(receiptCrash)

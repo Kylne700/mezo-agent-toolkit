@@ -25,7 +25,7 @@ export interface AppOptions {
   facilitatorUrl?: string
   /** Replace the HTTP facilitator (tests use a recorded one). */
   facilitator?: FacilitatorClient
-  /** When given, a settlement the facilitator reports as failed is checked on chain, and the answer is served if the payment did land. */
+  /** When given, every settlement is checked on chain: a reported success is served only if the chain shows it, a reported failure is served if the payment did land. */
   chain?: LogReader
   recovery?: RecoveryOptions
   now?: () => Date
@@ -46,8 +46,8 @@ export function createApp(opts: AppOptions): Hono {
   const price = opts.price ?? DEFAULT_PRICE
   const now = opts.now ?? (() => new Date())
   const facilitator = opts.facilitator ?? new HTTPFacilitatorClient({ url: opts.facilitatorUrl ?? FACILITATOR_URL })
-  const resourceServer = new x402ResourceServer(facilitator).register(NETWORK, new ExactEvmScheme())
   const recovery = opts.chain ? settlementRecovery(opts.chain, opts.recovery) : undefined
+  const resourceServer = new x402ResourceServer(recovery ? recovery.confirming(facilitator) : facilitator).register(NETWORK, new ExactEvmScheme())
   if (recovery) resourceServer.onAfterSettle(recovery.afterSettle).onSettleFailure(recovery.onSettleFailure)
 
   const paid = (description: string) => ({

@@ -4,7 +4,8 @@
 // "The payer's MUSD reached the payee" is not proof enough: an earlier payment of the same size would match. The proof is a transfer of the right
 // size, from this payer to this payee, inside a transaction whose calldata carries THIS payment's signature. And a transaction can vouch for one
 // answer only, so a payer cannot replay an old payment to get a second answer for free.
-import type { AfterSettleHook, OnSettleFailureHook } from '@x402/core/server'
+// The same proof is asked for when the facilitator reports success: its word alone never releases the data.
+import type { AfterSettleHook, FacilitatorClient, OnSettleFailureHook } from '@x402/core/server'
 import { isAddress, parseAbiItem } from 'viem'
 
 const TRANSFER = parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)')
@@ -33,6 +34,8 @@ export interface SettlementRecovery {
   onSettleFailure: OnSettleFailureHook
   /** Settlement transactions the server vouched for after the facilitator had reported a failure. */
   recovered: ReadonlySet<string>
+  /** The facilitator, except that a reported success stands only when the chain shows this payment; otherwise it becomes a failure. */
+  confirming(f: FacilitatorClient): FacilitatorClient
 }
 
 export function settlementRecovery(chain: LogReader, o: RecoveryOptions = {}): SettlementRecovery {
@@ -50,7 +53,8 @@ export function settlementRecovery(chain: LogReader, o: RecoveryOptions = {}): S
     if (result.success && result.transaction) remember(result.transaction)
   }
 
-  const onSettleFailure: OnSettleFailureHook = async ({ paymentPayload, requirements }) => {
+  /** This payment's transfer on chain, claimed so that no other answer can use it; undefined when it is not found or cannot be read. */
+  async function findOnChain(paymentPayload: { readonly payload: unknown }, requirements: { readonly payTo: string; readonly asset: string; readonly amount: string }): Promise<{ hash: string; payer: string } | undefined> {
     const p = paymentPayload.payload as { signature?: unknown; permit2Authorization?: { from?: string }; authorization?: { from?: string } }
     const payer = p.permit2Authorization?.from ?? p.authorization?.from
     if (typeof p.signature !== 'string' || !/^0x[0-9a-fA-F]{130,}$/.test(p.signature)) return
@@ -70,7 +74,7 @@ export function settlementRecovery(chain: LogReader, o: RecoveryOptions = {}): S
           toBlock: head,
         })) as readonly TransferLog[]
       } catch {
-        continue // The chain read failed: look again, and in the end leave the facilitator's answer as it was.
+        continue // The chain read failed: look again. If every look fails, nothing is vouched for.
       }
       for (const log of [...logs].reverse()) {
         const hash = log.transactionHash
@@ -83,11 +87,29 @@ export function settlementRecovery(chain: LogReader, o: RecoveryOptions = {}): S
         }
         if (used.has(hash.toLowerCase())) continue // another recovery claimed it while this one waited for the read
         remember(hash)
-        recovered.add(hash.toLowerCase())
-        return { recovered: true as const, result: { success: true, transaction: hash, network: requirements.network, payer } }
+        return { hash, payer }
       }
     }
   }
 
-  return { afterSettle, onSettleFailure, recovered }
+  const onSettleFailure: OnSettleFailureHook = async ({ paymentPayload, requirements }) => {
+    const found = await findOnChain(paymentPayload, requirements)
+    if (!found) return
+    recovered.add(found.hash.toLowerCase())
+    return { recovered: true as const, result: { success: true, transaction: found.hash, network: requirements.network, payer: found.payer } }
+  }
+
+  const confirming = (f: FacilitatorClient): FacilitatorClient => ({
+    verify: (p, r) => f.verify(p, r),
+    getSupported: () => f.getSupported(),
+    async settle(p, r) {
+      const result = await f.settle(p, r)
+      if (!result.success) return result
+      const found = await findOnChain(p, r)
+      if (found) return { ...result, transaction: found.hash, payer: found.payer }
+      return { ...result, success: false, errorReason: 'not_confirmed_on_chain', errorMessage: 'the facilitator reported success, but this payment was not found on chain', transaction: '' }
+    },
+  })
+
+  return { afterSettle, onSettleFailure, recovered, confirming }
 }
