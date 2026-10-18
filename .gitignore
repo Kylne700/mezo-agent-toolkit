@@ -13,3 +13,4 @@ PROGRESS-archive.md
 !evidence/*.log
 .wrangler/
 media/
+notes/

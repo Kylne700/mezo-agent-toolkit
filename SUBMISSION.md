@@ -26,11 +26,10 @@ Agent access and payments
 An AI agent can read Mezo through one MCP server and pay for data in MUSD, with no BTC for gas, under spend limits that the operator sets.
 ```
 
-## 4. How it works (1,574 characters)
+## 4. How it works (1,264 characters)
 
 ```text
-Problem. Agents can read Mezo, but they cannot pay for the data. One question, such as how healthy a trove is and where it stands in the redemption queue, takes many RPC calls and knowledge of several contracts. An agent that must buy data from someone else also needs a wallet, BTC for gas and a limit on what it may spend. In my snapshot of the 10 entries listed on 2026-10-18T15:48Z, none mentions MCP tools or an x402 buyer in its README or submission text. Nine were public, with a repo or README. One was private, with only a 152-character description visible. That is what those texts say, not a search of every chain or repo.
-
+Problem. Agents can read Mezo, but they cannot pay for the data. One question, such as how healthy a trove is and where it stands in the redemption queue, takes many RPC calls and knowledge of several contracts. An agent that must buy data from someone else also needs a wallet, BTC for gas and a limit on what it may spend.
 What it does. MezoLens, a read-only contract on Mezo testnet, answers each question in one eth_call. A pay-per-call HTTP endpoint serves the same reads for 0.001 MUSD per call with x402. An unpaid request gets a 402 and the price. The agent signs a permit, the facilitator settles it on Mezo, and the data comes back. An MCP server gives an agent five tools. Four are free reads. The fifth, pay_and_fetch, buys data from x402 servers under limits that the operator sets in the server's environment and that no tool call can change.
 
 MUSD. MUSD is the unit the reads are priced in and the asset the agent pays with. The agent pays no gas, because the facilitator sends the transaction and pays the BTC gas. Each settlement shows on the Mezo testnet explorer as one MUSD Transfer of 0.001 from the agent to the payee. The toolkit adds no token and no protocol. It extends what Mezo already has: its contracts, MUSD and the x402 payment flow.
@@ -87,7 +86,7 @@ Plans, not promises. Testnet only.
 Kylne700, solo. GitHub: https://github.com/Kylne700
 ```
 
-## 13. Description (4,779 characters; allowed 800-5,900)
+## 13. Description (4,469 characters; allowed 800-5,900)
 
 ```text
 Mezo Agent Toolkit lets an AI agent read Mezo and pay for those reads in MUSD, with no BTC for gas. It runs on Mezo testnet (chain 31611).
@@ -97,8 +96,7 @@ Video: {{VIDEO_URL}}
 Deck: {{DECK_URL}}
 
 The problem
-Agents can read Mezo, but they cannot pay for the data. One question, such as how healthy a trove is and where it stands in the redemption queue, takes many RPC calls and knowledge of several contracts. An agent that must buy data from someone else also needs a wallet, BTC for gas and a limit on what it may spend. In my snapshot of the 10 entries listed on 2026-10-18T15:48Z, none mentions MCP tools or an x402 buyer in its README or submission text. Nine were public, with a repo or README. One was private, with only a 152-character description visible. That is what those texts say, not a search of every chain or repo.
-
+Agents can read Mezo, but they cannot pay for the data. One question, such as how healthy a trove is and where it stands in the redemption queue, takes many RPC calls and knowledge of several contracts. An agent that must buy data from someone else also needs a wallet, BTC for gas and a limit on what it may spend.
 What it does
 1. MezoLens is a read-only contract on Mezo testnet (0xBDfD1C0B544319E25b4b99ee1f355e55230f6130). One eth_call answers one question: trove health, the position in the redemption queue (walked on chain, up to 300 nodes per call), a swap quote with its price impact, or the veBTC and veMEZO locks of a wallet.
 2. A pay-per-call HTTP endpoint serves those reads for 0.001 MUSD per call with x402. An unpaid request gets a 402 and the price. The agent signs a permit, the facilitator settles it on Mezo, and the data comes back. The same app runs as a Cloudflare Worker with a console page that lists the latest paid calls, read from the chain.
@@ -121,7 +119,7 @@ Testnet only. Nothing here calls Mezo mainnet. The facilitator is a third party:
 Next, in Wave 2 (Nov 2-15): one settlement ledger for all Worker instances, spend limits that survive a restart, an installable MCP package and a ve gauge vote helper. Plans, not promises.
 ```
 
-## 14. Submission comment (2,476 characters; allowed 500-3,000)
+## 14. Submission comment (2,166 characters; allowed 500-3,000)
 
 ```text
 Repo {{REPO_URL}}, live {{LIVE_URL}}, video {{VIDEO_URL}}, deck {{DECK_URL}}. Mezo testnet only.
@@ -131,8 +129,7 @@ https://explorer.test.mezo.org/tx/0x74fed710bac60dccb4fa2b3b1183abc59a6da47ef02c
 https://explorer.test.mezo.org/tx/0x99a3c4a3b8f5b8a1ca301722590c5635a6af640b6175c558a4a6bf6b85d678cc
 MezoLens is at 0xBDfD1C0B544319E25b4b99ee1f355e55230f6130 and reads TroveManager, SortedTroves, PriceFeed, the pool router, veBTC and veMEZO. The README has a table with each contract, its address, what the toolkit calls on it and why.
 
-Product (30). An agent needs two things from Mezo: cheap reads and a safe way to pay. This gives both behind one MCP config entry, with limits that the operator sets and the agent cannot change. The fee is not a revenue plan. It shows how an agent buys data with MUSD, and anyone can deploy the Worker with their own payee. In my snapshot of the 10 entries listed on 2026-10-18T15:48Z, none mentions MCP tools or an x402 buyer in its README or submission text. Nine were public, with a repo or README. One was private, with only a 152-character description visible. That is what those texts say, not a search of every chain or repo.
-
+Product (30). An agent needs two things from Mezo: cheap reads and a safe way to pay. This gives both behind one MCP config entry, with limits that the operator sets and the agent cannot change. The fee is not a revenue plan. It shows how an agent buys data with MUSD, and anyone can deploy the Worker with their own payee.
 Technical (20). 173 tests in 10 files pass (a fresh run). Live checks on testnet: 23 (smoke), 29 (MCP session), 28 (Worker). The server verifies every settlement on chain itself, because the public RPC sometimes answers null for a mined transaction and the facilitator then reports a failure for a payment that landed. Within a session, the buyer does not pay a URL again while an earlier payment for it may still land.
 
 User experience (10). Every answer carries the block it was read at, with exact integers under raw. A refusal says why and that nothing was paid. The console page passed 51 browser checks with 0 axe-core violations, light and dark at 1280 and 390 px, light at 320 px.
