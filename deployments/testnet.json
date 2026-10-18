@@ -1,0 +1,20 @@
+{
+  "network": "eip155:31611",
+  "MezoLens": {
+    "address": "0xa9e13d8CCcdD055d171DA66be86362312d6C6B8A",
+    "txHash": "0x22358af75c8e5225da59d76db9a21a11134a0cbe8a890876cea95f733637e4a2",
+    "blockNumber": 16229333,
+    "deployer": "0xea2D4b92DDd760959BB1D8119430640885851A91",
+    "constructorArgs": {
+      "troveManager": "0xE47c80e8c23f6B4A1aE41c34837a0599D5D16bb0",
+      "sortedTroves": "0x722E4D24FD6Ff8b0AC679450F3D91294607268fA",
+      "priceFeed": "0x86bCF0841622a5dAC14A313a15f96A95421b9366",
+      "router": "0x9a1ff7FE3a0F69959A3fBa1F1e5ee18e1A9CD7E9",
+      "veBTC": "0xB63fcCd03521Cf21907627bd7fA465C129479231",
+      "veMEZO": "0xaCE816CA2bcc9b12C59799dcC5A959Fb9b98111b"
+    },
+    "compiler": "0.8.37+commit.f401782d.Emscripten.clang",
+    "deployedCodeBytes": 10651,
+    "explorer": "https://explorer.test.mezo.org/address/0xa9e13d8CCcdD055d171DA66be86362312d6C6B8A"
+  }
+}

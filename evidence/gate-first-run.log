@@ -1,0 +1,21 @@
+# Gate, first run (2026-10-18, UTC). Console output of the first x402 test, copied as printed.
+# Local Hono server with @x402/hono 2.28.0, facilitator https://facilitator.vativ.io, network eip155:31611, scheme exact,
+# MUSD paid through Permit2 with EIP-2612 gas sponsoring (the facilitator pays the BTC gas). Buyer is the throwaway ops key.
+#
+# Before the buyer held any MUSD, the paid retry came back 402 with error "permit2_insufficient_balance"
+# (buyer balance 0): version, network, scheme and extension were accepted, only the funds were missing.
+#
+# After a swap of 0.0002 BTC to 15.74 MUSD (evidence/swap.json), the same script printed:
+
+UNPAID 402 application/json
+{"x402Version":2,"accepts":[{"scheme":"exact","network":"eip155:31611","amount":"1000000000000000","asset":"0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503","payTo":"0xa37a04189696C371f487ff8da414192D62f39A4f","maxTimeoutSeconds":300,"extra":{"name":"Mezo USD","version":"1","assetTransferMethod":"permit2"}}],"extensions":["eip2612GasSponsoring"]}
+PAID 200 {"ok":true,"hello":"paid"}
+HEADERS cache-control,connection,content-length,content-type,date,keep-alive,payment-response
+SETTLE {"success":true,"payer":"0xea2D4b92DDd760959BB1D8119430640885851A91","transaction":"0x1499eccd92b3932c53de8f0d5510ca9e8efb955c7c1c1c7ea53f9a2bfa6f7b9d","network":"eip155:31611"}
+
+# Explorer check of that settlement transaction (Blockscout API v2):
+# status ok / success, block 16229227, 2026-10-18T16:36:14Z
+# from 0x7B384430907f15d3b658a2393Fc98Ca1A9D6CEFA (the facilitator, not the buyer: it paid the gas)
+# to   0x402085c248EeA27D92E8b30b2C58ed07f9E20001 (x402 proxy)
+# MUSD Transfer 0xea2D...1A91 -> 0xa37a...9A4f  1000000000000000 (0.001 MUSD)
+# https://explorer.test.mezo.org/tx/0x1499eccd92b3932c53de8f0d5510ca9e8efb955c7c1c1c7ea53f9a2bfa6f7b9d
