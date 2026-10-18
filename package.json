@@ -13,6 +13,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "serve": "tsx src/server.ts",
+    "dev": "npx --yes wrangler@4.151.1 dev",
+    "deploy": "npx --yes wrangler@4.151.1 deploy",
     "mcp": "tsx src/mcp.ts",
     "smoke": "tsx scripts/smoke.ts",
     "mcp:session": "tsx scripts/mcp-session.ts",

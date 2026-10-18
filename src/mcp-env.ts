@@ -7,8 +7,17 @@ import { SpendGuard } from './spend.ts'
 
 export type Env = Record<string, string | undefined>
 
-/** The hosts pay_and_fetch may call when MEZO_PAY_ALLOWED_HOSTS is unset or blank: our own endpoint as `npm run serve` starts it, nothing else. */
-export const DEFAULT_PAY_HOSTS = ['127.0.0.1:8402', 'localhost:8402']
+/**
+ * THE ONE LINE TO CHANGE after you deploy the Worker: put its host here, for example `['mezo-agent-toolkit.your-name.workers.dev']` (host only: no https://, no path, no wildcard).
+ * Empty on purpose: until someone lists a deployed host, the default allows only the local server. Setting MEZO_PAY_ALLOWED_HOSTS in the MCP server's environment does the same without editing code.
+ */
+export const LIVE_HOSTS: string[] = []
+
+/** Where the default allow list comes from: the local server (`npm run serve`) plus the live hosts. Nothing else, never "any host". */
+export const payHosts = (live: string[] = LIVE_HOSTS) => ['127.0.0.1:8402', 'localhost:8402', ...live]
+
+/** The hosts pay_and_fetch may call when MEZO_PAY_ALLOWED_HOSTS is unset or blank. */
+export const DEFAULT_PAY_HOSTS = payHosts()
 
 export function buyerFromEnv(env: Env, chainReader: unknown): { buyer?: Buyer; offReason?: string } {
   if (!env.MEZO_KEY_FILE) return { offReason: 'no wallet is configured (the operator sets MEZO_KEY_FILE to a file that holds a funded Mezo testnet key)' }

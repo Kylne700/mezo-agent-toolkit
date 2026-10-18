@@ -9,8 +9,9 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { afterAll, afterEach, describe, expect, it } from 'vitest'
-import { buyerFromEnv } from '../src/mcp-env.ts'
+import { buyerFromEnv, DEFAULT_PAY_HOSTS, LIVE_HOSTS, payHosts } from '../src/mcp-env.ts'
 import { createMcpServer, type McpOptions } from '../src/mcp-server.ts'
+import { checkUrl } from '../src/pay.ts'
 import { TROVE, fakeLens, payWorld, zeroReader } from './helpers/x402.ts'
 
 interface ToolReply {
@@ -224,6 +225,19 @@ describe('buyerFromEnv', () => {
       // Port 9 is closed here: without the default these would be real requests and fail with a connection error instead.
       for (const u of ['http://127.0.0.1:9/', 'http://localhost:9/']) await expect(r.buyer!.fetchPaid(u), `${hosts} ${u}`).rejects.toThrow(/not on the allow list/)
     }
+  })
+
+  it('adding the deployed Worker is one line: a host in LIVE_HOSTS is allowed, an unlisted one is not, and the shipped list is well formed', () => {
+    const live = 'mezo-agent-toolkit.example.workers.dev'
+    const url = `https://${live}/v1/trove/${TROVE}`
+    expect(() => checkUrl(url, payHosts([]))).toThrow(/not on the allow list/)
+    expect(checkUrl(url, payHosts([live]))).toBe(url)
+    expect(() => checkUrl(`https://evil.${live}/`, payHosts([live]))).toThrow(/not on the allow list/) // no wildcard: an exact host only
+    expect(payHosts([]).slice(0, 2)).toEqual(['127.0.0.1:8402', 'localhost:8402'])
+    // Whatever is shipped (empty today) must be bare host names, or the line would silently allow nothing; it is also what the default allows.
+    for (const h of LIVE_HOSTS) expect(h, 'LIVE_HOSTS entries are host names like abc.workers.dev, without https:// or a path').toMatch(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+(:\d+)?$/)
+    expect(DEFAULT_PAY_HOSTS).toEqual(payHosts(LIVE_HOSTS))
+    expect(DEFAULT_PAY_HOSTS).not.toContain('*')
   })
 })
 

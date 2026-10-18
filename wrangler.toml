@@ -1,0 +1,12 @@
+# Cloudflare Worker for the Mezo Agent Toolkit: the paid endpoint and the console page. Mezo testnet only.
+# Local run, no login needed:  npm run dev        Deploy, with your own Cloudflare account:  npm run deploy
+name = "mezo-agent-toolkit"
+main = "src/worker.ts"
+compatibility_date = "2026-10-01"
+
+# Everything the seller needs. None of it is secret: the seller only needs the payee's ADDRESS, never a key.
+[vars]
+PAYEE_ADDRESS = "0xa37a04189696C371f487ff8da414192D62f39A4f" # who receives the payments (a throwaway testnet address); use your own to collect them yourself
+PRICE = "$0.001"                                              # one call, paid in MUSD
+RPC_URL = "https://rpc.test.mezo.org"
+FACILITATOR_URL = "https://facilitator.vativ.io"

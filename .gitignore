@@ -11,3 +11,4 @@ PROGRESS.md
 PROGRESS-archive.md
 .secrets/
 !evidence/*.log
+.wrangler/

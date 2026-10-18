@@ -3,8 +3,10 @@ import { defineChain, type Address } from 'viem'
 
 export const CHAIN_ID = 31611
 export const NETWORK = 'eip155:31611' as const
-export const RPC_URL = process.env.MEZO_RPC_URL ?? 'https://rpc.test.mezo.org'
-export const FACILITATOR_URL = process.env.MEZO_FACILITATOR_URL ?? 'https://facilitator.vativ.io'
+// A Worker has no `process` (unless nodejs_compat is on); it takes its settings from wrangler.toml and passes them in as arguments instead.
+const env: Record<string, string | undefined> = typeof process === 'undefined' ? {} : process.env
+export const RPC_URL = env.MEZO_RPC_URL ?? 'https://rpc.test.mezo.org'
+export const FACILITATOR_URL = env.MEZO_FACILITATOR_URL ?? 'https://facilitator.vativ.io'
 export const EXPLORER = 'https://explorer.test.mezo.org'
 export const txUrl = (hash: string) => `${EXPLORER}/tx/${hash}`
 export const addressUrl = (a: string) => `${EXPLORER}/address/${a}`
