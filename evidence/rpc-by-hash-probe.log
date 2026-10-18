@@ -1,0 +1,28 @@
+Read-only probes of Mezo testnet RPC (rpc.test.mezo.org), payment review 1. Written 2026-10-18T19:10:52Z.
+
+== 1. scratch probe lag.mts, 75 s, run after the second review session (ended 18:59:37Z) and before the final one (began 19:05:14Z).
+   For each new block: the first two transactions, read by hash (eth_getTransactionByHash), by block and index (eth_getTransactionByBlockNumberAndIndex) and by receipt.
+   Times are from when the block was read; NEVER = no answer during the probe.
+0x7a78618916 block 16231054n byHash NEVER byIndex 491ms receipt NEVER
+0xd691d8756e block 16231055n byHash NEVER byIndex 760ms receipt NEVER
+0xdaf4e74d71 block 16231057n byHash NEVER byIndex 1268ms receipt NEVER
+0x12073b554a block 16231059n byHash NEVER byIndex 1688ms receipt NEVER
+0xdebe81b125 block 16231060n byHash NEVER byIndex 1893ms receipt NEVER
+0x964c2d8c00 block 16231061n byHash NEVER byIndex 2282ms receipt NEVER
+0x4c5bce038c block 16231061n byHash NEVER byIndex 2864ms receipt NEVER
+0x977e49061e block 16231063n byHash NEVER byIndex 3031ms receipt NEVER
+0x168c9641bd block 16231065n byHash NEVER byIndex 3750ms receipt NEVER
+0xa74e5c8184 block 16231066n byHash NEVER byIndex 4125ms receipt NEVER
+0x741a862b55 block 16231067n byHash NEVER byIndex 4354ms receipt NEVER
+0xdeb5f6419e block 16231070n byHash NEVER byIndex 4543ms receipt NEVER
+tracked 12 byHash late (>1s) or never: 12 byIndex late or never: 10
+
+== 2. scratch probe byhash.mts, run after the final session: first transaction of each block given, then the two run-2 payment hashes.
+   Block 16231018's first transaction is run 2's lost payment 0x3b69ac81... Between probe 1 and the final session (before 19:05:14Z) the same lookup by hash answered for it once (the recovery replay).
+head 16231157n
+block 16231054 age 103 blocks 0x7a78618916 byHash no (Transaction with hash "0x7a78618916e50bbada18841a0) receipt no (Transaction receipt with hash "0x7a78618916e50bbad)
+block 16231070 age 87 blocks 0xdeb5f6419e byHash no (Transaction with hash "0xdeb5f6419e12cf26628baf629) receipt no (Transaction receipt with hash "0xdeb5f6419e12cf266)
+block 16230822 age 335 blocks 0xdeee59a9bf byHash no (Transaction with hash "0xdeee59a9bfe017bf652143e61) receipt no (Transaction receipt with hash "0xdeee59a9bfe017bf6)
+block 16231018 age 139 blocks 0x3b69ac8178 byHash no (Transaction with hash "0x3b69ac817820b1b7b82d54f11) receipt no (Transaction receipt with hash "0x3b69ac817820b1b7b)
+0x3b69ac8178 byHash no (Transaction with hash "0x3b69ac817820b1b7b82d54f11) receipt no (Transaction receipt with hash "0x3b69ac817820b1b7b)
+0x795d0979e3 byHash no (Transaction with hash "0x795d0979e3beee7e93bca7018) receipt no (Transaction receipt with hash "0x795d0979e3beee7e9)
