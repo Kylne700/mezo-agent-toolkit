@@ -1,9 +1,9 @@
 {
   "network": "eip155:31611",
   "MezoLens": {
-    "address": "0xa9e13d8CCcdD055d171DA66be86362312d6C6B8A",
-    "txHash": "0x22358af75c8e5225da59d76db9a21a11134a0cbe8a890876cea95f733637e4a2",
-    "blockNumber": 16229333,
+    "address": "0xBDfD1C0B544319E25b4b99ee1f355e55230f6130",
+    "txHash": "0x4c673819554eaf1fa88131e463253cc8f40a04df01093f799b997ffe56821dd1",
+    "blockNumber": 16229406,
     "deployer": "0xea2D4b92DDd760959BB1D8119430640885851A91",
     "constructorArgs": {
       "troveManager": "0xE47c80e8c23f6B4A1aE41c34837a0599D5D16bb0",
@@ -13,8 +13,8 @@
       "veBTC": "0xB63fcCd03521Cf21907627bd7fA465C129479231",
       "veMEZO": "0xaCE816CA2bcc9b12C59799dcC5A959Fb9b98111b"
     },
-    "compiler": "0.8.37+commit.f401782d.Emscripten.clang",
+    "compiler": "0.8.36+commit.8a079791.Emscripten.clang",
     "deployedCodeBytes": 10651,
-    "explorer": "https://explorer.test.mezo.org/address/0xa9e13d8CCcdD055d171DA66be86362312d6C6B8A"
+    "explorer": "https://explorer.test.mezo.org/address/0xBDfD1C0B544319E25b4b99ee1f355e55230f6130"
   }
 }
