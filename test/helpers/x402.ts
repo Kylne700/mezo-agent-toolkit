@@ -1,9 +1,10 @@
 // Offline stand-ins for the outside world of the paid endpoint: the facilitator, the lens and the chain. Nothing here touches the network.
+import { decodePaymentSignatureHeader, encodePaymentRequiredHeader } from '@x402/core/http'
 import type { FacilitatorClient } from '@x402/core/server'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { parseUnits, type Address, type Hex } from 'viem'
 import { createApp } from '../../src/app.ts'
-import { NETWORK } from '../../src/config.ts'
+import { ADDRESSES, NETWORK } from '../../src/config.ts'
 import type { Lens } from '../../src/lens.ts'
 import { createBuyer } from '../../src/pay.ts'
 import type { LogReader } from '../../src/recover.ts'
@@ -125,4 +126,32 @@ export function payWorld(o: { price?: string; perCall?: string; perSession?: str
   const guard = new SpendGuard({ perCall: parseUnits(o.perCall ?? '0.01', 18), perSession: parseUnits(o.perSession ?? '0.1', 18) })
   const buyer = createBuyer({ account: testAccount(), chainReader: zeroReader, guard, fetchImpl, allowedHosts: o.allowedHosts })
   return { buyer, guard, facilitator, calls }
+}
+
+/** What our own server asks for, written as a seller puts it in a challenge. Override any field to play a hostile seller. */
+export const musdRequirement = (over: Record<string, unknown> = {}) => ({
+  scheme: 'exact',
+  network: NETWORK,
+  asset: ADDRESSES.musd,
+  amount: PRICE_BASE_UNITS,
+  payTo: PAYEE,
+  maxTimeoutSeconds: 300,
+  extra: { assetTransferMethod: 'permit2', name: 'Mezo USD', version: '1' },
+  ...over,
+})
+
+/** A seller with no app behind it: an unpaid GET gets `challenge` as a 402, a paid one gets `paid()` (default: a 200 with no receipt). It keeps every payment it is sent. */
+export function rawSeller(challenge: { accepts: unknown[]; extensions?: Record<string, unknown> }, paid: () => Response = () => new Response('{}', { status: 200 })) {
+  const payments: ReturnType<typeof decodePaymentSignatureHeader>[] = []
+  const fetchImpl: typeof fetch = async (input) => {
+    const req = input as Request
+    const signature = req.headers.get('payment-signature')
+    if (signature) {
+      payments.push(decodePaymentSignatureHeader(signature))
+      return paid()
+    }
+    const required = encodePaymentRequiredHeader({ x402Version: 2, resource: { url: req.url }, ...challenge } as never)
+    return new Response('{}', { status: 402, headers: { 'payment-required': required } })
+  }
+  return { fetchImpl, payments }
 }

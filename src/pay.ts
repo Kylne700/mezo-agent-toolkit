@@ -75,7 +75,10 @@ export function createBuyer(opts: BuyerOptions): Buyer {
   let ticket: { amount?: bigint; sent?: boolean } = {}
 
   const client = new x402Client()
-  registerExactEvmScheme(client, { signer: toClientEvmSigner(account, opts.chainReader as never), networks: [NETWORK] })
+  const signer = toClientEvmSigner(account, opts.chainReader as never)
+  // Typed-data signatures only: with signTransaction a seller could get a signed raw approve(Permit2, unlimited) transaction to broadcast whenever it likes.
+  delete signer.signTransaction
+  registerExactEvmScheme(client, { signer, networks: [NETWORK] })
   // The library's own cap, equal to the per-call limit: a second wall behind the SpendGuard. Only MUSD on this network is a default asset here.
   client.setSpendControls({ maxAmountPerPayment: `$${formatUnits(guard.perCall, MUSD_DECIMALS)}` })
   client.onBeforePaymentCreation(async ({ selectedRequirements }) => {

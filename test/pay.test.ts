@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { PaymentRefused, checkUrl, createBuyer, readCapped } from '../src/pay.ts'
 import { SpendGuard } from '../src/spend.ts'
-import { TROVE, payWorld as world, testAccount, zeroReader } from './helpers/x402.ts'
+import { TROVE, musdRequirement, payWorld as world, rawSeller, testAccount, zeroReader } from './helpers/x402.ts'
 
 const url = `http://app.test/v1/trove/${TROVE}`
 
@@ -74,6 +74,19 @@ describe('what the buyer will call', () => {
       new Promise((_res, rej) => (input instanceof Request ? input.signal : init?.signal)?.addEventListener('abort', () => rej(new Error('aborted'))))
     const buyer = createBuyer({ account: testAccount(), chainReader: zeroReader, guard: SpendGuard.fromEnv({}), fetchImpl, timeoutMs: 50 })
     await expect(buyer.fetchPaid(url)).rejects.toThrow()
+  })
+})
+
+describe('what gets signed', () => {
+  // A full RPC client, like the real one: with it the library can also build and sign plain transactions.
+  const rpcReader = { readContract: async () => 0n, getTransactionCount: async () => 7, estimateFeesPerGas: async () => ({ maxFeePerGas: 1n, maxPriorityFeePerGas: 1n }) }
+
+  it('never signs the raw approve(Permit2, unlimited) transaction a seller can ask for', async () => {
+    const seller = rawSeller({ accepts: [musdRequirement({ extra: { assetTransferMethod: 'permit2' } })], extensions: { erc20ApprovalGasSponsoring: { info: {}, schema: {} } } })
+    const buyer = createBuyer({ account: testAccount(), chainReader: rpcReader, guard: SpendGuard.fromEnv({}), fetchImpl: seller.fetchImpl })
+    await buyer.fetchPaid(url)
+    expect(seller.payments).toHaveLength(1)
+    expect(JSON.stringify(seller.payments[0])).not.toMatch(/signedTransaction/)
   })
 })
 
