@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { createApp } from '../src/app.ts'
 import { ADDRESSES, NETWORK } from '../src/config.ts'
 import { createBuyer } from '../src/pay.ts'
+import { settlementRecovery } from '../src/recover.ts'
 import { SpendGuard } from '../src/spend.ts'
 import {
   PAYEE, PRICE_BASE_UNITS, TROVE, fakeChain, fakeFacilitator, fakeLens, receiptCrash, signatureOf, testAccount, txHash, zeroReader,
@@ -152,6 +153,14 @@ describe('when the facilitator reports a failed settlement', () => {
     // The chain still lists the same transfer, and the fake says its calldata carries the newest signature too: only the "one answer per transaction" rule stops it.
     const second = await buyer.fetchPaid(`http://app.test/v1/ve/${TROVE}`)
     expect(second.status).toBe(402)
+  })
+
+  it('lets one transaction vouch for one answer even when two recoveries run at once', async () => {
+    const signature = `0x${'ab'.repeat(65)}`
+    const recovery = settlementRecovery(fakeChain([{ hash: txHash(0xabc), value: BigInt(PRICE_BASE_UNITS), input: `0xfa340378${signature.slice(2)}` }]), { waitMs: 0 })
+    const ctx = { paymentPayload: { payload: { signature, permit2Authorization: { from: testAccount().address } } }, requirements: { payTo: PAYEE, asset: ADDRESSES.musd, amount: PRICE_BASE_UNITS, network: NETWORK } }
+    const results = await Promise.all([recovery.onSettleFailure(ctx as never), recovery.onSettleFailure(ctx as never)])
+    expect(results.filter((r) => r && r.recovered)).toHaveLength(1)
   })
 
   it('survives a chain that cannot be read: still 402, no crash', async () => {

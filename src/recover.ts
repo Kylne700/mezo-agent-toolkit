@@ -81,6 +81,7 @@ export function settlementRecovery(chain: LogReader, o: RecoveryOptions = {}): S
         } catch {
           continue // This transaction could not be read just now; the next look tries again.
         }
+        if (used.has(hash.toLowerCase())) continue // another recovery claimed it while this one waited for the read
         remember(hash)
         recovered.add(hash.toLowerCase())
         return { recovered: true as const, result: { success: true, transaction: hash, network: requirements.network, payer } }
