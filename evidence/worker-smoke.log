@@ -1,0 +1,52 @@
+Worker smoke, wrangler dev (workerd) on http://127.0.0.1:8787, real payment on Mezo testnet   2026-10-18T20:14:17.485Z
+note: stage 2 final run: console page changed (touch targets, address layout); same Worker code
+started by "npm run dev" = npx --yes wrangler@4.151.1 dev   compatibility flags: none
+the Worker answers after 1.9 s (including a start of wrangler dev)
+
+== free routes (before any paid request, on purpose)
+PASS  /health: 200 {"ok":true}
+PASS  /status: Mezo testnet, the payee from wrangler.toml, price $0.001, the lens, four paid routes
+PASS  a fresh Worker has settled nothing yet (/status lastSettlement is null)
+PASS  /api/payments: 200, read from the chain, 10 payment(s) to the payee in blocks 16222461-16231960, each with an exact amount, a time and an explorer link
+PASS  a second call within 45 s is answered from the Worker's cache (same fetchedAt 2026-10-18T20:14:20.218Z)
+
+== the console page
+PASS  /: 200 HTML, 8261 bytes, a CSP that allows only its own inline script and style by hash
+PASS  the page loads nothing from outside: one inline script, no script src, no link, image, frame, inline style attribute or event handler; every href is # or / or the explorer
+PASS  the page says it is testnet, shows the payee and the lens as /status reports them, each with its explorer link
+PASS  the MCP example on the page names this host (127.0.0.1:8787) and the same limits this script runs under
+
+== the 402 challenge
+PASS  GET /v1/trove/<address> without payment: 402 in 11 ms, x402 v2, one "exact" offer of 0.001 MUSD on Mezo testnet to the payee, with gas sponsoring
+PASS  the price on the page (0.001 MUSD) is the amount in the challenge
+PASS  the curl line printed on the page, run as written, prints the same challenge
+PASS  an invalid address is 400 and never a payment challenge (HTTP 400)
+PASS  a malformed PAYMENT-SIGNATURE header gets 402 and no data (HTTP 402)
+
+== the MCP server, as an agent host runs it
+buyer 0xea2D4b92DDd760959BB1D8119430640885851A91   payee 0xa37a04189696C371f487ff8da414192D62f39A4f   limits 0.01 MUSD per call, 0.1 MUSD in total; it may only call host 127.0.0.1:8787
+MUSD before   buyer 15710457283614259046   payee 31000000000000000  (base units)
+PASS  tools/list returns the five tools: pay_and_fetch, pool_quote, redemption_risk, trove_health, ve_locks
+PASS  a host that is not on the allow list is refused: "The request was not made and nothing was paid: host localhost:8787 is not on the allow list (MEZO_PAY_ALLOWED_"
+PASS  the refusal moved no MUSD
+
+== one paid call through the MCP server
+PASS  pay_and_fetch on the Worker: status 200, paid, 0.001 MUSD authorised, a settlement transaction, paid by the buyer, spend 0.001
+PASS  the paid answer is the health of the requested trove (borrower matches, status active)
+    settlement 0x779df435a79b4a61486b17ebb300898a2f63590c2188974f9c94a46f4a89d4d8   https://explorer.test.mezo.org/tx/0x779df435a79b4a61486b17ebb300898a2f63590c2188974f9c94a46f4a89d4d8
+
+== what really happened
+MUSD after    buyer 15709457283614259046   payee 32000000000000000  (base units)
+PASS  the buyer paid exactly 1000000000000000 base units (0.001 MUSD) and the payee received exactly that (buyer 1000000000000000, payee 1000000000000000)
+PASS  the buyer sent no transaction and spent no BTC: the facilitator paid the gas
+PASS  the explorer shows 0x779df435a7...: status ok, block 16231963, sent by the facilitator (0x23fe3046...), MUSD buyer -> payee 0.001
+PASS  /status reports this transaction as the last settlement (the Worker kept it from one request to the next); recovered=false (true would mean the facilitator reported a failure but the transfer was found on chain)
+PASS  /api/payments lists this payment (0.001 MUSD from the buyer, explorer link) 32 s after the call; the list is cached for 45 s
+
+== clean-up
+PASS  wrangler's own request log for this trove address: 402 402 402 402 200 (exactly one request was served for payment, the buyer's 402 then 200 come last)
+PASS  nothing the MCP server said, its stderr or the Worker's own output contains the private key or the key file path
+PASS  the Worker logged no error
+PASS  wrangler dev was stopped (its own process group only) and ports 8787 and 9330 are free again
+
+ALL CHECKS PASSED

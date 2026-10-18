@@ -17,6 +17,7 @@
     "deploy": "npx --yes wrangler@4.151.1 deploy",
     "mcp": "tsx src/mcp.ts",
     "smoke": "tsx scripts/smoke.ts",
+    "worker:smoke": "tsx scripts/worker-smoke.ts",
     "mcp:session": "tsx scripts/mcp-session.ts",
     "gate": "tsx scripts/gate.ts",
     "check:secrets": "node scripts/secret-scan.mjs",

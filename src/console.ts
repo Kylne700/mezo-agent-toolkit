@@ -37,8 +37,8 @@ const CSS = `
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:1rem/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-.wrap{max-width:46rem;margin:0 auto;padding:0 1rem 3rem}
-h1{font-size:1.75rem;line-height:1.2;margin:1.5rem 0 .5rem}
+.wrap{max-width:46rem;margin:0 auto;padding:1.5rem 1rem 3rem}
+h1{font-size:1.75rem;line-height:1.2;margin:0 0 .5rem}
 h2{font-size:1.25rem;line-height:1.3;margin:2rem 0 .5rem}
 p{margin:.5rem 0}
 a{color:var(--link)}
@@ -51,7 +51,7 @@ a:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:
 dl{margin:0;display:grid;grid-template-columns:minmax(0,11rem) minmax(0,1fr);gap:.5rem 1rem}
 dt{color:var(--muted)}
 dd{margin:0;overflow-wrap:anywhere}
-@media (max-width:30rem){dl{grid-template-columns:minmax(0,1fr);gap:0}dd{margin-bottom:.75rem}}
+@media (max-width:30rem){dl{grid-template-columns:minmax(0,1fr);gap:0}dd{margin-bottom:.75rem}.addr{font-size:.75rem}}
 code,pre{font:.875rem/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 code{background:var(--code);border-radius:.2rem;padding:.05rem .25rem}
 pre{background:var(--code);border:1px solid var(--line);border-radius:.4rem;padding:.75rem;margin:.5rem 0;white-space:pre-wrap;overflow-wrap:anywhere}
@@ -85,7 +85,7 @@ const JS = `
         when.setAttribute('datetime', p.time);
         when.textContent = ' ' + p.time.replace('T', ' ').slice(0, 19) + ' UTC';
         var from = document.createElement('div');
-        from.textContent = 'from ' + p.from + ', block ' + p.block;
+        from.textContent = 'from ' + short(p.from) + ', block ' + p.block;
         li.append(amount, when, from);
         if (typeof p.explorer === 'string' && p.explorer.indexOf(base) === 0) {
           var a = document.createElement('a');
@@ -167,8 +167,8 @@ export function consoleHtml(i: ConsoleInfo): string {
 <dl>
 <dt>Network</dt><dd>Mezo testnet (${esc(i.network)})</dd>
 <dt>Price per call</dt><dd>${esc(i.priceMusd)} MUSD</dd>
-<dt>Payee</dt><dd><code>${esc(i.payee)}</code><br><a class="touch" href="${esc(addressUrl(i.payee))}">Payee on the explorer</a></dd>
-<dt>Lens contract</dt><dd><code>${esc(i.lens)}</code><br><a class="touch" href="${esc(addressUrl(i.lens))}">Lens on the explorer</a></dd>
+<dt>Payee</dt><dd><code class="addr">${esc(i.payee)}</code><br><a class="touch" href="${esc(addressUrl(i.payee))}">Payee on the explorer</a></dd>
+<dt>Lens contract</dt><dd><code class="addr">${esc(i.lens)}</code><br><a class="touch" href="${esc(addressUrl(i.lens))}">Lens on the explorer</a></dd>
 <dt>Facilitator</dt><dd>${esc(i.facilitatorHost)}, a third party that sends the settlement transaction and pays the BTC gas</dd>
 <dt>Paid routes</dt><dd><ul class="routes">
 ${routes}
@@ -187,11 +187,12 @@ ${routes}
 <p>MUSD transfers to the payee, newest first, read from the chain. They include the toolkit's own test runs. A transfer shows that a payment landed, not that data was delivered.</p>
 <p id="payments-note" class="muted" role="status">Reading the chain...</p>
 <ol id="payments" class="payments" data-explorer="${esc(EXPLORER)}/tx/"></ol>
-<noscript><p>This list needs JavaScript. The same data is at <a href="/api/payments">/api/payments</a>.</p></noscript>
+<noscript><p>This list needs JavaScript. The same data is here: <a class="touch" href="/api/payments">/api/payments</a></p></noscript>
 </section>
 </main>
 <footer>
-<p class="muted">MIT licence. Testnet only. Data: <a href="/status">/status</a> and <a href="/api/payments">/api/payments</a>.</p>
+<p class="muted">MIT licence. Testnet only.</p>
+<p class="muted">Data as JSON: <a class="touch" href="/status">/status</a> <a class="touch" href="/api/payments">/api/payments</a></p>
 </footer>
 </div>
 <script>${JS}</script>

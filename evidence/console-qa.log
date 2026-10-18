@@ -1,0 +1,64 @@
+console QA of http://127.0.0.1:8787/ on 2026-10-18T20:11:43Z: Chromium 154.0.8037.92, playwright-core 1.64.1, axe-core 4.14.0
+
+== light 1280px (viewport 1280x800) ==
+PASS  the browser really renders the light scheme (page background rgb(255, 255, 255), text rgb(20, 24, 31))
+PASS  the page's own script ran under the CSP: 10 recent payments listed, 10 with an explorer link (note: "10 newest of the payments found in blocks 16222421 to 16231920.")
+PASS  only the page and its data are requested, nothing from outside: GET /, GET /api/payments
+PASS  no console error or warning and no uncaught exception
+PASS  a script injected into the page does not run, and the browser reports the CSP violation (error: Executing inline script violates the following Content Security Policy directive 'script-src 'sha256-l8XkooTIpoyn)
+PASS  no sideways overflow: page 1280 px, body 1280 px, viewport 1280 px
+PASS  axe-core 4.14.0: 0 violations, 36 rules passed, 0 need review
+PASS  the Tab key reaches all 15 focusable elements once each (Skip to the content > Payee on the explorer > Lens on the explorer > Transaction 0xaad142ca…0984b1 > Transaction 0x1113ccc1…a6b1c9 > Transaction 0xb15e02af…cd9119 > Transaction 0x3b69ac81…7474ee > Transaction 0x795d0979…999a3e > Transaction 0x9468a2af…6bb80d > Transaction 0xcbca7dd3…63893c > Transaction 0x7b35e64c…3d0fcb > Transaction 0x42d9d05a…5c024a > Transaction 0x431d1013…50670e > /status > /api/payments)
+PASS  every keyboard stop shows a focus ring of at least 2 px, in view, with at least 3:1 contrast against the page (ring 3 px, contrast 6.7:1)
+PASS  every focusable element is at least 44 x 44 px (smallest side 44 px)
+PASS  the link inside <noscript> is 117.1 x 44 px
+
+== dark 1280px (viewport 1280x800) ==
+PASS  the browser really renders the dark scheme (page background rgb(15, 20, 26), text rgb(230, 235, 242))
+PASS  the page's own script ran under the CSP: 10 recent payments listed, 10 with an explorer link (note: "10 newest of the payments found in blocks 16222421 to 16231920.")
+PASS  only the page and its data are requested, nothing from outside: GET /, GET /api/payments
+PASS  no console error or warning and no uncaught exception
+PASS  no sideways overflow: page 1280 px, body 1280 px, viewport 1280 px
+PASS  axe-core 4.14.0: 0 violations, 36 rules passed, 0 need review
+PASS  the Tab key reaches all 15 focusable elements once each (Skip to the content > Payee on the explorer > Lens on the explorer > Transaction 0xaad142ca…0984b1 > Transaction 0x1113ccc1…a6b1c9 > Transaction 0xb15e02af…cd9119 > Transaction 0x3b69ac81…7474ee > Transaction 0x795d0979…999a3e > Transaction 0x9468a2af…6bb80d > Transaction 0xcbca7dd3…63893c > Transaction 0x7b35e64c…3d0fcb > Transaction 0x42d9d05a…5c024a > Transaction 0x431d1013…50670e > /status > /api/payments)
+PASS  every keyboard stop shows a focus ring of at least 2 px, in view, with at least 3:1 contrast against the page (ring 3 px, contrast 10.2:1)
+PASS  every focusable element is at least 44 x 44 px (smallest side 44 px)
+PASS  the link inside <noscript> is 117.1 x 44 px
+
+== light 390px (viewport 390x844) ==
+PASS  the browser really renders the light scheme (page background rgb(255, 255, 255), text rgb(20, 24, 31))
+PASS  the page's own script ran under the CSP: 10 recent payments listed, 10 with an explorer link (note: "10 newest of the payments found in blocks 16222421 to 16231920.")
+PASS  only the page and its data are requested, nothing from outside: GET /, GET /api/payments
+PASS  no console error or warning and no uncaught exception
+PASS  no sideways overflow: page 390 px, body 390 px, viewport 390 px
+PASS  axe-core 4.14.0: 0 violations, 36 rules passed, 0 need review
+PASS  the Tab key reaches all 15 focusable elements once each (Skip to the content > Payee on the explorer > Lens on the explorer > Transaction 0xaad142ca…0984b1 > Transaction 0x1113ccc1…a6b1c9 > Transaction 0xb15e02af…cd9119 > Transaction 0x3b69ac81…7474ee > Transaction 0x795d0979…999a3e > Transaction 0x9468a2af…6bb80d > Transaction 0xcbca7dd3…63893c > Transaction 0x7b35e64c…3d0fcb > Transaction 0x42d9d05a…5c024a > Transaction 0x431d1013…50670e > /status > /api/payments)
+PASS  every keyboard stop shows a focus ring of at least 2 px, in view, with at least 3:1 contrast against the page (ring 3 px, contrast 6.7:1)
+PASS  every focusable element is at least 44 x 44 px (smallest side 44 px)
+PASS  the link inside <noscript> is 117.1 x 44 px
+
+== dark 390px (viewport 390x844) ==
+PASS  the browser really renders the dark scheme (page background rgb(15, 20, 26), text rgb(230, 235, 242))
+PASS  the page's own script ran under the CSP: 10 recent payments listed, 10 with an explorer link (note: "10 newest of the payments found in blocks 16222421 to 16231920.")
+PASS  only the page and its data are requested, nothing from outside: GET /, GET /api/payments
+PASS  no console error or warning and no uncaught exception
+PASS  no sideways overflow: page 390 px, body 390 px, viewport 390 px
+PASS  axe-core 4.14.0: 0 violations, 36 rules passed, 0 need review
+PASS  the Tab key reaches all 15 focusable elements once each (Skip to the content > Payee on the explorer > Lens on the explorer > Transaction 0xaad142ca…0984b1 > Transaction 0x1113ccc1…a6b1c9 > Transaction 0xb15e02af…cd9119 > Transaction 0x3b69ac81…7474ee > Transaction 0x795d0979…999a3e > Transaction 0x9468a2af…6bb80d > Transaction 0xcbca7dd3…63893c > Transaction 0x7b35e64c…3d0fcb > Transaction 0x42d9d05a…5c024a > Transaction 0x431d1013…50670e > /status > /api/payments)
+PASS  every keyboard stop shows a focus ring of at least 2 px, in view, with at least 3:1 contrast against the page (ring 3 px, contrast 10.2:1)
+PASS  every focusable element is at least 44 x 44 px (smallest side 44 px)
+PASS  the link inside <noscript> is 117.1 x 44 px
+
+== light 320px (viewport 320x640) ==
+PASS  the browser really renders the light scheme (page background rgb(255, 255, 255), text rgb(20, 24, 31))
+PASS  the page's own script ran under the CSP: 10 recent payments listed, 10 with an explorer link (note: "10 newest of the payments found in blocks 16222421 to 16231920.")
+PASS  only the page and its data are requested, nothing from outside: GET /, GET /api/payments
+PASS  no console error or warning and no uncaught exception
+PASS  no sideways overflow: page 320 px, body 320 px, viewport 320 px
+PASS  axe-core 4.14.0: 0 violations, 36 rules passed, 0 need review
+PASS  the Tab key reaches all 15 focusable elements once each (Skip to the content > Payee on the explorer > Lens on the explorer > Transaction 0xaad142ca…0984b1 > Transaction 0x1113ccc1…a6b1c9 > Transaction 0xb15e02af…cd9119 > Transaction 0x3b69ac81…7474ee > Transaction 0x795d0979…999a3e > Transaction 0x9468a2af…6bb80d > Transaction 0xcbca7dd3…63893c > Transaction 0x7b35e64c…3d0fcb > Transaction 0x42d9d05a…5c024a > Transaction 0x431d1013…50670e > /status > /api/payments)
+PASS  every keyboard stop shows a focus ring of at least 2 px, in view, with at least 3:1 contrast against the page (ring 3 px, contrast 6.7:1)
+PASS  every focusable element is at least 44 x 44 px (smallest side 44 px)
+PASS  the link inside <noscript> is 117.1 x 44 px
+
+ALL CHECKS PASSED

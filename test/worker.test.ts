@@ -87,7 +87,7 @@ describe('the entry file', () => {
   it('serves the console from the settings it is given, and answers a bad setting with a 500 that names the variable and nothing more', async () => {
     const ok = await entry.default.fetch(new Request(`https://${HOST}/`), { PAYEE_ADDRESS: PAYEE, PRICE: '$0.0025' })
     expect(ok.status).toBe(200)
-    expect(await ok.text()).toContain(`<dd><code>${PAYEE}</code>`)
+    expect(await ok.text()).toContain(`<dd><code class="addr">${PAYEE}</code>`)
     const bad = await entry.default.fetch(new Request(`https://${HOST}/`), { PRICE: 'free', RPC_URL: 'https://rpc.example.test/hunter2' })
     expect(bad.status).toBe(500)
     const body = (await bad.json()) as { error: string; detail: string }
@@ -131,7 +131,7 @@ describe('the console page', () => {
     expect(html).toContain('Testnet only')
     expect(html).toContain('31611')
     for (const a of [PAYEE, LENS_ADDRESS]) {
-      expect(html).toContain(`<code>${a}</code>`)
+      expect(html).toContain(`<code class="addr">${a}</code>`)
       expect(html).toContain(`href="${EXPLORER}/address/${a}"`)
     }
     expect(html).toContain('facilitator.example.test')
@@ -155,6 +155,14 @@ describe('the console page', () => {
     const res = await get(path)
     expect(res.status).toBe(402)
     expect(decodePaymentRequiredHeader(res.headers.get('payment-required')!).x402Version).toBe(2)
+  })
+
+  it('gives every link a 44 px target class, in the markup and in the links the script adds, so a new link cannot be a small one by accident', async () => {
+    const html = await (await world().get('/')).text()
+    const links = [...html.matchAll(/<a ([^>]*)>/g)].map((m) => m[1]!)
+    expect(links.length).toBeGreaterThanOrEqual(6)
+    for (const attrs of links) expect(attrs, attrs).toMatch(/class="(touch|skip)"/) // the skip link is 49 px high by its own padding
+    expect(html).toContain("a.className = 'touch'")
   })
 
   it('lists the paid routes exactly as /status does', async () => {
