@@ -35,3 +35,6 @@ export const ADDRESSES = {
 } as const satisfies Record<string, Address>
 
 export const TOKENS: Record<string, Address> = { BTC: ADDRESSES.btc, MUSD: ADDRESSES.musd, MEZO: ADDRESSES.mezo }
+
+// Receiving address for the demo endpoint (a throwaway testnet address; its key is never needed to run the server). Override with PAYEE_ADDRESS.
+export const DEFAULT_PAYEE = '0xa37a04189696C371f487ff8da414192D62f39A4f' as const satisfies Address

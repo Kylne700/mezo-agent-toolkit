@@ -1,0 +1,75 @@
+{
+  "kinds": [
+    {
+      "x402Version": 2,
+      "scheme": "exact",
+      "network": "eip155:31612",
+      "extra": {
+        "assets": [
+          {
+            "address": "0x7b7C000000000000000000000000000000000000",
+            "symbol": "BTC",
+            "decimals": 18,
+            "eip712": {
+              "name": "BTC",
+              "version": "1"
+            },
+            "assetTransferMethod": "permit2",
+            "supportsEip2612": true
+          },
+          {
+            "address": "0xdD468A1DDc392dcdbEf6db6e34E89AA338F9F186",
+            "symbol": "MUSD",
+            "decimals": 18,
+            "eip712": {
+              "name": "Mezo USD",
+              "version": "1"
+            },
+            "assetTransferMethod": "permit2",
+            "supportsEip2612": true
+          }
+        ]
+      }
+    },
+    {
+      "x402Version": 2,
+      "scheme": "exact",
+      "network": "eip155:31611",
+      "extra": {
+        "assets": [
+          {
+            "address": "0x7b7C000000000000000000000000000000000000",
+            "symbol": "BTC",
+            "decimals": 18,
+            "eip712": {
+              "name": "BTC",
+              "version": "1"
+            },
+            "assetTransferMethod": "permit2",
+            "supportsEip2612": true
+          },
+          {
+            "address": "0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503",
+            "symbol": "MUSD",
+            "decimals": 18,
+            "eip712": {
+              "name": "Mezo USD",
+              "version": "1"
+            },
+            "assetTransferMethod": "permit2",
+            "supportsEip2612": true
+          }
+        ]
+      }
+    }
+  ],
+  "extensions": [
+    "eip2612GasSponsoring"
+  ],
+  "signers": {
+    "eip155:*": [
+      "0x9984b3eE06Dd131df132AbCAE70875a0fA4c7f6a",
+      "0x23fe3046E7B61Ef83e037932082982B4FcA3f957"
+    ]
+  }
+}

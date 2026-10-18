@@ -23,7 +23,7 @@ class World {
     const chain = await Chain.create()
     const a = { lens: '0x' as Hex } as Record<Names, Hex>
     for (const [key, name] of Object.entries(MOCK_OF)) a[key as Names] = await chain.deploy(mocks[name])
-    a.lens = await chain.deploy({ abi: lensArtifact.abi as never, bytecode: lensArtifact.bytecode }, [a.tm, a.st, a.pf, a.router, a.veBTC, a.veMEZO])
+    a.lens = await chain.deploy({ abi: lensArtifact.abi as never, bytecode: lensArtifact.bytecode as Hex }, [a.tm, a.st, a.pf, a.router, a.veBTC, a.veMEZO])
     const w = new World(chain, a)
     await w.mock('pf', 'set', PRICE)
     return w
@@ -64,7 +64,7 @@ describe('MezoLens contract (against mock Mezo contracts in an in-process EVM)',
   })
 
   it('rejects a zero address in the constructor', async () => {
-    await expect(w.chain.deploy({ abi: lensArtifact.abi as never, bytecode: lensArtifact.bytecode }, [w.a.tm, w.a.st, w.a.pf, w.a.router, w.a.veBTC, zeroAddress])).rejects.toThrow('zero address')
+    await expect(w.chain.deploy({ abi: lensArtifact.abi as never, bytecode: lensArtifact.bytecode as Hex }, [w.a.tm, w.a.st, w.a.pf, w.a.router, w.a.veBTC, zeroAddress])).rejects.toThrow('zero address')
   })
 
   describe('troveHealth', () => {
