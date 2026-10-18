@@ -1,0 +1,43 @@
+MCP session, real stdio server, real payments on Mezo testnet   2026-10-18T18:43:12.732Z
+note: review-1: final code after the security fixes e2ba46c..ca79c04 (signer without signTransaction, 300 s validity cap, host default, no double pay, on-chain check of a reported success)
+network eip155:31611   lens 0xBDfD1C0B544319E25b4b99ee1f355e55230f6130
+buyer 0xea2D4b92DDd760959BB1D8119430640885851A91   payee 0xa37a04189696C371f487ff8da414192D62f39A4f
+the server's limits, set in its environment and not changeable by a tool call: 0.002 MUSD per call, 0.002 MUSD per session; it may only call host 127.0.0.1
+two local paid endpoints, both using the real facilitator: http://127.0.0.1:40705 (price $0.001) and http://127.0.0.1:33759 (price $0.05)
+MUSD before   buyer 15716457283614259046   payee 25000000000000000  (base units)
+
+== the server
+PASS  the server started with payments on: its buyer is the funded wallet and its limits are the ones set
+PASS  tools/list returns exactly the five tools: pay_and_fetch, pool_quote, redemption_risk, trove_health, ve_locks
+    trove_health     readOnlyHint=true  destructiveHint=undefined  openWorldHint=true
+    redemption_risk  readOnlyHint=true  destructiveHint=undefined  openWorldHint=true
+    pool_quote       readOnlyHint=true  destructiveHint=undefined  openWorldHint=true
+    ve_locks         readOnlyHint=true  destructiveHint=undefined  openWorldHint=true
+    pay_and_fetch    readOnlyHint=false  destructiveHint=true  openWorldHint=true
+PASS  pay_and_fetch takes only a url, so no tool call can change a limit (arguments: url)
+PASS  the pay_and_fetch description tells the agent the operator limits
+
+== read tools (free, read through the MezoLens contract)
+PASS  trove_health 0xDA04759E54728B6636Fe48F7c9795c7B609bAaAa at block 16230818: raw integers and shown amounts equal the direct reads
+    Trove is below the 110% minimum ratio (109.63%) and can be liquidated.
+PASS  trove_health for an address without a trove: active false, status nonExistent (and TroveManager agrees)
+PASS  redemption_risk 0xbe65D538E887D09a73354172c4411335fC2cbDb6 at block 16230818: 3 redeemable troves and 5655.133019 MUSD ahead equal a node-by-node walk from the tail
+PASS  pool_quote 0.001 BTC -> 78.70721395 MUSD (impact 0%, a small trade) at block 16230819: equals the router's own numbers
+PASS  pool_quote 100 BTC -> 7309883.06764521 MUSD (impact 7.05%, a trade of a few percent of the pool, so the price impact is not zero) at block 16230819: equals the router's own numbers
+PASS  ve_locks 0x86969a3C99dAEaC9572E579a453593AA9f78A10e at block 16230819: 1 locks equal the direct reads (unlock time, seconds left, voting power, voted)
+PASS  ve_locks reports a lock that is still running (secondsLeft above zero)
+PASS  a bad address is a tool error the agent can read, not a crash: "address must be a 0x address with 40 hex characters (a mixed-case address needs "
+
+== pay_and_fetch (the only tool that spends)
+PASS  a free URL is just fetched: status 200, paid false, nothing authorised, nothing spent
+FAIL  payment 1, a trove health read: status 200, paid, 0.001 MUSD authorised, settlement transaction returned
+        tool error: {"url":"http://127.0.0.1:40705/v1/trove/0xDA04759E54728B6636Fe48F7c9795c7B609bAaAa","status":402,"ok":false,"paid":false,"authorizedMusd":"0.001","settlement":null,"unsettled":{"reason":"unexpected_error","detail":"Transaction receipt with 
+        unexpected answer: {"status":402,"paid":false,"authorizedMusd":"0.001","unsettled":{"reason":"unexpected_error","detail":"Transaction receipt with hash \"0x9468a2afdbd589cfd7e63810af25e573e59fb37f29be805e2628d7b3fe6bb80d\" could not be found. The Transaction may not be processed on a block yet."}}
+        the payer is undefined, not the buyer
+    facilitator /settle answered: threw: unexpected_error: Transaction receipt with hash "0x9468a2afdbd589cfd7e63810af25e573e59fb37f29be805e2
+    server spend after this call: {"perCallMusd":"0.002","perSessionMusd":"0.002","spentMusd":"0.001","remainingMusd":"0.001","payments":1}
+FAIL  the session stopped with an error: Cannot convert undefined to a BigInt
+PASS  the server process has exited after the client closed
+PASS  nothing the server said (the tool list, every answer, its stderr) contains the private key, the key file path, or a home path
+
+MCP SESSION FAILED (2 failed check(s))
