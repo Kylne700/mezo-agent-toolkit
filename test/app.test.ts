@@ -123,6 +123,14 @@ describe('when the facilitator reports success', () => {
     const status = (await (await get('/status')).json()) as { recoveredSettlements: number }
     expect(status.recoveredSettlements).toBe(0)
   })
+
+  it('searches the chain once, not again after turning the success into a failure (the buyer stops waiting at 45 seconds)', async () => {
+    const afterFailure = fakeChain([])
+    await setup({ facilitator: fakeFacilitator(receiptCrash), chain: afterFailure }).buyer.fetchPaid(`http://app.test/v1/trove/${TROVE}`)
+    const afterSuccess = fakeChain([])
+    await setup({ facilitator: fakeFacilitator(), chain: afterSuccess }).buyer.fetchPaid(`http://app.test/v1/trove/${TROVE}`)
+    expect(afterSuccess.logCalls.length).toBe(afterFailure.logCalls.length)
+  })
 })
 
 describe('when the facilitator reports a failed settlement', () => {
@@ -182,6 +190,12 @@ describe('when the facilitator reports a failed settlement', () => {
     const ctx = { paymentPayload: { payload: { signature, permit2Authorization: { from: testAccount().address } } }, requirements: { payTo: PAYEE, asset: ADDRESSES.musd, amount: PRICE_BASE_UNITS, network: NETWORK } }
     const results = await Promise.all([recovery.onSettleFailure(ctx as never), recovery.onSettleFailure(ctx as never)])
     expect(results.filter((r) => r && r.recovered)).toHaveLength(1)
+  })
+
+  it('keeps looking while the node does not show the mined payment yet (seen live: three looks were not enough)', async () => {
+    const facilitator = fakeFacilitator(receiptCrash)
+    const { buyer } = setup({ facilitator, chain: fakeChain([theTransfer(facilitator)], { blindLooks: 3 }) })
+    expect(await buyer.fetchPaid(`http://app.test/v1/trove/${TROVE}`)).toMatchObject({ status: 200, paid: true })
   })
 
   it('survives a chain that cannot be read: still 402, no crash', async () => {

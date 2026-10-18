@@ -24,7 +24,7 @@ type TransferLog = { transactionHash: string | null; args: { value?: bigint } }
 export interface RecoveryOptions {
   /** How far back to look for the transfer, in blocks (about 5 seconds each on Mezo). Default 150, about 12 minutes. */
   windowBlocks?: bigint
-  /** How often to look, and how long to wait between looks, in case the node answering is a block behind. */
+  /** How often to look, and how long to wait between looks: Mezo's RPC can fail to show a mined transaction for several seconds (seen live). */
   tries?: number
   waitMs?: number
 }
@@ -40,10 +40,13 @@ export interface SettlementRecovery {
 
 export function settlementRecovery(chain: LogReader, o: RecoveryOptions = {}): SettlementRecovery {
   const windowBlocks = o.windowBlocks ?? 150n
-  const tries = o.tries ?? 3
+  // 7 looks 2 s apart: 12 s of waiting plus the reads, about 18 s. With verify, the lens and the facilitator's settle (about 5-15 s) that stays under the buyer's 45 s (pay.ts).
+  const tries = o.tries ?? 7
   const waitMs = o.waitMs ?? 2000
   const used = new Set<string>() // transactions that already paid for one answer
   const recovered = new Set<string>()
+  const searched = new Set<string>() // signatures confirming() already searched for: the failure it reports must not start a second search
+  const signatureOf = (pp: { readonly payload: unknown }) => String((pp.payload as { signature?: unknown }).signature)
   const remember = (tx: string) => {
     used.add(tx.toLowerCase())
     if (used.size > REMEMBER_MAX) used.delete(used.values().next().value as string)
@@ -93,6 +96,7 @@ export function settlementRecovery(chain: LogReader, o: RecoveryOptions = {}): S
   }
 
   const onSettleFailure: OnSettleFailureHook = async ({ paymentPayload, requirements }) => {
+    if (searched.delete(signatureOf(paymentPayload))) return
     const found = await findOnChain(paymentPayload, requirements)
     if (!found) return
     recovered.add(found.hash.toLowerCase())
@@ -107,6 +111,7 @@ export function settlementRecovery(chain: LogReader, o: RecoveryOptions = {}): S
       if (!result.success) return result
       const found = await findOnChain(p, r)
       if (found) return { ...result, transaction: found.hash, payer: found.payer }
+      searched.add(signatureOf(p))
       return { ...result, success: false, errorReason: 'not_confirmed_on_chain', errorMessage: 'the facilitator reported success, but this payment was not found on chain', transaction: '' }
     },
   })

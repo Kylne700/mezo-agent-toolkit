@@ -89,8 +89,8 @@ export interface FakeTransfer {
   input: string | (() => string)
 }
 
-/** A chain with a fixed list of MUSD transfers. getLogs answers with all of them; getTransaction knows only their hashes. */
-export function fakeChain(transfers: FakeTransfer[], o: { failReads?: boolean } = {}): LogReader & { logCalls: unknown[] } {
+/** A chain with a fixed list of MUSD transfers. getLogs answers with all of them (none for the first blindLooks calls, like a node that lags); getTransaction knows only their hashes. */
+export function fakeChain(transfers: FakeTransfer[], o: { failReads?: boolean; blindLooks?: number } = {}): LogReader & { logCalls: unknown[] } {
   const chain = {
     logCalls: [] as unknown[],
     async getBlockNumber() {
@@ -99,6 +99,7 @@ export function fakeChain(transfers: FakeTransfer[], o: { failReads?: boolean } 
     },
     async getLogs(args: unknown) {
       chain.logCalls.push(args)
+      if (chain.logCalls.length <= (o.blindLooks ?? 0)) return []
       return transfers.map((t) => ({ transactionHash: t.hash, args: { value: t.value } }))
     },
     async getTransaction({ hash }: { hash: Hex }) {
