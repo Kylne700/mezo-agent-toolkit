@@ -219,8 +219,9 @@ try {
       settlements.push(r.data.settlement.transaction)
     }
     log(`    server spend after this call: ${JSON.stringify(r.data.spend)}`)
-    if (r.data.json) verdict(`payment ${n}: the data that was bought equals the direct reads at its block ${r.data.json.blockNumber}`, await verify(r.data.json))
-    else check(false, `payment ${n}: no JSON data came back`)
+    // Only bought data is compared: a 402 body has no block, and the session must go on to report the balances.
+    if (r.data.paid && r.data.json) verdict(`payment ${n}: the data that was bought equals the direct reads at its block ${r.data.json.blockNumber}`, await verify(r.data.json))
+    else check(false, `payment ${n}: no paid data came back`)
     return r
   }
 
