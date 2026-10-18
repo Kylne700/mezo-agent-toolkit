@@ -1,0 +1,12 @@
+node_modules/
+scratch/
+.env
+.env.*
+*.key
+keys/
+coverage/
+dist/
+*.log
+PROGRESS.md
+PROGRESS-archive.md
+.secrets/

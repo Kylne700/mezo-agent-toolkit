@@ -1,0 +1,13 @@
+{
+  "network": "eip155:31611",
+  "router": "0x9a1ff7FE3a0F69959A3fBa1F1e5ee18e1A9CD7E9",
+  "factory": "0x4947243CC818b627A5D06d14C4eCe7398A23Ce1A",
+  "amountInBtc": "0.0002",
+  "quotedMusd": "15.741457283614259046",
+  "approveTx": "0xa344fd49d2bba7a984ea7a9a64ea92e78bba3ae0ac20d30d279d86e3d2a1cd2a",
+  "swapTx": "0xe43a7aaf4a997a9b1a0242546874a8812f813e14b8cd293f304310fcd385c5be",
+  "swapBlock": "16229223",
+  "status": "success",
+  "musdBefore": "0",
+  "musdAfter": "15.741457283614259046"
+}
