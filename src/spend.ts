@@ -2,6 +2,7 @@
 //
 // What it enforces, for every payment the x402 client is about to sign:
 //   - the scheme is "exact", the network is Mezo testnet and the asset is MUSD (nothing else can be paid);
+//   - the signature stays valid for at most MAX_VALIDITY_SECONDS (the seller asks for the window; a long one keeps an unsettled payment able to land);
 //   - one payment is at most `perCall`;
 //   - everything paid so far in this process plus this payment is at most `perSession`.
 // The check and the reservation are one synchronous step, so two calls running at once cannot both squeeze under the limit.
@@ -13,6 +14,8 @@ import { ADDRESSES, NETWORK } from './config.ts'
 export const MUSD_DECIMALS = 18
 export const DEFAULT_PER_CALL_MUSD = '0.01'
 export const DEFAULT_PER_SESSION_MUSD = '0.1'
+/** Our server and the x402 default both ask for 300 seconds. */
+export const MAX_VALIDITY_SECONDS = 300
 
 export interface SpendLimits {
   /** Largest single payment, in MUSD base units (18 decimals). */
@@ -27,6 +30,8 @@ export interface Requirement {
   network: string
   asset: string
   amount: string
+  /** How long the signed payment stays valid; the Permit2 deadline is now plus this. */
+  maxTimeoutSeconds: number
 }
 
 export type Decision = { ok: true; amount: bigint } | { ok: false; reason: string }
@@ -78,6 +83,8 @@ export class SpendGuard {
     if (typeof req.asset !== 'string' || req.asset.toLowerCase() !== ADDRESSES.musd.toLowerCase()) {
       return { ok: false, reason: `asset ${req.asset} is not allowed (only MUSD ${ADDRESSES.musd})` }
     }
+    const t = req.maxTimeoutSeconds
+    if (!Number.isInteger(t) || t < 1 || t > MAX_VALIDITY_SECONDS) return { ok: false, reason: `a payment valid for ${String(t).slice(0, 20)} seconds is not allowed (at most ${MAX_VALIDITY_SECONDS})` }
     // A canonical non-negative integer only: "01", "1e3", "-5", "1.5" and " 7" are refused instead of being guessed at.
     if (typeof req.amount !== 'string' || !/^(0|[1-9]\d{0,77})$/.test(req.amount)) return { ok: false, reason: `payment amount "${String(req.amount).slice(0, 40)}" is not a whole number of base units` }
     const amount = BigInt(req.amount)

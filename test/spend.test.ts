@@ -4,7 +4,7 @@ import { ADDRESSES, NETWORK } from '../src/config.ts'
 import { SpendGuard, limitsFromEnv, parseMusd } from '../src/spend.ts'
 
 const musd = (x: string) => parseUnits(x, 18)
-const req = (over: Record<string, string> = {}) => ({ scheme: 'exact', network: NETWORK, asset: ADDRESSES.musd, amount: musd('0.001').toString(), ...over })
+const req = (over: Record<string, string> = {}) => ({ scheme: 'exact', network: NETWORK, asset: ADDRESSES.musd, amount: musd('0.001').toString(), maxTimeoutSeconds: 300, ...over })
 const guard = (perCall = '0.01', perSession = '0.03') => new SpendGuard({ perCall: musd(perCall), perSession: musd(perSession) })
 
 describe('SpendGuard limits', () => {
@@ -65,6 +65,11 @@ describe('SpendGuard rules', () => {
     for (const amount of ['01', '1e3', '-5', '1.5', ' 7', '', '0x10', 'abc', '9'.repeat(79)]) {
       expect(refused({ amount }), JSON.stringify(amount)).toMatch(/is not a whole number of base units/)
     }
+  })
+
+  it('refuses a validity window over five minutes, or one that is not a whole number of seconds', () => {
+    for (const t of [301, 86400, 0, -1, 1.5, Number.NaN, '300']) expect(guard().authorize({ ...req(), maxTimeoutSeconds: t as number }).ok, String(t)).toBe(false)
+    expect(guard().authorize({ ...req(), maxTimeoutSeconds: 300 }).ok).toBe(true)
   })
 
   it('refuses a non-string amount', () => {

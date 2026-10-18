@@ -88,6 +88,15 @@ describe('what gets signed', () => {
     expect(seller.payments).toHaveLength(1)
     expect(JSON.stringify(seller.payments[0])).not.toMatch(/signedTransaction/)
   })
+
+  it('refuses a seller that wants the signature to stay valid for a day, before signing anything', async () => {
+    const seller = rawSeller({ accepts: [musdRequirement({ maxTimeoutSeconds: 86400 })] })
+    const guard = SpendGuard.fromEnv({})
+    const buyer = createBuyer({ account: testAccount(), chainReader: zeroReader, guard, fetchImpl: seller.fetchImpl })
+    await expect(buyer.fetchPaid(url)).rejects.toThrow(/valid for 86400 seconds is not allowed/)
+    expect(seller.payments).toHaveLength(0)
+    expect(guard.snapshot()).toMatchObject({ spentMusd: '0', payments: 0 })
+  })
 })
 
 describe('checkUrl', () => {
