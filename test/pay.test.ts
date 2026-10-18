@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { PaymentRefused, checkUrl, createBuyer, readCapped } from '../src/pay.ts'
 import { SpendGuard } from '../src/spend.ts'
-import { TROVE, musdRequirement, payWorld as world, rawSeller, testAccount, zeroReader } from './helpers/x402.ts'
+import { TROVE, musdRequirement, payWorld as world, rawSeller, receiptCrash, testAccount, zeroReader } from './helpers/x402.ts'
 
 const url = `http://app.test/v1/trove/${TROVE}`
 
@@ -190,5 +190,35 @@ describe('after the payment has left', () => {
     const r = await buyer.fetchPaid(url)
     expect(r).toMatchObject({ status: 200, paid: true, bodyTruncated: true, body: '', unsettled: null })
     expect(r.settlement?.transaction).toMatch(/^0x[0-9a-f]{64}$/)
+  })
+
+  // The Permit2 nonce bitmap as the chain would answer it: every nonce used (the payment landed), none used, or no answer.
+  const permit2Says = (state: 'landed' | 'unused' | 'unreadable') => ({
+    readContract: async ({ functionName }: { functionName: string }) => {
+      if (functionName !== 'nonceBitmap') return 0n
+      if (state === 'unreadable') throw new Error('method handler crashed')
+      return state === 'landed' ? 2n ** 256n - 1n : 0n
+    },
+  })
+
+  it('does not pay twice when the seller answers 402 again but the first payment landed on chain', async () => {
+    const { buyer, guard, facilitator } = world({ settle: receiptCrash, chainReader: permit2Says('landed') })
+    expect((await buyer.fetchPaid(url)).unsettled).toMatchObject({ reason: 'unexpected_error' })
+    await expect(buyer.fetchPaid(url)).rejects.toThrow(/landed on chain but the seller never confirmed it/)
+    expect(facilitator.verifies).toBe(1) // no second payment reached the seller
+    expect(guard.snapshot()).toMatchObject({ spentMusd: '0.001', payments: 1 })
+  })
+
+  it('pays for that URL again only once the chain shows the first payment can no longer land', async () => {
+    for (const state of ['unused', 'unreadable'] as const) {
+      const { buyer, facilitator } = world({ settle: receiptCrash, chainReader: permit2Says(state) })
+      await buyer.fetchPaid(url)
+      await expect(buyer.fetchPaid(url)).rejects.toThrow(state === 'unused' ? /could still land until/ : /chain could not be read/)
+      vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 400_000) // past the 300 s deadline and the clock slack
+      const later = await buyer.fetchPaid(url).then(() => 'paid', (e: Error) => e.message)
+      vi.restoreAllMocks()
+      expect(later, state).toBe(state === 'unused' ? 'paid' : 'the last payment for this URL was not confirmed and the chain could not be read to check it; try again later')
+      expect(facilitator.verifies, state).toBe(state === 'unused' ? 2 : 1)
+    }
   })
 })

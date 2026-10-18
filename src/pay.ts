@@ -7,8 +7,8 @@ import { toClientEvmSigner } from '@x402/evm'
 import { registerExactEvmScheme } from '@x402/evm/exact/client'
 import { wrapFetchWithPayment } from '@x402/fetch'
 import type { Address, LocalAccount } from 'viem'
-import { formatUnits } from 'viem'
-import { NETWORK, txUrl } from './config.ts'
+import { formatUnits, parseAbi } from 'viem'
+import { ADDRESSES, NETWORK, txUrl } from './config.ts'
 import { SpendGuard, MUSD_DECIMALS, type SpendSnapshot } from './spend.ts'
 
 /** The payment was refused by a spend limit or a rule; nothing was signed and nothing was paid. */
@@ -63,6 +63,11 @@ export interface Buyer {
 }
 
 const REFUSAL = /Payment creation aborted: ([^]*)|rejected by spendControls/
+const NONCE_BITMAP = parseAbi(['function nonceBitmap(address owner, uint256 wordPos) view returns (uint256)'])
+/** Permit2 judges a deadline by block time, not by this machine's clock. */
+const CLOCK_SLACK_SECONDS = 90n
+
+type Permit = { nonce: bigint; deadline: bigint }
 
 export function createBuyer(opts: BuyerOptions): Buyer {
   const { account, guard } = opts
@@ -71,8 +76,11 @@ export function createBuyer(opts: BuyerOptions): Buyer {
   const maxBodyBytes = opts.maxBodyBytes ?? 64 * 1024
   const hosts = (opts.allowedHosts ?? []).map((h) => h.toLowerCase())
 
-  // The ticket records what the hook authorised for the call that is running now, and whether a payment has left this process. Calls run one at a time, so there is only ever one.
-  let ticket: { amount?: bigint; sent?: boolean } = {}
+  // The ticket records what the hook authorised for the call that is running now, whether a payment has left this process, and its Permit2 nonce. Calls run one at a time, so there is only ever one.
+  let ticket: { amount?: bigint; sent?: boolean; permit?: Permit } = {}
+  // Payments that were sent but never confirmed, by URL: that URL is not paid for again until the chain shows the payment can no longer land.
+  const unconfirmed = new Map<string, Permit>()
+  const reader = opts.chainReader as { readContract(args: unknown): Promise<unknown> }
 
   const client = new x402Client()
   const signer = toClientEvmSigner(account, opts.chainReader as never)
@@ -86,6 +94,11 @@ export function createBuyer(opts: BuyerOptions): Buyer {
     if (!decision.ok) return { abort: true as const, reason: decision.reason }
     ticket.amount = decision.amount
   })
+  client.onAfterPaymentCreation(async ({ paymentPayload }) => {
+    // MUSD has no EIP-3009 transferWithAuthorization, so only a Permit2 payment can ever land.
+    const a = (paymentPayload.payload as { permit2Authorization?: { nonce: string; deadline: string } }).permit2Authorization
+    if (a) ticket.permit = { nonce: BigInt(a.nonce), deadline: BigInt(a.deadline) }
+  })
 
   // Never follow redirects with a payment attached: a 3xx comes back to the caller, who decides.
   const noRedirect: typeof fetch = (input, init) => {
@@ -98,8 +111,25 @@ export function createBuyer(opts: BuyerOptions): Buyer {
 
   let queue: Promise<unknown> = Promise.resolve()
 
+  /** Refuses while the last unconfirmed payment for this URL may still land, and for good once it has. */
+  async function notPaidBefore(url: string): Promise<void> {
+    const p = unconfirmed.get(url)
+    if (!p) return
+    let word: bigint
+    try {
+      word = (await reader.readContract({ address: ADDRESSES.permit2, abi: NONCE_BITMAP, functionName: 'nonceBitmap', args: [account.address, p.nonce >> 8n] })) as bigint
+    } catch {
+      throw new PaymentRefused('the last payment for this URL was not confirmed and the chain could not be read to check it; try again later')
+    }
+    if ((word >> (p.nonce & 0xffn)) & 1n) throw new PaymentRefused('the last payment for this URL landed on chain but the seller never confirmed it, so it is not paid for again in this session')
+    const until = p.deadline + CLOCK_SLACK_SECONDS
+    if (BigInt(Math.floor(Date.now() / 1000)) <= until) throw new PaymentRefused(`the last payment for this URL is not confirmed and could still land until ${new Date(Number(until) * 1000).toISOString()}; try again after that`)
+    unconfirmed.delete(url) // past its deadline and unused: it can never land
+  }
+
   async function run(rawUrl: string): Promise<PaidResult> {
     const url = checkUrl(rawUrl, hosts)
+    await notPaidBefore(url)
     ticket = {}
     let res: Response
     try {
@@ -111,6 +141,7 @@ export function createBuyer(opts: BuyerOptions): Buyer {
         // A failure before the payment left (bad URL, no route, signing trouble) is an ordinary error: nothing was sent. A failure after it (timeout, dropped
         // connection) may have happened on either side of the transfer, so it comes back as a result that says the payment is unconfirmed.
         if (!ticket.sent) throw e
+        if (ticket.permit) unconfirmed.set(url, ticket.permit)
         return {
           url,
           status: 0,
@@ -155,6 +186,7 @@ export function createBuyer(opts: BuyerOptions): Buyer {
       bodyTruncated: truncated,
       spend: guard.snapshot(),
     }
+    if (result.unsettled && ticket.permit) unconfirmed.set(url, ticket.permit)
     if (!truncated && contentType?.includes('json')) {
       try {
         result.json = JSON.parse(text)

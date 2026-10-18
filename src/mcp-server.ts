@@ -121,7 +121,7 @@ export function createMcpServer({ lens, buyer, payOffReason }: McpOptions): McpS
           authorizedMusd: r.authorizedMusd,
           settlement: r.settlement,
           ...(r.unsettled
-            ? { unsettled: r.unsettled, warning: `A payment of ${r.authorizedMusd} MUSD was sent but the server did not confirm it. It may still have been charged: check the buyer's MUSD balance or the explorer before paying again.` }
+            ? { unsettled: r.unsettled, warning: `A payment of ${r.authorizedMusd} MUSD was sent but the server did not confirm it. It may still have been charged: check the buyer's MUSD balance or the explorer. This URL is not paid for again until the chain shows that payment can no longer land.` }
             : {}),
           contentType: r.contentType,
           ...(r.json !== undefined ? { json: r.json } : { body: r.body }),

@@ -114,8 +114,8 @@ export function fakeChain(transfers: FakeTransfer[], o: { failReads?: boolean } 
  * A complete paying world with no network: the real app (priced `price`) behind a fake facilitator, and a real buyer whose fetch goes straight into the app.
  * `wrap` lets a test break or rewrite the network, for example to drop the connection exactly when the payment is sent.
  */
-export function payWorld(o: { price?: string; perCall?: string; perSession?: string; allowedHosts?: string[]; wrap?: (real: typeof fetch) => typeof fetch } = {}) {
-  const facilitator = fakeFacilitator()
+export function payWorld(o: { price?: string; perCall?: string; perSession?: string; allowedHosts?: string[]; wrap?: (real: typeof fetch) => typeof fetch; settle?: Parameters<typeof fakeFacilitator>[0]; chainReader?: unknown } = {}) {
+  const facilitator = fakeFacilitator(o.settle)
   const app = createApp({ lens: fakeLens(), payTo: PAYEE, facilitator, price: o.price })
   const calls: string[] = []
   const real: typeof fetch = (input, init) => {
@@ -124,7 +124,7 @@ export function payWorld(o: { price?: string; perCall?: string; perSession?: str
   }
   const fetchImpl = o.wrap ? o.wrap(real) : real
   const guard = new SpendGuard({ perCall: parseUnits(o.perCall ?? '0.01', 18), perSession: parseUnits(o.perSession ?? '0.1', 18) })
-  const buyer = createBuyer({ account: testAccount(), chainReader: zeroReader, guard, fetchImpl, allowedHosts: o.allowedHosts })
+  const buyer = createBuyer({ account: testAccount(), chainReader: o.chainReader ?? zeroReader, guard, fetchImpl, allowedHosts: o.allowedHosts })
   return { buyer, guard, facilitator, calls }
 }
 
