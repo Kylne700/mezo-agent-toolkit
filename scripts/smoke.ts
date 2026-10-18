@@ -13,13 +13,11 @@ import { publicClient } from '../src/clients.ts'
 import { ADDRESSES, CHAIN_ID, FACILITATOR_URL, NETWORK } from '../src/config.ts'
 import { createLens } from '../src/lens.ts'
 import { startServer } from '../src/serve.ts'
-import { checkShown, compare, directPool, directQueue, directSystem, directTrove, directVe, troveFromTail, type Plain, type Shown } from './lib/direct.ts'
+import { differences, directPool, directQueue, directSystem, directTrove, directVe, lockDifferences, systemDifferences, troveFromTail } from './lib/direct.ts'
 import { discoverLiveLock, discoverVeHolder } from './lib/holders.ts'
 import { createReport } from './lib/report.ts'
 
 const { log, check, verdict, failures, save } = createReport()
-const only = (want: Plain, keys: string[]): Plain => Object.fromEntries(keys.map((k) => [k, want[k]!]))
-const shownFor = (table: Shown[], fields: string[]): Shown[] => table.filter(([f]) => fields.includes(f))
 
 const pub = publicClient()
 const lens = createLens(pub)
@@ -44,38 +42,27 @@ for (const [name, borrower] of [['tail trove', tail], ['fifth trove from the tai
   const want = await directTrove(pub, borrower, B)
   verdict(`trove_health, ${name} ${borrower}: ${Object.keys(want.raw).length} raw integers and ${want.shown.length} shown amounts equal the direct reads`, [
     ...(got.blockNumber === Number(B) ? [] : [`the answer names block ${got.blockNumber}, not ${B}`]),
-    ...compare('raw', got.raw, want.raw),
-    ...compare('answer', got, want.fields),
-    ...checkShown('answer', got, want.shown),
+    ...differences('answer', got, want),
   ])
   log(`    ${got.summary}`)
 }
 
 const wantSystem = await directSystem(pub, B)
 const system = await lens.systemSnapshot({ blockNumber: B })
-verdict(`system_snapshot: ${Object.keys(wantSystem.raw).length} raw values equal the direct reads, and the first redeemable trove equals the HintHelpers answer (${wantSystem.fields.firstRedeemableTrove})`, [
-  ...compare('raw', system.raw, wantSystem.raw),
-  ...compare('answer', system, wantSystem.fields),
-  ...checkShown('answer', system, wantSystem.shown),
-])
+verdict(`system_snapshot: ${Object.keys(wantSystem.raw).length} raw values equal the direct reads, and the first redeemable trove equals the HintHelpers answer (${wantSystem.fields.firstRedeemableTrove})`, differences('answer', system, wantSystem))
 
 const wantQueue = await directQueue(pub, fifth, B)
-const queueProblems = (got: Awaited<ReturnType<typeof lens.redemptionRisk>>, want: typeof wantQueue) => [
-  ...compare('raw', got.raw, want.raw),
-  ...compare('answer', got, want.fields),
-  ...checkShown('answer', got, want.shown),
-]
 const single = await lens.redemptionRisk(fifth, { blockNumber: B })
 verdict(`redemption_risk, one call, for ${fifth}: ${single.redeemableTrovesAhead} redeemable troves and ${single.redeemableMusdAhead} MUSD ahead equal a node-by-node walk from the tail`, [
-  ...queueProblems(single, wantQueue),
-  ...compare('system', single.system, only(wantSystem.fields, ['recoveryMode', 'redemptionsOpen', 'troveCount', 'firstRedeemableTrove'])),
-  ...checkShown('system', single.system, shownFor(wantSystem.shown, ['tcrPercent', 'firstRedeemableIcrPercent'])),
+  ...differences('answer', single, wantQueue),
+  ...systemDifferences('system', single.system, wantSystem),
 ])
+const pages = Math.ceil(Number(wantQueue.fields.stepsWalked) / 2)
 const paged = await lens.redemptionRisk(fifth, { blockNumber: B, pageSteps: 2 })
-verdict(`redemption_risk, paged two nodes per call (${Math.ceil(wantQueue.fields.stepsWalked! as number / 2)} calls): same result as the direct walk`, queueProblems(paged, wantQueue))
+verdict(`redemption_risk, paged two nodes per call (${pages} calls): same result as the direct walk`, differences('answer', paged, wantQueue))
 const wantCapped = await directQueue(pub, fifth, B, 2)
 const capped = await lens.redemptionRisk(fifth, { blockNumber: B, pageSteps: 2, maxSteps: 2 })
-verdict('redemption_risk, stopped by the step cap: walkComplete is false and the counters equal a direct 2-node walk', [...queueProblems(capped, wantCapped), ...(capped.walkComplete ? ['walkComplete should be false'] : [])])
+verdict('redemption_risk, stopped by the step cap: walkComplete is false and the counters equal a direct 2-node walk', [...differences('answer', capped, wantCapped), ...(capped.walkComplete ? ['walkComplete should be false'] : [])])
 
 const poolCases: { tokenIn: string; tokenOut: string; amountIn: string; from: Address; to: Address }[] = [
   { tokenIn: 'BTC', tokenOut: 'MUSD', amountIn: '0.001', from: ADDRESSES.btc, to: ADDRESSES.musd },
@@ -86,11 +73,7 @@ const poolCases: { tokenIn: string; tokenOut: string; amountIn: string; from: Ad
 for (const c of poolCases) {
   const got = await lens.poolQuote({ tokenIn: c.tokenIn, tokenOut: c.tokenOut, amountIn: c.amountIn }, { blockNumber: B })
   const want = await directPool(pub, c.from, c.to, parseUnits(c.amountIn, 18), false, B)
-  verdict(`pool_quote ${c.amountIn} ${c.tokenIn} -> ${got.amountOut} ${c.tokenOut} (impact ${got.priceImpactPercent}%): equals the router's own getAmountsOut and reserves`, [
-    ...compare('raw', got.raw, want.raw),
-    ...compare('answer', got, want.fields),
-    ...checkShown('answer', got, want.shown),
-  ])
+  verdict(`pool_quote ${c.amountIn} ${c.tokenIn} -> ${got.amountOut} ${c.tokenOut} (impact ${got.priceImpactPercent}%): equals the router's own getAmountsOut and reserves`, differences('answer', got, want))
 }
 
 const live = await discoverLiveLock(pub, B)
@@ -101,13 +84,7 @@ if (!holder) {
 } else {
   const want = await directVe(pub, holder, B)
   const got = await lens.veLocks(holder, { blockNumber: B })
-  const problems = [...compare('answer', got, want.fields), ...(got.locks.length >= want.locks.length ? [] : [`the answer lists ${got.locks.length} locks, direct reads found at least ${want.locks.length}`])]
-  want.locks.forEach((w, i) => {
-    const g = got.locks[i]
-    if (!g) return
-    problems.push(...compare(`lock[${i}].raw`, g.raw, w.raw), ...compare(`lock[${i}]`, g, w.fields), ...checkShown(`lock[${i}]`, g, w.shown))
-  })
-  verdict(`ve_locks for ${holder}: ${want.locks.length} of ${got.veBtcCount} veBTC + ${got.veMezoCount} veMEZO locks equal the direct reads (unlock time, seconds left, voting power, voted)`, problems)
+  verdict(`ve_locks for ${holder}: ${want.locks.length} of ${got.veBtcCount} veBTC + ${got.veMezoCount} veMEZO locks equal the direct reads (unlock time, seconds left, voting power, voted)`, lockDifferences(got, want))
   if (live) check(got.locks.some((l) => l.secondsLeft > 0 && !l.expired), `ve_locks reports a running lock (${live.escrow} #${live.tokenId}, ${got.locks.find((l) => l.secondsLeft > 0)?.secondsLeft ?? 0} seconds left at the pinned block)`)
 }
 

@@ -236,3 +236,25 @@ export function checkShown(label: string, answer: object, table: Shown[]): strin
     return shown === want ? [] : [`${label}.${field}: shows ${String(got)}, but the contract value ${value} is ${want} in units of 10^-${places}`]
   })
 }
+
+/** Everything that differs between one answer and its direct reads: the exact integers under `raw`, the plain fields, and the text shown to people. */
+export function differences(label: string, answer: object, want: Direct): string[] {
+  return [...compare(`${label}.raw`, (answer as { raw?: object }).raw, want.raw), ...compare(label, answer, want.fields), ...checkShown(label, answer, want.shown)]
+}
+
+/** The same for a list of locks: the counts, then each lock that the direct reads cover. */
+export function lockDifferences(answer: { locks: object[] }, want: DirectLocks): string[] {
+  const out = compare('answer', answer, want.fields)
+  if (answer.locks.length < want.locks.length) out.push(`the answer lists ${answer.locks.length} locks, direct reads found at least ${want.locks.length}`)
+  want.locks.forEach((w, i) => {
+    const g = answer.locks[i]
+    if (g) out.push(...differences(`lock[${i}]`, g, w))
+  })
+  return out
+}
+
+/** The system part of a redemption answer carries only some of the system fields: compare those that are there. */
+export function systemDifferences(label: string, part: object, want: Direct): string[] {
+  const has = (k: string) => k in part
+  return [...compare(label, part, Object.fromEntries(Object.entries(want.fields).filter(([k]) => has(k)))), ...checkShown(label, part, want.shown.filter(([f]) => has(f)))]
+}

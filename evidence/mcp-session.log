@@ -1,0 +1,65 @@
+MCP session, real stdio server, real payments on Mezo testnet   2026-10-18T17:55:39.490Z
+network eip155:31611   lens 0xBDfD1C0B544319E25b4b99ee1f355e55230f6130
+buyer 0xea2D4b92DDd760959BB1D8119430640885851A91   payee 0xa37a04189696C371f487ff8da414192D62f39A4f
+the server's limits, set in its environment and not changeable by a tool call: 0.002 MUSD per call, 0.002 MUSD per session; it may only call host 127.0.0.1
+two local paid endpoints, both using the real facilitator: http://127.0.0.1:46821 (price $0.001) and http://127.0.0.1:44075 (price $0.05)
+MUSD before   buyer 15718457283614259046   payee 23000000000000000  (base units)
+
+== the server
+PASS  the server started with payments on: its buyer is the funded wallet and its limits are the ones set
+PASS  tools/list returns exactly the five tools: pay_and_fetch, pool_quote, redemption_risk, trove_health, ve_locks
+    trove_health     readOnlyHint=true  destructiveHint=undefined  openWorldHint=true
+    redemption_risk  readOnlyHint=true  destructiveHint=undefined  openWorldHint=true
+    pool_quote       readOnlyHint=true  destructiveHint=undefined  openWorldHint=true
+    ve_locks         readOnlyHint=true  destructiveHint=undefined  openWorldHint=true
+    pay_and_fetch    readOnlyHint=false  destructiveHint=true  openWorldHint=true
+PASS  pay_and_fetch takes only a url, so no tool call can change a limit (arguments: url)
+PASS  the pay_and_fetch description tells the agent the operator limits
+
+== read tools (free, read through the MezoLens contract)
+PASS  trove_health 0xDA04759E54728B6636Fe48F7c9795c7B609bAaAa at block 16230223: raw integers and shown amounts equal the direct reads
+    Trove is below the 110% minimum ratio (109.74%) and can be liquidated.
+PASS  trove_health for an address without a trove: active false, status nonExistent (and TroveManager agrees)
+PASS  redemption_risk 0xbe65D538E887D09a73354172c4411335fC2cbDb6 at block 16230223: 3 redeemable troves and 5655.12739 MUSD ahead equal a node-by-node walk from the tail
+PASS  pool_quote 0.001 BTC -> 78.70721395 MUSD (impact 0%, a small trade) at block 16230223: equals the router's own numbers
+PASS  pool_quote 100 BTC -> 7309883.06764521 MUSD (impact 7.05%, a trade of a few percent of the pool, so the price impact is not zero) at block 16230223: equals the router's own numbers
+PASS  ve_locks 0x86969a3C99dAEaC9572E579a453593AA9f78A10e at block 16230223: 1 locks equal the direct reads (unlock time, seconds left, voting power, voted)
+PASS  ve_locks reports a lock that is still running (secondsLeft above zero)
+PASS  a bad address is a tool error the agent can read, not a crash: "address must be a 0x address with 40 hex characters (a mixed-case address needs "
+
+== pay_and_fetch (the only tool that spends)
+PASS  a free URL is just fetched: status 200, paid false, nothing authorised, nothing spent
+PASS  payment 1, a trove health read: status 200, paid, 0.001 MUSD authorised, settlement transaction returned
+    facilitator /settle answered: success
+    the server confirmed the payment from the facilitator's answer
+    SETTLE: 0x7b35e64ca7e324b39f26a0bf302a60ab407313bdf18d03c1b80bb69cfd3d0fcb   payer 0xea2D4b92DDd760959BB1D8119430640885851A91
+    explorer: https://explorer.test.mezo.org/tx/0x7b35e64ca7e324b39f26a0bf302a60ab407313bdf18d03c1b80bb69cfd3d0fcb
+    server spend after this call: {"perCallMusd":"0.002","perSessionMusd":"0.002","spentMusd":"0.001","remainingMusd":"0.001","payments":1}
+PASS  payment 1: the data that was bought equals the direct reads at its block 16230225
+PASS  a price over the per-call limit ($0.05 against 0.002 MUSD) is refused before anything is signed
+    refusal: Refused, nothing was paid: the price is over the per-call limit of 0.002 MUSD
+    (this refusal comes from the x402 client library's own spend control, which the server sets to the same limit and which runs just before the SpendGuard hook)
+PASS  payment 2, a DEX quote: status 200, paid, 0.001 MUSD authorised, settlement transaction returned
+    facilitator /settle answered: success
+    the server confirmed the payment from the facilitator's answer
+    SETTLE: 0xcbca7dd38472da280e4d69fb8aa84db70fe1e8b6742b963e692effba3463893c   payer 0xea2D4b92DDd760959BB1D8119430640885851A91
+    explorer: https://explorer.test.mezo.org/tx/0xcbca7dd38472da280e4d69fb8aa84db70fe1e8b6742b963e692effba3463893c
+    server spend after this call: {"perCallMusd":"0.002","perSessionMusd":"0.002","spentMusd":"0.002","remainingMusd":"0","payments":2}
+PASS  payment 2: the data that was bought equals the direct reads at its block 16230227
+PASS  a third payment would take the session over its limit (0.003 against 0.002 MUSD): refused before anything is signed
+    refusal: Refused, nothing was paid: payment of 0.001 MUSD would take this session to 0.003 MUSD, over the session limit of 0.002 MUSD (0 MUSD left)
+PASS  the facilitator was asked to verify 2 and settle 2 payments on the cheap endpoint (expected 2 and 2: one per payment, none for a refused one) and 0 and 0 on the pricey one
+PASS  a host that is not on the allow list is refused without any request: "The request was not made and nothing was paid: host example.com is not on the allow list (MEZO_PAY_ALLOWED_HOSTS)"
+PASS  a bad URL is a tool error, nothing is paid: "The request was not made and nothing was paid: url must be a full http:// or https:// address"
+
+== on chain
+PASS  2 settlement hashes, all different (expected 2)
+PASS  explorer: 0x7b35e64ca7e324b39f26a0bf302a60ab407313bdf18d03c1b80bb69cfd3d0fcb succeeded in block 16230227 (run began at 16230221), sent by the facilitator 0x02AC5CfD5EB32476a0AEB6F038c674D4998d858C, moved exactly 0.001 MUSD from the buyer to the payee
+PASS  explorer: 0xcbca7dd38472da280e4d69fb8aa84db70fe1e8b6742b963e692effba3463893c succeeded in block 16230229 (run began at 16230221), sent by the facilitator 0x02AC5CfD5EB32476a0AEB6F038c674D4998d858C, moved exactly 0.001 MUSD from the buyer to the payee
+MUSD after    buyer 15716457283614259046   payee 25000000000000000  (base units)
+PASS  the buyer paid exactly 2 x 0.001 MUSD and the payee received it (nothing else moved)
+PASS  the buyer sent no transaction and spent no BTC: the facilitator paid the gas
+PASS  the server process has exited after the client closed
+PASS  nothing the server said (the tool list, every answer, its stderr) contains the private key, the key file path, or a home path
+
+MCP SESSION PASSED
