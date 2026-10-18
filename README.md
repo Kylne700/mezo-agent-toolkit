@@ -117,7 +117,7 @@ These need `MEZO_KEY_FILE` pointing at a funded Mezo testnet key (the faucet giv
 ```
 npm run gate              # 402 then 200 on the four paid routes, four payments of 0.001 MUSD
 npm run mcp:session       # the real stdio server, every tool, two payments of 0.001 MUSD
-npm run worker:smoke      # starts the Worker with wrangler dev, checks it, pays it once (0.001 MUSD) and rewrites evidence/worker-smoke.log; add `-- --no-pay` to pay nothing and write no log
+npm run worker:smoke      # starts the Worker with wrangler dev, checks it, pays it once (0.001 MUSD) and rewrites evidence/worker-smoke.log; add `-- --no-pay` to pay nothing and write no log (it still reads the key file)
 ```
 
 ## Deploy your own
