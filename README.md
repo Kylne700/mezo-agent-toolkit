@@ -4,6 +4,8 @@ Let an AI agent read Mezo and pay for those reads in MUSD, with no BTC for gas.
 
 Live demo: https://mezo-agent-toolkit.kylne700.workers.dev
 
+Built by Kylne700 with AI coding agents (Claude Code): a lead session plans, reviews and checks; sub-agents write the code.
+
 Three parts, all on **Mezo testnet (chain 31611)**:
 
 1. **`MezoLens`**, a read-only contract that answers the questions an agent actually asks about Mezo in one `eth_call` each: how healthy is this MUSD trove, where does it stand in the redemption queue, what does this swap quote and cost in price impact, which veBTC / veMEZO locks does this wallet hold.
