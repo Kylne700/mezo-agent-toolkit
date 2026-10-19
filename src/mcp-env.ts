@@ -11,7 +11,7 @@ export type Env = Record<string, string | undefined>
  * THE ONE LINE TO CHANGE after you deploy the Worker: put its host here, for example `['mezo-agent-toolkit.your-name.workers.dev']` (host only: no https://, no path, no wildcard).
  * Empty on purpose: until someone lists a deployed host, the default allows only the local server. Setting MEZO_PAY_ALLOWED_HOSTS in the MCP server's environment does the same without editing code.
  */
-export const LIVE_HOSTS: string[] = []
+export const LIVE_HOSTS: string[] = ['mezo-agent-toolkit.kylne700.workers.dev']
 
 /** Where the default allow list comes from: the local server (`npm run serve`) plus the live hosts. Nothing else, never "any host". */
 export const payHosts = (live: string[] = LIVE_HOSTS) => ['127.0.0.1:8402', 'localhost:8402', ...live]
