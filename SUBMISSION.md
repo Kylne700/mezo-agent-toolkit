@@ -1,11 +1,11 @@
 # Submission text: Mezo Agent Toolkit
 
-Mezo Buildathon Wave 1 on Akindo. Paste each fenced text as it is. The counts are for the text with the four placeholders as written (`{{REPO_URL}}`, `{{LIVE_URL}}`, `{{VIDEO_URL}}`, `{{DECK_URL}}`); replace them with the real links first. Upload the video as Unlisted. After any edit of a field, run `node scripts/check-submission.mjs --fix`: it recounts the characters, rewrites the counts in the headings and checks the limits, also with the four placeholders replaced by links of 100 characters.
+Mezo Buildathon Wave 1 on Akindo. Paste each fenced text as it is. The counts are for the text with the placeholder as written (`{{VIDEO_URL}}`); replace it with the real link first. Upload the video as Unlisted. After any edit of a field, run `node scripts/check-submission.mjs --fix`: it recounts the characters, rewrites the counts in the headings and checks the limits, also with the placeholder replaced by a link of 100 characters.
 
 Before pasting:
 
-- Fill in `{{LIVE_URL}}` only after the deployed Worker answers at `/status`. When this text was written the Worker had run only under `wrangler dev`. If there is no deployed Worker, delete the line `Live: {{LIVE_URL}}` (section 13), the words `, live {{LIVE_URL}}` (section 14) and the line `Live (testnet): {{LIVE_URL}}` (section 16), then run the count script again.
-- If the video is taken again with new payments, replace the two transaction hashes in sections 14 and 16 (they are in `evidence/video-take-<date>.log`), and the date and the log file name where sections 13 and 16 mention the recorded run. If the console page is filmed again on the deployed Worker, change the sentence in section 16 that says the console is run locally under wrangler dev.
+- Only `{{VIDEO_URL}}` is left to fill in (sections 13 and 14). The repository and deck links work once the repository is public and `docs/deck.pdf` is on the main branch.
+- If the video is taken again with new payments, replace the two transaction hashes in sections 14 and 16 (they are in `evidence/video-take-<date>.log`), and the date and the log file name where sections 13 and 16 mention the recorded run.
 - The sentence about reused code (section 14) matches the README section "Reused code": the Sealdrop video scripts in `scripts/video` (`lib.mjs` and `listen.py` are copied; `config.mjs`, `tts.mjs`, `narration.mjs` and `asr-compare.mjs` are adapted; the file headers say so). A line-overlap check of src, test and the other scripts against Sealdrop and the author's other local projects found only imports and one-line idioms.
 
 ## 1. Project name (18 characters)
@@ -86,14 +86,14 @@ Plans, not promises. Testnet only.
 Kylne700, solo. GitHub: https://github.com/Kylne700
 ```
 
-## 13. Description (4,469 characters; allowed 800-5,900)
+## 13. Description (4,835 characters; allowed 800-5,900)
 
 ```text
 Mezo Agent Toolkit lets an AI agent read Mezo and pay for those reads in MUSD, with no BTC for gas. It runs on Mezo testnet (chain 31611).
-Repo: {{REPO_URL}}
-Live: {{LIVE_URL}}
+Repo: https://github.com/Kylne700/mezo-agent-toolkit
+Live: https://mezo-agent-toolkit.kylne700.workers.dev
 Video: {{VIDEO_URL}}
-Deck: {{DECK_URL}}
+Deck: https://github.com/Kylne700/mezo-agent-toolkit/blob/main/docs/deck.pdf
 
 The problem
 Agents can read Mezo, but they cannot pay for the data. One question, such as how healthy a trove is and where it stands in the redemption queue, takes many RPC calls and knowledge of several contracts. An agent that must buy data from someone else also needs a wallet, BTC for gas and a limit on what it may spend.
@@ -111,26 +111,26 @@ Safety
 - Chain proof: the endpoint asks the chain about every settlement and serves data only when it finds the payment, whatever the facilitator reports. This came from a real failure. Mezo's public RPC sometimes answers null for a mined transaction. The facilitator then reports a failure although the transfer landed. Four payments of 0.001 MUSD were lost to this flake in development, before the final fix.
 
 What was run
-173 unit and contract tests in 10 files pass (a fresh run on 2026-10-18). Runs against Mezo testnet: the smoke test (23 checks), a 402-then-200 run on all four paid routes, a real MCP session (29 checks) and the Worker under wrangler dev (28 checks). The console page passed 51 checks in a browser. The video shows two more payments from one recorded run on 2026-10-18. Their hashes are in the YouTube description and in evidence/video-take-2026-10-18.log. A paid call took 12.9 s and 8.4 s in that run, because the data comes back only after the settlement.
+173 unit and contract tests in 10 files pass (a fresh run on 2026-10-19). Runs against Mezo testnet: the smoke test (23 checks), a 402-then-200 run on all four paid routes, a real MCP session (29 checks), the Worker under wrangler dev (28 checks) and the Worker deployed on Cloudflare (25 checks, in each of two runs that paid). The console page passed 51 checks in a browser. The video shows two more payments, made to the deployed Worker in one run on 2026-10-19. Their hashes are in the YouTube description and in evidence/video-take-2026-10-19.log. A paid call took 12.7 s and 8.4 s in that run, because the data comes back only after the settlement.
 
 Limits, stated plainly
-Testnet only. Nothing here calls Mezo mainnet. The facilitator is a third party: if it is down, paid calls fail, and the free read tools do not depend on it. In the paid runs the agent's BTC balance did not change; a wallet with no BTC at all was not tried. The MCP read tools are free direct lens reads and do not go through x402. A session limit belongs to one server process. The Worker keeps its payment memory per instance, and Cloudflare's real limits were not measured. Overruling a reported facilitator failure is covered by offline tests; it has not happened live on the final code.
+Testnet only. Nothing here calls Mezo mainnet. The facilitator is a third party: if it is down, paid calls fail, and the free read tools do not depend on it. In the paid runs the agent's BTC balance did not change; a wallet with no BTC at all was not tried. The MCP read tools are free direct lens reads and do not go through x402. A session limit belongs to one server process. The Worker keeps its payment memory per instance, so on Cloudflare its /status did not always show the latest payment. No CPU-limit error or other 5xx answer was seen in the runs of 2026-10-19, but the CPU time per request was not measured. Overruling a reported facilitator failure is covered by offline tests; it has not happened live on the final code.
 
 Next, in Wave 2 (Nov 2-15): one settlement ledger for all Worker instances, spend limits that survive a restart, an installable MCP package and a ve gauge vote helper. Plans, not promises.
 ```
 
-## 14. Submission comment (2,166 characters; allowed 500-3,000)
+## 14. Submission comment (2,348 characters; allowed 500-3,000)
 
 ```text
-Repo {{REPO_URL}}, live {{LIVE_URL}}, video {{VIDEO_URL}}, deck {{DECK_URL}}. Mezo testnet only.
+Repo https://github.com/Kylne700/mezo-agent-toolkit, live https://mezo-agent-toolkit.kylne700.workers.dev, video {{VIDEO_URL}}, deck https://github.com/Kylne700/mezo-agent-toolkit/blob/main/docs/deck.pdf. Mezo testnet only.
 
 Mezo integration (30). MUSD is both the price and the payment asset: each paid call moves 0.001 MUSD from the agent to the payee, in a transaction the facilitator sends, with no gas from the agent. Two examples from the video, checked on the explorer:
-https://explorer.test.mezo.org/tx/0x74fed710bac60dccb4fa2b3b1183abc59a6da47ef02c1c18577cf2b2b3dc9df1
-https://explorer.test.mezo.org/tx/0x99a3c4a3b8f5b8a1ca301722590c5635a6af640b6175c558a4a6bf6b85d678cc
+https://explorer.test.mezo.org/tx/0x72589fc2d3fd4b60e4a4bf53cf5c5c99b4c9328ff338ab75f89a48dfa6085a9a
+https://explorer.test.mezo.org/tx/0x74482a3e70490754642b63d5de1565d01a508eb4fb3f053fa8f8875314675404
 MezoLens is at 0xBDfD1C0B544319E25b4b99ee1f355e55230f6130 and reads TroveManager, SortedTroves, PriceFeed, the pool router, veBTC and veMEZO. The README has a table with each contract, its address, what the toolkit calls on it and why.
 
 Product (30). An agent needs two things from Mezo: cheap reads and a safe way to pay. This gives both behind one MCP config entry, with limits that the operator sets and the agent cannot change. The fee is not a revenue plan. It shows how an agent buys data with MUSD, and anyone can deploy the Worker with their own payee.
-Technical (20). 173 tests in 10 files pass (a fresh run). Live checks on testnet: 23 (smoke), 29 (MCP session), 28 (Worker). The server verifies every settlement on chain itself, because the public RPC sometimes answers null for a mined transaction and the facilitator then reports a failure for a payment that landed. Within a session, the buyer does not pay a URL again while an earlier payment for it may still land.
+Technical (20). 173 tests in 10 files pass (a fresh run). Live checks on testnet: 23 (smoke), 29 (MCP session), 28 (Worker under wrangler dev), 25 (Worker deployed on Cloudflare). The server verifies every settlement on chain itself, because the public RPC sometimes answers null for a mined transaction and the facilitator then reports a failure for a payment that landed. Within a session, the buyer does not pay a URL again while an earlier payment for it may still land.
 
 User experience (10). Every answer carries the block it was read at, with exact integers under raw. A refusal says why and that nothing was paid. The console page passed 51 browser checks with 0 axe-core violations, light and dark at 1280 and 390 px, light at 320 px.
 
@@ -143,7 +143,7 @@ Materials (10). The README links the smoke test, the gate, the MCP session, the 
 Mezo Agent Toolkit: an AI agent reads Mezo and pays in MUSD (testnet)
 ```
 
-## 16. YouTube description (1,932 characters; allowed up to 5,000)
+## 16. YouTube description (2,210 characters; allowed up to 5,000)
 
 ```text
 Mezo Agent Toolkit lets an AI agent read Mezo and pay for those reads in MUSD, with no BTC for gas. Mezo Buildathon Wave 1, Track 2 (Access & Distribution). Mezo testnet only.
@@ -158,16 +158,16 @@ What the video shows
 
 Transactions shown in the video (Mezo testnet explorer)
 Plain x402 buyer, 0.001 MUSD:
-https://explorer.test.mezo.org/tx/0x74fed710bac60dccb4fa2b3b1183abc59a6da47ef02c1c18577cf2b2b3dc9df1
+https://explorer.test.mezo.org/tx/0x72589fc2d3fd4b60e4a4bf53cf5c5c99b4c9328ff338ab75f89a48dfa6085a9a
 pay_and_fetch through the MCP server, 0.001 MUSD:
-https://explorer.test.mezo.org/tx/0x99a3c4a3b8f5b8a1ca301722590c5635a6af640b6175c558a4a6bf6b85d678cc
+https://explorer.test.mezo.org/tx/0x74482a3e70490754642b63d5de1565d01a508eb4fb3f053fa8f8875314675404
 
 Notes
-- The scenes that show the request, the MCP calls and the lens replay a captured real run and are labelled "Recorded run, 2026-10-18 UTC". The test scene is labelled "Offline tests, stub facilitator". Both payments above are real. The explorer page is the real Mezo testnet explorer. The console page is the Worker's console, run locally under wrangler dev. Both pages were filmed in a browser.
+- The scenes that show the request and the two paid calls are drawn from the captured answers of a real run against the deployed Worker and are labelled "Live Worker, 2026-10-19 UTC". The scenes with the free MCP reads and the lens replay a captured real run and are labelled "Recorded run, 2026-10-19 UTC". The test scene is labelled "Offline tests, stub facilitator". Both payments above are real. The explorer page is the real Mezo testnet explorer. The console page is the console of the deployed Worker. Both pages were filmed in a browser.
 - The voice is synthetic (Kokoro text-to-speech). The captions are burned in. There is no music.
 - The facilitator (facilitator.vativ.io) is a third party. Nothing here calls Mezo mainnet.
 
-Repo: {{REPO_URL}}
-Live (testnet): {{LIVE_URL}}
-Deck: {{DECK_URL}}
+Repo: https://github.com/Kylne700/mezo-agent-toolkit
+Live (testnet): https://mezo-agent-toolkit.kylne700.workers.dev
+Deck: https://github.com/Kylne700/mezo-agent-toolkit/blob/main/docs/deck.pdf
 ```

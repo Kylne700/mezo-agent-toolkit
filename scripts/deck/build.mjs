@@ -16,7 +16,7 @@ const PDF = join(ROOT, 'docs', 'deck.pdf')
 const FACTS = process.env.DECK_FACTS ?? join(ROOT, 'evidence', 'take-facts.json')
 const CHROMIUM = process.env.CHROMIUM ?? '/usr/bin/chromium'
 const EXPLORER_TX = 'https://explorer.test.mezo.org/tx/'
-const LINKS = ['https://github.com/Kylne700', 'https://github.com/Kylne700/mezo-agent-toolkit']
+const LINKS = ['https://github.com/Kylne700', 'https://github.com/Kylne700/mezo-agent-toolkit', 'https://mezo-agent-toolkit.kylne700.workers.dev']
 const SLIDES = 10
 const FONT_FILES = ['Inter-Regular.otf', 'Inter-SemiBold.otf', 'Inter-Bold.otf', 'JetBrainsMono-Regular.ttf', 'JetBrainsMono-Bold.ttf', 'OFL-Inter.txt', 'OFL-JetBrainsMono.txt']
 
@@ -95,7 +95,7 @@ const readmeLower = readme.toLowerCase()
 check(/<title>Mezo Agent Toolkit - pitch deck<\/title>/.test(html), 'title is "Mezo Agent Toolkit - pitch deck"')
 check((html.match(/<section class="slide"/g) ?? []).length === SLIDES, `${SLIDES} slide sections in the source`)
 check(!/<script|<link\b|<img\b|<iframe|<object|<embed|@import|\bsrcset=|\bsrc=/i.test(html), 'source has 0 script, link, img, iframe, object, embed or import')
-check(foreign.length === 0 && cssUrls.length === 5 && cssUrls.every((u) => /^fonts\/[A-Za-z-]+\.(otf|ttf)$/.test(u)), `external URLs: ${foreign.length} (only links to the explorer and to GitHub); font URLs: ${cssUrls.length}, all relative`)
+check(foreign.length === 0 && cssUrls.length === 5 && cssUrls.every((u) => /^fonts\/[A-Za-z-]+\.(otf|ttf)$/.test(u)), `external URLs: ${foreign.length} (only links to the explorer, to GitHub and to the live Worker); font URLs: ${cssUrls.length}, all relative`)
 check(FONT_FILES.every((f) => existsSync(join(ROOT, 'docs', 'fonts', f))), `docs/fonts holds ${FONT_FILES.length} files (5 fonts, 2 licence texts)`)
 check(txLinks.length > 0 && txGood.length === txLinks.length && txLinks.length <= 4 + (facts?.txs?.length ?? 0) && (html.match(/0x[0-9a-fA-F]{64}/g) ?? []).length === txLinks.length, `${txGood.length} of ${txLinks.length} transaction links have a full hash from README.md or the facts file, shown as first 10 + ... + last 6`)
 check(addresses.every((a) => readmeLower.includes(a.toLowerCase())), `${addresses.length} addresses printed, ${addresses.filter((a) => !readmeLower.includes(a.toLowerCase())).length} missing from README.md`)
