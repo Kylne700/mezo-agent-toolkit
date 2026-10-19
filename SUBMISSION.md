@@ -80,10 +80,10 @@ testnet
 Plans, not promises. Testnet only.
 ```
 
-## 12. Team (51 characters)
+## 12. Team (97 characters)
 
 ```text
-Kylne700, solo. GitHub: https://github.com/Kylne700
+Kylne700, solo, building with AI coding agents (Claude Code). GitHub: https://github.com/Kylne700
 ```
 
 ## 13. Description (4,835 characters; allowed 800-5,900)
