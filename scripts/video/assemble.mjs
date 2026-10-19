@@ -83,7 +83,7 @@ const clean = (s) => s.replace(/[{}\\\n]/g, ' ')
 const day = live.recordedAt.slice(0, 10)
 const labels = {
   explorer: `Screen recording, Mezo testnet explorer, ${day} UTC`,
-  console: `Screen recording, console of ${live.base}, ${day} UTC`,
+  console: `Screen recording, console of the live Worker, ${day} UTC`,
 }
 const ass = [
   '[Script Info]', 'ScriptType: v4.00+', `PlayResX: ${W}`, `PlayResY: ${H}`, 'WrapStyle: 0', 'ScaledBorderAndShadow: yes', '',

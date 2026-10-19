@@ -1,5 +1,5 @@
 {
- "date": "2026-10-18",
+ "date": "2026-10-19",
  "explorerTx": "https://explorer.test.mezo.org/tx/",
  "tests": {
   "passed": 173,
@@ -7,18 +7,18 @@
  },
  "lens": {
   "stepsWalked": 31,
-  "listSize": 258
+  "listSize": 259
  },
  "txs": [
   {
    "label": "x402 buyer, one paid call",
-   "hash": "0x74fed710bac60dccb4fa2b3b1183abc59a6da47ef02c1c18577cf2b2b3dc9df1",
-   "block": 16232870
+   "hash": "0x72589fc2d3fd4b60e4a4bf53cf5c5c99b4c9328ff338ab75f89a48dfa6085a9a",
+   "block": 16245841
   },
   {
    "label": "MCP pay_and_fetch, one paid call",
-   "hash": "0x99a3c4a3b8f5b8a1ca301722590c5635a6af640b6175c558a4a6bf6b85d678cc",
-   "block": 16232873
+   "hash": "0x74482a3e70490754642b63d5de1565d01a508eb4fb3f053fa8f8875314675404",
+   "block": 16245844
   }
  ]
 }

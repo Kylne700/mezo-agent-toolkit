@@ -8,8 +8,7 @@ import { SpendGuard } from './spend.ts'
 export type Env = Record<string, string | undefined>
 
 /**
- * THE ONE LINE TO CHANGE after you deploy the Worker: put its host here, for example `['mezo-agent-toolkit.your-name.workers.dev']` (host only: no https://, no path, no wildcard).
- * Empty on purpose: until someone lists a deployed host, the default allows only the local server. Setting MEZO_PAY_ALLOWED_HOSTS in the MCP server's environment does the same without editing code.
+ * The deployed Worker's host (host only: no https://, no path, no wildcard). To run your own Worker, list its host here or set MEZO_PAY_ALLOWED_HOSTS in the MCP server's environment, which does the same without editing code.
  */
 export const LIVE_HOSTS: string[] = ['mezo-agent-toolkit.kylne700.workers.dev']
 

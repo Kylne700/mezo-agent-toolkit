@@ -33,7 +33,10 @@ async function film(name, run) {
   const page = await ctx.newPage()
   const t0 = Date.now() // the video starts with the page, so the clock starts when the page exists (checked against the video's scene changes: within about 0.2 s)
   const info = { ok: false, note: '' }
+  // A 5xx answer of the Worker is noted with its time (Cloudflare shows its CPU-limit error 1102 as a 503 page); take.ts lists them in its log.
+  page.on('response', (r) => { if (BASE && r.status() >= 500 && r.url().startsWith(BASE)) (info.errors ??= []).push(`${new Date().toISOString()} HTTP ${r.status()} ${new URL(r.url()).pathname}`) })
   try { await run(page, info, () => (Date.now() - t0) / 1000) } catch (e) { info.ok = false; info.note = `${info.note} ${String(e.message).split('\n')[0]}`.trim() }
+  if (info.errors) info.note = `${info.note}; 5xx from the Worker: ${info.errors.join(', ')}`
   const video = page.video()
   await ctx.close()
   const file = join(OUT, `${name}.webm`)

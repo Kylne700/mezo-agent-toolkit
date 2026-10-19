@@ -78,7 +78,7 @@ const P = (s) => `<span class="p">${esc(s)}</span>`
 const E = esc
 const wrap = (s, n) => s.split(' ').reduce((a, w) => (a.length && (a.at(-1) + ' ' + w).length <= n ? [...a.slice(0, -1), a.at(-1) + ' ' + w] : [...a, w]), [])
 const wrap2 = (s, n) => { const w = wrap(s, n); return w.length > 2 ? [w[0], `${w[1].slice(0, n - 1)}…`] : w } // at most two lines, the cut marked
-const REC = `Recorded run, ${day} UTC · Mezo testnet · real payments`
+const REC = `Live Worker, ${day} UTC · Mezo testnet · real payments`
 const urlOf = (path) => `${host}${path.replace(/0x[0-9a-fA-F]{40}/, (a) => sh(a, 6, 4))}`
 const getLine = `GET ${urlOf(take.plain.path)}`
 
@@ -89,11 +89,6 @@ scenes.problem = [
   { at: 0, html: page(`<div class="center"><h1>Agents can read Mezo.</h1><h1 class="dim">They cannot pay for the data.</h1>
     <div class="flow"><div class="node">Agent</div><div class="arrow ok">reads</div><div class="node">Mezo chain</div><span class="ok b" style="font-size:52px">✓</span></div>
     <div class="flow"><div class="node">Agent</div><div class="arrow bad">pays for data</div><div class="node dim">?</div><span class="bad b" style="font-size:52px">✕</span></div></div>`) },
-  { at: at('problem', 1), html: page(`<div class="center"><div class="small" style="font-size:27px;margin-bottom:4px">Mezo Buildathon, Wave 1: entries listed on October 18, 2026</div>
-    <div class="big"><span class="hl">0</span><span class="dim" style="font-size:96px"> of 10</span></div>
-    <h2 style="margin:8px 0 26px">mention MCP tools or an x402 buyer</h2>
-    <p class="small">Snapshot of 2026-10-18 15:48 UTC: 9 public entries (repo or README) and 1 private entry with only a 152-character description visible.
-    Based on what their READMEs and submission texts say; not a search of every chain or repo.</p></div>`) },
 ]
 
 scenes.paid = [
@@ -155,7 +150,7 @@ scenes['mcp-tools'] = [
 ]
 
 const meter = (full) => `<div class="meter"><i style="width:${full ? 100 : 0}%">${full ? `<b>spent this session: ${E(take.mcp.paid.spend.spentMusd)} of ${E(take.mcp.paid.spend.perSessionMusd)} MUSD</b>` : ''}</i></div>`
-const REC2 = `Recorded run, ${day} UTC · real payment · limits 0.001 MUSD per call and per session`
+const REC2 = `Live Worker, ${day} UTC · real payment · limits 0.001 MUSD per call and per session`
 const paidUrl = urlOf(take.mcp.paid.path)
 const refusedUrl = urlOf(refused.path)
 const [refusal, ...refusalRest] = refused.text.split(': ')
@@ -163,17 +158,17 @@ scenes['mcp-cap'] = [
   { at: 0, html: page(`<h2 style="margin-bottom:26px">The tool takes only a URL</h2>${T([`${P('›')} pay_and_fetch(<span class="b">url</span>)`, K('  no amount, no wallet, no limit as parameters')], 's30')}
     <p class="small" style="margin-top:28px;font-size:30px">The agent chooses what to fetch. It cannot choose how much it may spend.</p>`) },
   { at: cueAt('mcp-cap', 'buys data'), html: page(`<h2 style="margin-bottom:12px">The operator sets the limits</h2><p class="small" style="margin-bottom:22px;font-size:26px">in the server's environment, not in the agent's hands</p>${T([
-    `${K('MEZO_MAX_PER_CALL_MUSD'.padEnd(27))}${HL(take.mcp.limitPerCall)}`, `${K('MEZO_MAX_PER_SESSION_MUSD'.padEnd(27))}${HL(take.mcp.limitPerSession)}`, `${K('MEZO_PAY_ALLOWED_HOSTS'.padEnd(27))}${E(take.mcp.host)}`], 's30')}`) },
+    `${K('MEZO_MAX_PER_CALL_MUSD'.padEnd(27))}${HL(take.mcp.limitPerCall)}`, `${K('MEZO_MAX_PER_SESSION_MUSD'.padEnd(27))}${HL(take.mcp.limitPerSession)}`, `${K('MEZO_PAY_ALLOWED_HOSTS'.padEnd(27))}${E(take.mcp.host)}`])}`) }, // the 39-character live host needs the default size (s30 overflows)
   { at: at('mcp-cap', 1), html: page(`<h2 style="margin-bottom:26px">Session limit: ${E(take.mcp.limitPerSession)} MUSD</h2><div class="box"><div class="small" style="font-size:26px">spent in this session</div>${meter(false)}<div class="name" style="margin-top:18px;font-size:40px"><span class="hl">0</span> / ${E(take.mcp.limitPerSession)} MUSD</div></div>`, REC2) },
   { at: at('mcp-cap', 2), html: page(`<h2 style="margin-bottom:22px">Call 1: it settles</h2>${T([
-    `${P('›')} pay_and_fetch(${E(paidUrl)})`,
+    `${P('›')} pay_and_fetch(`, `    ${E(paidUrl)})`, // the live host is too long for one line
     `<span class="ok b">HTTP ${E(take.mcp.paid.status)}</span>  ${K('paid')} ${HL(take.mcp.paid.authorizedMusd + ' MUSD')}  ${K(`session ${take.mcp.paid.spend.spentMusd} of ${take.mcp.paid.spend.perSessionMusd} used`)}`,
-    `${K('  transaction')}`, `  ${HL(tx2)}`])}${meter(true)}`, REC2) },
+    `${K('  transaction')}`, `  ${HL(tx2)}`], 's24')}${meter(true)}`, REC2) },
   { at: cueAt('mcp-cap', 'The second is refused'), html: page(`<h2 style="margin-bottom:22px">Call 2: refused</h2>${T([
-    `${P('›')} pay_and_fetch(${E(refusedUrl)})`,
+    `${P('›')} pay_and_fetch(`, `    ${E(refusedUrl)})`,
     `<span class="bad b">${E(refusal)}</span>`,
     ...wrap(refusalRest.join(': '), 64).map((w) => `  ${K(w)}`),
-    '', `  ${OK('checked on chain: balances and nonce unchanged')}`])}${meter(true)}`, REC2) },
+    '', `  ${OK('checked on chain: balances and nonce unchanged')}`], 's24')}${meter(true)}`, REC2) },
 ]
 
 const OFFLINE = `Offline tests, stub facilitator · nothing is spent · run ${day} UTC`
@@ -207,7 +202,8 @@ scenes.console = 'console'
 scenes.end = [
   { at: 0, html: page(`<div class="center" style="align-items:center;text-align:center"><h1 style="font-size:88px">Mezo Agent Toolkit</h1>
     <h2 style="margin-top:30px;color:#6cb6ff;font-size:44px">${E(REPO_URL)}</h2>
-    <h2 class="dim" style="margin-top:38px;font-size:40px;font-weight:600">Live demo: link in the README</h2>
+    <p class="small" style="margin-top:26px;font-size:26px">Live demo</p>
+    <h2 style="margin-top:2px;color:#6cb6ff;font-size:44px">${E(take.base)}</h2>
     <p class="small" style="margin-top:20px;font-size:30px">Mezo testnet · Kylne700</p></div>`) },
 ]
 

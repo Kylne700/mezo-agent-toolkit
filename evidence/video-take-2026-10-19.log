@@ -1,0 +1,51 @@
+Video take, Worker on https://mezo-agent-toolkit.kylne700.workers.dev, real payments on Mezo testnet, UTC 2026-10-19T14:41:23.802Z
+attached to https://mezo-agent-toolkit.kylne700.workers.dev (not started here)
+the Worker answers after 0.0 s
+PASS  /health: 200 {"ok":true}
+PASS  /status: Mezo testnet, the payee from wrangler.toml, price $0.001, the lens address, four paid routes
+/api/payments before the take: 10 payment(s) to the payee in blocks 16226837-16245836
+PASS  a holder of vote-escrow locks was found for the ve_locks read
+troves: shallow (first in the redemption queue) 0xDA04759E54728B6636Fe48F7c9795c7B609bAaAa   deep 0x115d8917875B80688CEC181c7Ff4982c7ad7DD4b
+buyer 0xea2D4b92DDd760959BB1D8119430640885851A91   payee 0xa37a04189696C371f487ff8da414192D62f39A4f
+MUSD before   buyer 15705457283614259046   payee 36000000000000000  (base units; buyer 15.705457283614259046 MUSD)
+
+== the 402 challenge
+PASS  GET /v1/trove/<address> without payment: 402, x402 v2, one "exact" offer of 0.001 MUSD on Mezo testnet to the payee, with gas sponsoring
+
+== payment 1: a plain x402 buyer (the buyer code the MCP tool uses, here called directly)
+PASS  the buyer's call: status 200, paid, 0.001 MUSD authorised, a settlement transaction, paid by the buyer, in 12.7 s
+    HTTP hops: GET /v1/trove/<trove> -> 402 (116 ms); GET /v1/trove/<trove> -> 200 (12078 ms)
+    settlement 0x72589fc2d3fd4b60e4a4bf53cf5c5c99b4c9328ff338ab75f89a48dfa6085a9a   https://explorer.test.mezo.org/tx/0x72589fc2d3fd4b60e4a4bf53cf5c5c99b4c9328ff338ab75f89a48dfa6085a9a
+PASS  the explorer shows 0x72589f...085a9a: status ok, block 16245841, sent by the facilitator (0x23fe30...A3f957), MUSD buyer -> payee 0.001
+
+== the MCP server (a scripted client, no model), limits 0.001 MUSD per call and in total, host mezo-agent-toolkit.kylne700.workers.dev
+PASS  tools/list returns the five tools: pay_and_fetch, pool_quote, redemption_risk, trove_health, ve_locks
+PASS  trove_health 0xDA0475...9bAaAa: Trove holds 110.83% collateral against a 110% minimum; BTC can fall 0.75% to about $81273.47 before liquidation.
+PASS  redemption_risk 0x115d89...d7DD4b: 31 positions walked of 259, 30 redeemable troves and 63854.516898 MUSD ahead (570 ms)
+PASS  pool_quote: 0.001 BTC buys about 78.70603491 MUSD (price impact 0%).
+PASS  ve_locks 0x92DcCb...37AE2b: 2 lock(s), 0x92DcCb70C33300848Da555eDe8597d3F7037AE2b holds 2 veBTC and 0 veMEZO lock(s); 2 returned.
+
+== payment 2: pay_and_fetch through the MCP server, then the call the session limit must refuse
+PASS  pay_and_fetch /v1/redemption/0x115d8917875B80688CEC181c7Ff4982c7ad7DD4b: status 200, paid, 0.001 MUSD authorised, a settlement transaction, paid by the buyer, session spend 0.001 (8.4 s)
+    settlement 0x74482a3e70490754642b63d5de1565d01a508eb4fb3f053fa8f8875314675404   https://explorer.test.mezo.org/tx/0x74482a3e70490754642b63d5de1565d01a508eb4fb3f053fa8f8875314675404
+PASS  the second call is refused by the session limit before anything is signed: "Refused, nothing was paid: payment of 0.001 MUSD would take this session to 0.002 MUSD, over the session limit of 0.001 MUSD (0 MUSD left)"
+
+== what really happened
+MUSD after    buyer 15703457283614259046   payee 38000000000000000  (base units; buyer 15.703457283614259046 MUSD)
+PASS  the buyer paid exactly 2000000000000000 base units (0.002 MUSD) and the payee received exactly that (buyer 2000000000000000, payee 2000000000000000)
+PASS  the buyer sent no transaction and spent no BTC: the facilitator paid the gas
+PASS  the explorer shows 0x74482a...675404: status ok, block 16245844, sent by the facilitator (0x7B3844...D6CEFA), MUSD buyer -> payee 0.001
+PASS  the two payments are two different transactions
+PASS  /status reports one of these transactions as the last settlement
+PASS  /api/payments lists both payments (0.001 MUSD from the buyer, explorer links) 8 s after the calls
+
+== filming the explorer page of the first payment and the Worker console
+PASS  record-live.mjs filmed both pages: explorer transfer tab framed, sender row framed, ready at 4233 ms; console 10 payments listed, 2 of 2 from this take, ready at 4435 ms
+5xx answers from the Worker during the take (this script and the filmed console page): none
+
+== the no-double-pay unit tests (offline, stub facilitator)
+PASS  vitest ran the two tests offline and both passed: after the payment has left > does not pay twice when the seller answer | after the payment has left > pays for that URL again only once the cha
+PASS  nothing the MCP server said, its stderr or the Worker's own output contains the private key or the key file path
+PASS  the Worker logged no error (not checked: attached)
+
+ALL CHECKS PASSED

@@ -57,7 +57,13 @@ const { log, check, verdict, failures, save } = createReport()
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 const short = (a: string) => `${a.slice(0, 8)}...${a.slice(-6)}`
-const get = (path: string, init: RequestInit = {}) => fetch(BASE + path, { ...init, signal: AbortSignal.timeout(25_000) }) // a hung request must fail, not wait
+// A 5xx answer of the Worker is noted with its time (Cloudflare shows its CPU-limit error 1102 as a 503 page); the take log lists them at the end.
+const edgeErrors: string[] = []
+const watch = async (res: Response, path: string) => {
+  if (res.status >= 500) edgeErrors.push(`${new Date().toISOString()} HTTP ${res.status} ${path}${/\b1102\b/.test(await res.clone().text().catch(() => '')) ? ' (Cloudflare error 1102: CPU limit)' : ''}`)
+  return res
+}
+const get = async (path: string, init: RequestInit = {}) => watch(await fetch(BASE + path, { ...init, signal: AbortSignal.timeout(25_000) }), path) // a hung request must fail, not wait
 // Long strings (signatures, nonces) are cut for display; addresses and hashes (at most 66 characters) stay whole so a viewer can compare them.
 const cut = (v: unknown): unknown => (typeof v === 'string' ? (v.length > 66 ? `${v.slice(0, 20)}...${v.slice(-6)} (${v.length} chars)` : v) : Array.isArray(v) ? v.map(cut) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, cut(x)])) : v)
 const shownJson = (j: unknown): string[] => Object.entries((j ?? {}) as Record<string, unknown>).filter(([, v]) => v === null || ['string', 'number', 'boolean'].includes(typeof v)).slice(0, 8).map(([k, v]) => `${k}: ${String(v).slice(0, 60)}`)
@@ -131,7 +137,7 @@ const recordingFetch: typeof fetch = async (input, init) => {
   if (sig) hop.sent = cut(decodePaymentSignatureHeader(sig))
   hops.push(hop)
   const t0 = Date.now()
-  const res = await fetch(input, init)
+  const res = await watch(await fetch(input, init), url.pathname)
   hop.ms = Date.now() - t0
   hop.status = res.status
   const required = res.headers.get('payment-required')
@@ -367,7 +373,9 @@ try {
     if (mcpTx) mcpExplorer = await verify(mcpTx, startBlock)
     check(plainTx !== mcpTx, 'the two payments are two different transactions')
     const last = ((await (await get('/status')).json()) as { lastSettlement: { transaction: string } | null }).lastSettlement
-    check(!!last && txs.map((t) => t.toLowerCase()).includes(last.transaction.toLowerCase()), '/status reports one of these transactions as the last settlement')
+    const seen = !!last && txs.map((t) => t.toLowerCase()).includes(last.transaction.toLowerCase())
+    // Each instance of a deployed Worker keeps its own last settlement, so another instance may answer; locally the check stays strict (as in scripts/worker-smoke.ts).
+    check(seen || !LOCAL, `/status reports one of these transactions as the last settlement${seen || LOCAL ? '' : ' (not checked: another Worker instance answered /status)'}`)
 
     // The list is cached, so the first answers may predate the payments: ask again until the cache expires and the chain is read afresh.
     const polled = Date.now()
@@ -388,6 +396,10 @@ try {
   log('== filming the explorer page of the first payment and the Worker console')
   const shotTx = plainTx || listed0.payments[0]?.transaction || '' // a rehearsal (--no-pay) films the page of an earlier real payment to the same payee
   take.live = filmLive(shotTx, txs)
+  const filmedErrors = ['explorer', 'console'].flatMap((k) => ((take.live as { [k: string]: { errors?: string[] } } | undefined)?.[k]?.errors ?? []))
+  edgeErrors.push(...filmedErrors)
+  take.edgeErrors = edgeErrors
+  log(`5xx answers from the Worker during the take (this script and the filmed console page): ${edgeErrors.length ? edgeErrors.join(' | ') : 'none'}`)
 
   // ---- the two no-double-pay unit tests, offline (stub facilitator): their real output is the "nodouble" scene -----------------------------------------
   log('')

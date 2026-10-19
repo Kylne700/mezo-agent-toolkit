@@ -38,7 +38,6 @@ export const TTS_RESPELL = [
   ['MCP', 'M C P'],
   ['URL', 'U R L'],
   ['README', 'read me'],
-  ['October 18', 'October eighteenth'],
 ]
 
 // Timeline constants (seconds).

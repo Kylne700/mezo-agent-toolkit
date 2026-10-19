@@ -4,7 +4,6 @@
 ## 1. Problem
 ### problem
 Agents can read Mezo, but they cannot pay for the data.
-None of the ten entries listed on October 18 mentions MCP tools or an x402 buyer.
 
 ## 2. A paid call
 ### paid
