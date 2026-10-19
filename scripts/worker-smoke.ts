@@ -305,7 +305,10 @@ try {
     const s = await settlementProblems(settlementTx, { buyer: account.address, payee, amount: PRICE, afterBlock: startBlock })
     verdict(`the explorer shows ${settlementTx.slice(0, 12)}...: status ok, block ${s.block}, sent by the facilitator (${s.sender.slice(0, 10)}...), MUSD buyer -> payee 0.001`, s.problems)
     const last = ((await (await get('/status')).json()) as { lastSettlement: { transaction: string; recovered: boolean } | null }).lastSettlement
-    check(last?.transaction.toLowerCase() === settlementTx.toLowerCase(), `/status reports this transaction as the last settlement (the Worker kept it from one request to the next); recovered=${last?.recovered} (true would mean the facilitator reported a failure but the transfer was found on chain)`)
+    // A deployed Worker runs many instances and /status shows what the answering one saw (README: "The Worker's memory belongs to one instance").
+    const edge = !['127.0.0.1', 'localhost'].includes(new URL(BASE).hostname)
+    const same = last?.transaction.toLowerCase() === settlementTx.toLowerCase()
+    check(same || edge, `/status reports this transaction as the last settlement (the Worker kept it from one request to the next)${same || !edge ? '' : ' (not checked: another Worker instance answered /status)'}; recovered=${last?.recovered} (true would mean the facilitator reported a failure but the transfer was found on chain)`)
 
     // The list is cached, so the first answer may predate the payment: ask again until the cache expires and the chain is read afresh.
     let row: { transaction: string; musd: string; from: string; explorer: string } | undefined
