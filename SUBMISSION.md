@@ -119,10 +119,10 @@ Testnet only. Nothing here calls Mezo mainnet. The facilitator is a third party:
 Next, in Wave 2 (Nov 2-15): one settlement ledger for all Worker instances, spend limits that survive a restart, an installable MCP package and a ve gauge vote helper. Plans, not promises.
 ```
 
-## 14. Submission comment (2,363 characters; allowed 500-3,000)
+## 14. Submission comment (2,394 characters; allowed 500-3,000)
 
 ```text
-Repo https://github.com/Kylne700/mezo-agent-toolkit, live https://mezo-agent-toolkit.kylne700.workers.dev, video https://youtu.be/rVGGU6BSJxw, deck https://github.com/Kylne700/mezo-agent-toolkit/blob/main/docs/deck.pdf. Mezo testnet only.
+Track 2 Access & Distribution. Repo https://github.com/Kylne700/mezo-agent-toolkit, live https://mezo-agent-toolkit.kylne700.workers.dev, video https://youtu.be/rVGGU6BSJxw, deck https://github.com/Kylne700/mezo-agent-toolkit/blob/main/docs/deck.pdf. Mezo testnet only.
 
 Mezo integration (30). MUSD is both the price and the payment asset: each paid call moves 0.001 MUSD from the agent to the payee, in a transaction the facilitator sends, with no gas from the agent. Two examples from the video, checked on the explorer:
 https://explorer.test.mezo.org/tx/0x72589fc2d3fd4b60e4a4bf53cf5c5c99b4c9328ff338ab75f89a48dfa6085a9a
@@ -176,4 +176,15 @@ Deck: https://github.com/Kylne700/mezo-agent-toolkit/blob/main/docs/deck.pdf
 
 ```text
 AI agents read Mezo over MCP and pay per call in MUSD, with no BTC for gas and operator spend caps.
+```
+
+## 18. Akindo milestone, 3rd Wave (405 characters; allowed up to 3,000)
+
+The Akindo submit form asks for a 2nd Wave milestone (section 11 goes there) and a 3rd Wave milestone (this one).
+
+```text
+1. Tests for each way the payment path can fail (a replayed or expired permit, a wrong amount, the facilitator down), plus a written threat model, both in the repo.
+2. Setup guides for two MCP agent hosts, each run end to end on testnet and recorded.
+3. A public page that lists recent paid calls with their Mezo explorer links, so anyone can check that payments settle.
+Plans, not promises. Testnet only.
 ```
