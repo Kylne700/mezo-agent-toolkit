@@ -171,3 +171,9 @@ Repo: https://github.com/Kylne700/mezo-agent-toolkit
 Live (testnet): https://mezo-agent-toolkit.kylne700.workers.dev
 Deck: https://github.com/Kylne700/mezo-agent-toolkit/blob/main/docs/deck.pdf
 ```
+
+## 17. Akindo tagline (99 characters; allowed up to 100)
+
+```text
+AI agents read Mezo over MCP and pay per call in MUSD, with no BTC for gas and operator spend caps.
+```
