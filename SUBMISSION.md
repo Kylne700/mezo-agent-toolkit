@@ -1,10 +1,10 @@
 # Submission text: Mezo Agent Toolkit
 
-Mezo Buildathon Wave 1 on Akindo. Paste each fenced text as it is. The counts are for the text with the placeholder as written (`{{VIDEO_URL}}`); replace it with the real link first. Upload the video as Unlisted. After any edit of a field, run `node scripts/check-submission.mjs --fix`: it recounts the characters, rewrites the counts in the headings and checks the limits, also with the placeholder replaced by a link of 100 characters.
+Mezo Buildathon Wave 1 on Akindo. Paste each fenced text as it is. The video is on YouTube as Unlisted (https://youtu.be/rVGGU6BSJxw). After any edit of a field, run `node scripts/check-submission.mjs --fix`: it recounts the characters, rewrites the counts in the headings and checks the limits.
 
 Before pasting:
 
-- Only `{{VIDEO_URL}}` is left to fill in (sections 13 and 14). The repository and deck links work once the repository is public and `docs/deck.pdf` is on the main branch.
+- Every link is filled in: repository, live demo, deck and video.
 - If the video is taken again with new payments, replace the two transaction hashes in sections 14 and 16 (they are in `evidence/video-take-<date>.log`), and the date and the log file name where sections 13 and 16 mention the recorded run.
 - The sentence about reused code (section 14) matches the README section "Reused code": the Sealdrop video scripts in `scripts/video` (`lib.mjs` and `listen.py` are copied; `config.mjs`, `tts.mjs`, `narration.mjs` and `asr-compare.mjs` are adapted; the file headers say so). A line-overlap check of src, test and the other scripts against Sealdrop and the author's other local projects found only imports and one-line idioms.
 
@@ -86,13 +86,13 @@ Plans, not promises. Testnet only.
 Kylne700, solo, building with AI coding agents (Claude Code). GitHub: https://github.com/Kylne700
 ```
 
-## 13. Description (4,835 characters; allowed 800-5,900)
+## 13. Description (4,850 characters; allowed 800-5,900)
 
 ```text
 Mezo Agent Toolkit lets an AI agent read Mezo and pay for those reads in MUSD, with no BTC for gas. It runs on Mezo testnet (chain 31611).
 Repo: https://github.com/Kylne700/mezo-agent-toolkit
 Live: https://mezo-agent-toolkit.kylne700.workers.dev
-Video: {{VIDEO_URL}}
+Video: https://youtu.be/rVGGU6BSJxw
 Deck: https://github.com/Kylne700/mezo-agent-toolkit/blob/main/docs/deck.pdf
 
 The problem
@@ -119,10 +119,10 @@ Testnet only. Nothing here calls Mezo mainnet. The facilitator is a third party:
 Next, in Wave 2 (Nov 2-15): one settlement ledger for all Worker instances, spend limits that survive a restart, an installable MCP package and a ve gauge vote helper. Plans, not promises.
 ```
 
-## 14. Submission comment (2,348 characters; allowed 500-3,000)
+## 14. Submission comment (2,363 characters; allowed 500-3,000)
 
 ```text
-Repo https://github.com/Kylne700/mezo-agent-toolkit, live https://mezo-agent-toolkit.kylne700.workers.dev, video {{VIDEO_URL}}, deck https://github.com/Kylne700/mezo-agent-toolkit/blob/main/docs/deck.pdf. Mezo testnet only.
+Repo https://github.com/Kylne700/mezo-agent-toolkit, live https://mezo-agent-toolkit.kylne700.workers.dev, video https://youtu.be/rVGGU6BSJxw, deck https://github.com/Kylne700/mezo-agent-toolkit/blob/main/docs/deck.pdf. Mezo testnet only.
 
 Mezo integration (30). MUSD is both the price and the payment asset: each paid call moves 0.001 MUSD from the agent to the payee, in a transaction the facilitator sends, with no gas from the agent. Two examples from the video, checked on the explorer:
 https://explorer.test.mezo.org/tx/0x72589fc2d3fd4b60e4a4bf53cf5c5c99b4c9328ff338ab75f89a48dfa6085a9a

@@ -40,9 +40,9 @@ say(words >= 3 && words <= 5, `category has ${words} words (3-5)`)
 say((by(3).text.match(/[.!?](\s|$)/g) ?? []).length === 1, 'TL;DR is one sentence')
 say(!/[^\x00-\x7f]/.test(md), 'SUBMISSION.md is plain ASCII (no em dash, no smart quote)')
 say(!/[<>]/.test(by(15).text + by(16).text), 'no angle brackets in the YouTube title and description')
-const ph = ['{{VIDEO_URL}}'] // the repository, live and deck links are filled in; the video does not exist until it is uploaded
-say(ph.every((p) => md.includes(p)), 'the video placeholder is used')
-say(!/\{\{(?!VIDEO_URL)/.test(md), 'no other {{placeholder}}')
+const VIDEO = 'https://youtu.be/rVGGU6BSJxw'
+say(by(13).text.includes(`Video: ${VIDEO}`) && by(14).text.includes(VIDEO), 'the video link is in sections 13 and 14')
+say(!/\{\{/.test(md), 'no {{placeholder}} left')
 say(by(7).text === 'Track 2 Access & Distribution' && by(8).text === 'Mezo testnet 31611' && by(9).text === 'new' && by(10).text === 'testnet', 'fixed fields have the exact values')
 say(/Kylne700/.test(by(12).text) && /solo/.test(by(12).text), 'team says Kylne700, solo')
 say(!/mainnet/i.test(md.replace(/Nothing here calls Mezo mainnet\./g, '').replace(/Nothing here calls Mezo mainnet/g, '')) , 'mainnet appears only in "Nothing here calls Mezo mainnet"')
@@ -54,16 +54,5 @@ const srcs = ['README.md', 'media/raw/take.json', 'evidence/video-take-2026-10-1
 const hexes = [...new Set(md.match(/0x[0-9a-fA-F]{40,64}/g) ?? [])]
 for (const h of hexes) say(srcs.includes(h), `source has ${h.slice(0, 10)}...${h.slice(-6)} (${h.length - 2} hex)`)
 
-// placeholders replaced by links of realistic and worst-case length
-const sub = (t, n) => ph.reduce((s, p) => s.split(p).join('h'.repeat(n)), t)
-const real = { '{{VIDEO_URL}}': 28 }
-const subReal = (t) => Object.entries(real).reduce((s, [p, n]) => s.split(p).join('h'.repeat(n)), t)
-for (const n of [13, 14, 16]) {
-  const f = by(n)
-  const rangeOf = f.note.match(/allowed (?:up to ([\d,]+)|([\d,]+)-([\d,]+))/)
-  const hi = Number((rangeOf[1] ?? rangeOf[3]).replace(/,/g, '')), lo = rangeOf[2] ? Number(rangeOf[2].replace(/,/g, '')) : 0
-  const a = subReal(f.text).length, b = sub(f.text, 100).length
-  say(a >= lo && a <= hi && b >= lo && b <= hi, `${f.name}: ${a} with a 28-character video link, ${b} with a 100-character one (limit ${hi})`)
-}
 console.log(bad ? `${bad} PROBLEM(S)` : 'ALL OK')
 process.exit(bad ? 1 : 0)
