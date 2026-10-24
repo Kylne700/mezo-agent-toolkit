@@ -119,22 +119,24 @@ Testnet only. Nothing here calls Mezo mainnet. The facilitator is a third party:
 Next, in Wave 2 (Nov 2-15): one settlement ledger for all Worker instances, spend limits that survive a restart, an installable MCP package and a ve gauge vote helper. Plans, not promises.
 ```
 
-## 14. Submission comment (2,394 characters; allowed 500-3,000)
+## 14. Submission comment (2,976 characters; allowed 500-3,000)
 
 ```text
-Track 2 Access & Distribution. Repo https://github.com/Kylne700/mezo-agent-toolkit, live https://mezo-agent-toolkit.kylne700.workers.dev, video https://youtu.be/rVGGU6BSJxw, deck https://github.com/Kylne700/mezo-agent-toolkit/blob/main/docs/deck.pdf. Mezo testnet only.
+Track 2 Access & Distribution. Repo https://github.com/Kylne700/mezo-agent-toolkit, live https://mezo-agent-toolkit.kylne700.workers.dev, video https://youtu.be/rVGGU6BSJxw, deck https://github.com/Kylne700/mezo-agent-toolkit/blob/main/docs/deck.pdf. Deployment: Mezo testnet only, which the page and FAQ accept.
+
+Check it yourself with no key: npm ci, then npm run smoke (about 40 s, 23 checks: every read equals a direct read at a pinned block, and an unpaid call gets a 402).
 
 Mezo integration (30). MUSD is both the price and the payment asset: each paid call moves 0.001 MUSD from the agent to the payee, in a transaction the facilitator sends, with no gas from the agent. Two examples from the video, checked on the explorer:
 https://explorer.test.mezo.org/tx/0x72589fc2d3fd4b60e4a4bf53cf5c5c99b4c9328ff338ab75f89a48dfa6085a9a
 https://explorer.test.mezo.org/tx/0x74482a3e70490754642b63d5de1565d01a508eb4fb3f053fa8f8875314675404
-MezoLens is at 0xBDfD1C0B544319E25b4b99ee1f355e55230f6130 and reads TroveManager, SortedTroves, PriceFeed, the pool router, veBTC and veMEZO. The README has a table with each contract, its address, what the toolkit calls on it and why.
+Our MezoLens contract is at 0xBDfD1C0B544319E25b4b99ee1f355e55230f6130 and reads TroveManager, SortedTroves, PriceFeed, the pool router, veBTC and veMEZO. The README tables each contract, its address, what the toolkit calls on it and why.
 
-Product (30). An agent needs two things from Mezo: cheap reads and a safe way to pay. This gives both behind one MCP config entry, with limits that the operator sets and the agent cannot change. The fee is not a revenue plan. It shows how an agent buys data with MUSD, and anyone can deploy the Worker with their own payee.
-Technical (20). 173 tests in 10 files pass (a fresh run). Live checks on testnet: 23 (smoke), 29 (MCP session), 28 (Worker under wrangler dev), 25 (Worker deployed on Cloudflare). The server verifies every settlement on chain itself, because the public RPC sometimes answers null for a mined transaction and the facilitator then reports a failure for a payment that landed. Within a session, the buyer does not pay a URL again while an earlier payment for it may still land.
+Product (30). Two kinds of user. A developer who gives an AI agent a Mezo wallet gets five tools in one MCP config entry and an operator-set spend limit the agent cannot change. A team that sells Mezo reads over HTTP can deploy the Worker with its own payee and price: each paid call is a MUSD transfer to the payee, and this toolkit takes no cut. Next is distribution: an installable MCP package (Wave 2) and setup guides for two agent hosts (Wave 3). Not there yet: users, revenue, anything beyond testnet. Paid use so far is our own test and demo runs (up to 2026-10-19): 39 transfers, 0.039 MUSD in all.
+Technical (20). 173 tests in 10 files pass (a fresh run). Live checks on testnet: 23 (smoke), 29 (MCP session), 28 (Worker under wrangler dev), 25 (Worker deployed on Cloudflare). The server verifies every settlement on chain itself, because the public RPC sometimes answers null for a mined transaction and the facilitator then reports a failure for a payment that landed. In a session, the buyer does not pay a URL again while an earlier payment for it may still land.
 
-User experience (10). Every answer carries the block it was read at, with exact integers under raw. A refusal says why and that nothing was paid. The console page passed 51 browser checks with 0 axe-core violations, light and dark at 1280 and 390 px, light at 320 px.
+User experience (10). Every answer carries the block it was read at, with exact integers under raw. A refused payment says why and that nothing was paid. The console page passed 51 browser checks with 0 axe-core violations, light and dark at 1280 and 390 px, light at 320 px.
 
-Materials (10). The README links the smoke test, the gate, the MCP session, the Worker run and the console check to their logs in evidence/ and lists the limits (testnet only, a third-party facilitator, per-process memory). The video has captions, no music and a synthetic voice. The deck has 10 slides. The code is MIT, and reused code is credited in the README.
+Materials (10). The README opens with the one-minute check and links the video and deck. It links the smoke test, the gate, the MCP session, the Worker run and the console check to their logs in evidence/ and lists the limits (testnet only, a third-party facilitator, per-process memory). The video has captions, no music and a synthetic voice. The deck has 11 slides, one on who pays. The code is MIT, and reused code is credited in the README.
 ```
 
 ## 15. YouTube title (69 characters; allowed up to 100)
