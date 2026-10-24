@@ -86,7 +86,7 @@ Plans, not promises. Testnet only.
 Kylne700, solo, building with AI coding agents (Claude Code). GitHub: https://github.com/Kylne700
 ```
 
-## 13. Description (4,850 characters; allowed 800-5,900)
+## 13. Description (5,375 characters; allowed 800-5,900)
 
 ```text
 Mezo Agent Toolkit lets an AI agent read Mezo and pay for those reads in MUSD, with no BTC for gas. It runs on Mezo testnet (chain 31611).
@@ -105,8 +105,11 @@ What it does
 How MUSD is used
 MUSD is the unit the reads are priced in and the asset the agent pays with. The buyer signs a Permit2 permit for exactly the price and sends no transaction. The facilitator (facilitator.vativ.io, a third party) sends the transaction to the x402 Permit2 proxy and pays the BTC gas, so the agent pays no gas. On the explorer each payment is one transaction sent by the facilitator, one MUSD Transfer of 0.001 from the agent to the payee, and no change in the agent's BTC balance or nonce. The lens reads TroveManager, SortedTroves, PriceFeed, the pool router, veBTC and veMEZO. The toolkit adds no token and no protocol. It extends what Mezo already has (Track 2, Access & Distribution).
 
+Who it is for and who pays
+Two kinds of user. A developer who gives an AI agent a Mezo wallet gets five tools in one MCP config entry and an operator-set spend limit the agent cannot change. A team that sells Mezo reads over HTTP can deploy the Worker with its own payee and price: each paid call is a MUSD transfer to the payee, and this toolkit takes no cut. Not there yet: users, revenue, anything beyond testnet. Paid use so far is our own test and demo runs (up to 2026-10-19): 39 transfers, 0.039 MUSD in all.
+
 Safety
-- Spend limits: pay_and_fetch checks and reserves the amount in MUSD base units before anything is signed. The limits (default 0.01 MUSD per call and 0.1 MUSD per session) and the list of hosts it may pay come only from the server's environment. The tool is off unless the operator gives it a key file. The tool takes a URL and nothing else, so the model cannot raise the limits. A refusal says why and that nothing was paid.
+- Spend limits: pay_and_fetch checks and reserves the amount in MUSD base units before anything is signed. The limits (default 0.01 MUSD per call and 0.1 MUSD per session) and the list of hosts it may pay come only from the server's environment. The tool is off unless the operator gives it a key file. The tool takes a URL and nothing else, so the model cannot raise the limits. A refused payment says why and that nothing was paid.
 - No double payment: within one server process, if a payment was sent and not confirmed, the buyer does not pay that URL again until the chain shows the first one can no longer land.
 - Chain proof: the endpoint asks the chain about every settlement and serves data only when it finds the payment, whatever the facilitator reports. This came from a real failure. Mezo's public RPC sometimes answers null for a mined transaction. The facilitator then reports a failure although the transfer landed. Four payments of 0.001 MUSD were lost to this flake in development, before the final fix.
 
@@ -120,6 +123,8 @@ Next, in Wave 2 (Nov 2-15): one settlement ledger for all Worker instances, spen
 ```
 
 ## 14. Submission comment (2,976 characters; allowed 500-3,000)
+
+Live on Akindo is still the 2026-10-20 comment (2,394 characters): Akindo's edit form for a submitted comment takes at most 500 characters, so this newer text could not replace it. Its product points are in section 13 too.
 
 ```text
 Track 2 Access & Distribution. Repo https://github.com/Kylne700/mezo-agent-toolkit, live https://mezo-agent-toolkit.kylne700.workers.dev, video https://youtu.be/rVGGU6BSJxw, deck https://github.com/Kylne700/mezo-agent-toolkit/blob/main/docs/deck.pdf. Deployment: Mezo testnet only, which the page and FAQ accept.
