@@ -86,14 +86,16 @@ Plans, not promises. Testnet only.
 Kylne700, solo, building with AI coding agents (Claude Code). GitHub: https://github.com/Kylne700
 ```
 
-## 13. Description (5,375 characters; allowed 800-5,900)
+## 13. Description (5,570 characters; allowed 800-5,900)
 
 ```text
-Mezo Agent Toolkit lets an AI agent read Mezo and pay for those reads in MUSD, with no BTC for gas. It runs on Mezo testnet (chain 31611).
+Mezo Agent Toolkit lets an AI agent read Mezo and pay for those reads in MUSD, with no BTC for gas. It runs on Mezo testnet (chain 31611), which the hack page accepts.
 Repo: https://github.com/Kylne700/mezo-agent-toolkit
 Live: https://mezo-agent-toolkit.kylne700.workers.dev
 Video: https://youtu.be/rVGGU6BSJxw
 Deck: https://github.com/Kylne700/mezo-agent-toolkit/blob/main/docs/deck.pdf
+
+Check it yourself with no key: npm ci, then npm run smoke (about 40 s, 23 checks: every read equals a direct read at a pinned block, and an unpaid call gets a 402).
 
 The problem
 Agents can read Mezo, but they cannot pay for the data. One question, such as how healthy a trove is and where it stands in the redemption queue, takes many RPC calls and knowledge of several contracts. An agent that must buy data from someone else also needs a wallet, BTC for gas and a limit on what it may spend.
