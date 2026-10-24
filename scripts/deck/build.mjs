@@ -17,7 +17,7 @@ const FACTS = process.env.DECK_FACTS ?? join(ROOT, 'evidence', 'take-facts.json'
 const CHROMIUM = process.env.CHROMIUM ?? '/usr/bin/chromium'
 const EXPLORER_TX = 'https://explorer.test.mezo.org/tx/'
 const LINKS = ['https://github.com/Kylne700', 'https://github.com/Kylne700/mezo-agent-toolkit', 'https://mezo-agent-toolkit.kylne700.workers.dev']
-const SLIDES = 10
+const SLIDES = 11
 const FONT_FILES = ['Inter-Regular.otf', 'Inter-SemiBold.otf', 'Inter-Bold.otf', 'JetBrainsMono-Regular.ttf', 'JetBrainsMono-Bold.ttf', 'OFL-Inter.txt', 'OFL-JetBrainsMono.txt']
 
 let failed = 0
@@ -131,7 +131,7 @@ try {
   await page.goto(pathToFileURL(HTML).href, { waitUntil: 'load' })
   await page.evaluate(() => document.fonts.ready)
 
-  const info = await page.evaluate(() => {
+  const info = await page.evaluate((total) => {
     const faces = [...document.fonts].map((f) => ({ family: f.family.replace(/['"]/g, ''), status: f.status }))
     const slides = [...document.querySelectorAll('section.slide')].map((s, i) => {
       const box = s.getBoundingClientRect()
@@ -158,11 +158,11 @@ try {
         gap: Math.round(foot.getBoundingClientRect().top - box.top - bottom),
         minFont,
         words,
-        number: foot.lastElementChild.textContent === `${i + 1} / 10` && foot.firstElementChild.textContent === 'Mezo Agent Toolkit - Wave 1 - testnet',
+        number: foot.lastElementChild.textContent === `${i + 1} / ${total}` && foot.firstElementChild.textContent === 'Mezo Agent Toolkit - Wave 1 - testnet',
       }
     })
     return { faces, slides }
-  })
+  }, SLIDES)
 
   const s = info.slides
   const count = (family) => info.faces.filter((f) => f.family === family && f.status === 'loaded').length

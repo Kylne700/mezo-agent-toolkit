@@ -78,9 +78,12 @@ a{color:var(--accent);text-decoration:underline;text-decoration-thickness:1px;te
 .tile span{font-size:18px;color:var(--muted)}
 .big-t{font-size:22px}
 /* 9 */
+.who .label+p{margin:0;font-size:28px;line-height:1.4}
+.who .card{min-height:330px}
+/* 10 */
 .ms .big{display:block;margin-bottom:14px;font-size:56px;color:var(--accent)}
 .ms p{margin:0;font-size:22px;line-height:1.4}
-/* 10 */
+/* 11 */
 .handle{margin:0 0 6px;font-size:76px;font-weight:700;letter-spacing:-.02em;line-height:1.05}
 .links div{padding:14px 0;border-bottom:1px solid var(--line);font-size:22px}
 .links div:last-child{border-bottom:0}
@@ -111,7 +114,7 @@ svg.seq .mu{fill:#a7adb3}
       <div class="stat" style="border-bottom:0;padding-bottom:0"><span class="big accent">0</span><span class="stat-t">BTC spent by the agent in the paid runs</span></div>
     </div>
   </div>
-  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>1 / 10</span></div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>1 / 11</span></div>
 </section>
 
 <!-- 2 Solution -->
@@ -124,7 +127,7 @@ svg.seq .mu{fill:#a7adb3}
     <div class="card"><span class="tag">3</span><h2>Pay-per-call endpoint</h2><p>HTTP with x402. 0.001 MUSD per call.</p></div>
   </div>
   <p class="lead">An agent reads for free and pays 0.001 MUSD per call, with no BTC for gas.</p>
-  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>2 / 10</span></div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>2 / 11</span></div>
 </section>
 
 <!-- 3 How it works -->
@@ -172,7 +175,7 @@ svg.seq .mu{fill:#a7adb3}
     <text x="156" y="418"><tspan class="n">8</tspan><tspan dx="12">200 + data +</tspan></text>
     <text x="179" y="440" class="m">PAYMENT-RESPONSE (tx hash)</text>
   </svg>
-  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>3 / 10</span></div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>3 / 11</span></div>
 </section>
 
 <!-- 4 The MUSD integration -->
@@ -189,7 +192,7 @@ svg.seq .mu{fill:#a7adb3}
     <div>Facilitator</div><div><span class="mono">facilitator.vativ.io</span>, a third party</div>
   </div>
   <div class="callout">MUSD has no EIP-3009, so only Permit2 payments land.</div>
-  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>4 / 10</span></div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>4 / 11</span></div>
 </section>
 
 <!-- 5 MCP tools and the spend cap -->
@@ -207,11 +210,11 @@ svg.seq .mu{fill:#a7adb3}
       <p class="label">Limits from the operator environment</p>
       <div class="env"><span class="mono">MEZO_MAX_PER_CALL_MUSD</span><span class="v">default 0.01</span></div>
       <div class="env"><span class="mono">MEZO_MAX_PER_SESSION_MUSD</span><span class="v">default 0.1</span></div>
-      <div class="env"><span class="mono">MEZO_PAY_ALLOWED_HOSTS</span><span class="v">default: our own endpoint only</span></div>
+      <div class="env"><span class="mono">MEZO_PAY_ALLOWED_HOSTS</span><span class="v">default: local endpoint and live Worker</span></div>
     </div>
   </div>
   <div class="pills"><div>Never from a tool argument</div><div>Check and reserve before signing</div><div>Amounts in bigint base units</div></div>
-  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>5 / 10</span></div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>5 / 11</span></div>
 </section>
 
 <!-- 6 The lens contract -->
@@ -229,7 +232,7 @@ svg.seq .mu{fill:#a7adb3}
   <!--facts:lens-->
   <div class="callout">Testnet run, 2026-10-19: redemptionQueue walked <b class="mono">31</b> of 259 list nodes.</div>
   <!--/facts:lens-->
-  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>6 / 10</span></div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>6 / 11</span></div>
 </section>
 
 <!-- 7 Safety -->
@@ -251,7 +254,7 @@ svg.seq .mu{fill:#a7adb3}
       <div class="fix"><span class="tag">R3</span><span>Recovery by block and index, not by hash</span></div>
     </div>
   </div>
-  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>7 / 10</span></div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>7 / 11</span></div>
 </section>
 
 <!-- 8 Status -->
@@ -288,11 +291,29 @@ svg.seq .mu{fill:#a7adb3}
       </table>
     </div>
   </div>
-  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>8 / 10</span></div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>8 / 11</span></div>
 </section>
 
-<!-- 9 Next milestones -->
+<!-- 9 Who pays -->
 <section class="slide" id="s9">
+  <p class="kicker">Who pays</p>
+  <h1>Who pays, and who gets paid</h1>
+  <div class="two who">
+    <div class="card">
+      <p class="label">Pays: the agent operator</p>
+      <p>Gives an AI agent a Mezo wallet and sets its spend limits, which the agent cannot change. 0.001 MUSD per paid call, no BTC for gas.</p>
+    </div>
+    <div class="card">
+      <p class="label">Gets paid: the data seller</p>
+      <p>Sells Mezo reads over HTTP. Deploys the Worker with its own payee address. Each paid call is one MUSD transfer to it; this toolkit takes no cut.</p>
+    </div>
+  </div>
+  <div class="callout">Not there yet: users, revenue, anything beyond testnet. Paid use so far: our own test and demo runs, 39 transfers, 0.039 MUSD, up to 2026-10-19.</div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>9 / 11</span></div>
+</section>
+
+<!-- 10 Next milestones -->
+<section class="slide" id="s10">
   <p class="kicker">Wave 2: 2026-11-02 to 2026-11-15</p>
   <h1>Next three milestones</h1>
   <div class="grid3 ms">
@@ -301,11 +322,11 @@ svg.seq .mu{fill:#a7adb3}
     <div class="card"><span class="big">3</span><p>A ve gauge vote helper. More pool quotes in the lens, as free reads.</p></div>
   </div>
   <p class="note" style="font-size:20px">Plans, not promises. Testnet only.</p>
-  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>9 / 10</span></div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>10 / 11</span></div>
 </section>
 
-<!-- 10 Team -->
-<section class="slide" id="s10">
+<!-- 11 Team -->
+<section class="slide" id="s11">
   <p class="kicker">Team</p>
   <h1>Solo builder</h1>
   <div class="cols" style="gap:56px">
@@ -319,7 +340,7 @@ svg.seq .mu{fill:#a7adb3}
       <div><b>Live demo</b><a class="mono" href="https://mezo-agent-toolkit.kylne700.workers.dev">https://mezo-agent-toolkit.kylne700.workers.dev</a></div>
     </div>
   </div>
-  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>10 / 10</span></div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>11 / 11</span></div>
 </section>
 
 </body>
