@@ -4,6 +4,8 @@ Let an AI agent read Mezo and pay for those reads in MUSD, with no BTC for gas.
 
 Live demo: https://mezo-agent-toolkit.kylne700.workers.dev
 
+**Check it in a minute (no key, no funds):** `npm ci`, then `npm run smoke` (about 40 s; 23 checks: every lens answer equals a direct read of the protocol at one pinned block, and an unpaid call to the endpoint gets a 402; it ends with `SMOKE PASSED`). To see it first: the [demo video](https://youtu.be/rVGGU6BSJxw), the [deck](docs/deck.pdf) and the [live console](https://mezo-agent-toolkit.kylne700.workers.dev).
+
 Built by Kylne700 with AI coding agents (Claude Code): a lead session plans, reviews and checks; sub-agents write the code.
 
 Three parts, all on **Mezo testnet (chain 31611)**:
@@ -101,12 +103,12 @@ Add it to the host's MCP configuration with the repository as the working direct
     "mezo": {
       "command": "node",
       "args": ["--import", "tsx", "src/mcp.ts"],
-      "cwd": "/path/to/mezo-toolkit",
+      "cwd": "/path/to/mezo-agent-toolkit",
       "env": {
         "MEZO_KEY_FILE": "/path/to/funded-testnet.key",
         "MEZO_MAX_PER_CALL_MUSD": "0.01",
         "MEZO_MAX_PER_SESSION_MUSD": "0.1",
-        "MEZO_PAY_ALLOWED_HOSTS": "127.0.0.1"
+        "MEZO_PAY_ALLOWED_HOSTS": "mezo-agent-toolkit.kylne700.workers.dev"
       }
     }
   }
@@ -167,14 +169,14 @@ The paid endpoint asks the chain itself about every settlement, whatever the fac
 * **The MCP read tools are free direct lens reads.** They do not go through x402. The paid path is the HTTP endpoint and `pay_and_fetch`; this keeps reads usable with no wallet, and shows paying in MUSD where an agent needs to buy data from someone else.
 * **The session limit belongs to one server process.** A host that restarts the server starts a new session total. The guard never refunds: a payment that was charged but not confirmed still counts as spent.
 * **The per-call branch of the guard is proven by unit tests only.** In a live over-price case the x402 client library's own spend control, set to the same limit, refuses first; the log says so.
-* **`pay_and_fetch` calls only the hosts on its allow list**, by default just our local endpoint, and it only ever pays MUSD on Mezo testnet. Listing a bare host such as `127.0.0.1` opens every port on it to a plain GET.
+* **`pay_and_fetch` calls only the hosts on its allow list**, by default our local endpoint and the live Worker, and it only ever pays MUSD on Mezo testnet. Listing a bare host such as `127.0.0.1` opens every port on it to a plain GET.
 * Cancelling an MCP request does not abort a payment that is already in flight. The recovery memory is per process (on the Worker: per instance, see below).
 * The readable fields are cut off at a fixed number of places; `raw` is exact.
 * **The Worker's memory belongs to one instance.** Which transaction already paid for an answer, and the last settlement that `/status` shows, are kept in the running instance, and Cloudflare decides how many instances run and when one is replaced. Another instance does not know them: a payment sent at the same moment to two instances could be served twice (the answers are public chain data), and `/status` can show a different last settlement or none. On the deployed Worker `/status` did not show the payment just made in 2 of the 4 paid runs of 2026-10-19; a payment served twice by two instances was not tested.
 * **The Worker needs the facilitator once per instance.** Every route except `/`, `/api/payments` and the favicon asks the facilitator what it supports before it answers (the x402 library does that when the app is built). If the facilitator is down they answer `502` and say so; the console page and the payments list still work.
 * **`/api/payments` reads the public RPC.** At most one scan per 45 seconds per instance; if the RPC fails, the last good answer is served and marked stale. A scan goes back at most 114,000 blocks (12 windows of 9,500, because the RPC refuses queries over 10,000 blocks), roughly six days, and the page says which blocks it covered. An older payment is not listed.
 * **Cloudflare's limits were not measured.** The Worker was deployed on 2026-10-19. In the runs of that day no CPU-limit error (Cloudflare's 1102, which shows as a 503) and no other 5xx answer was seen, but the CPU time per request on Cloudflare was not measured. Cloudflare's documentation (read 2026-10-18) gives the free plan 10 ms of CPU time per request, 50 subrequests per request and 1 s of startup. Under Node, a cold paid call used about 2 to 5 ms of CPU, which is only an indication. `wrangler deploy --dry-run` reports a bundle of 2.66 MiB (0.48 MiB compressed).
-* The demo payee is a throwaway testnet address. Total paid in x402 payments up to 2026-10-19: 0.039 MUSD (the payee held exactly that when read on 2026-10-19, 17:47 IDT): 0.025 in build stage 1, 0.005 in the payment review, 0.002 in the two Worker runs of stage 2, 0.002 in the two payments of the video take of 2026-10-18 ([`evidence/video-take-2026-10-18.log`](evidence/video-take-2026-10-18.log)), 0.002 in two smoke runs against the deployed Worker, 0.002 in the two payments of the video take of 2026-10-19 ([`evidence/video-take-2026-10-19.log`](evidence/video-take-2026-10-19.log)) and 0.001 in a third smoke run against it.
+* The demo payee is a throwaway testnet address. Total paid in x402 payments up to 2026-10-19: 0.039 MUSD (the payee held exactly that when read on 2026-10-19, 17:47 IDT): 0.025 in build stage 1, 0.005 in the payment review, 0.002 in the two Worker runs of stage 2, 0.002 in the two payments of the video take of 2026-10-18 ([`evidence/video-take-2026-10-18.log`](evidence/video-take-2026-10-18.log)), 0.002 in two smoke runs against the deployed Worker, 0.002 in the two payments of the video take of 2026-10-19 ([`evidence/video-take-2026-10-19.log`](evidence/video-take-2026-10-19.log)) and 0.001 in a third smoke run against it. Payments made after 2026-10-19 are not in this total; the console lists the latest ones.
 
 ## Reused code
 
