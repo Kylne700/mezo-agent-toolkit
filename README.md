@@ -2,6 +2,8 @@
 
 Let an AI agent read Mezo and pay for those reads in MUSD, with no BTC for gas.
 
+Built for the Mezo Buildathon on Akindo, Wave 1 (build period 16-26 October 2026), Track 2: Access and Distribution. First commit 2026-10-18. Mezo testnet only.
+
 Live demo: https://mezo-agent-toolkit.kylne700.workers.dev
 
 **Check it in a minute (no key, no funds):** `npm ci`, then `npm run smoke` (about 40 s; 23 checks: every lens answer equals a direct read of the protocol at one pinned block, and an unpaid call to the endpoint gets a 402; it ends with `SMOKE PASSED`). To see it first: the [demo video](https://youtu.be/rVGGU6BSJxw), the [deck](docs/deck.pdf) and the [live console](https://mezo-agent-toolkit.kylne700.workers.dev).
@@ -37,7 +39,7 @@ All addresses are Mezo testnet and have code on chain (checked by the smoke test
 | **veMEZO** | [`0xaCE816CA2bcc9b12C59799dcC5A959Fb9b98111b`](https://explorer.test.mezo.org/address/0xaCE816CA2bcc9b12C59799dcC5A959Fb9b98111b) | `balanceOf`, `ownerToNFTokenIdList`, `locked`, `votingPowerOfNFT`, `voted` | Same, for veMEZO |
 | **HintHelpers** | [`0x4e4cBA3779d56386ED43631b4dCD6d8EacEcBCF6`](https://explorer.test.mezo.org/address/0x4e4cBA3779d56386ED43631b4dCD6d8EacEcBCF6) | `getRedemptionHints`, **in the verification scripts only** | An independent answer to "which trove would a redemption hit first", to compare with the lens |
 
-Also used: Mezo's native BTC and MEZO ERC-20 precompiles (`0x7b7C…0000`, `0x7b7C…0001`) as token addresses in pool quotes, the Mezo testnet RPC `https://rpc.test.mezo.org` and the public x402 facilitator [`https://facilitator.vativ.io/supported`](https://facilitator.vativ.io/supported).
+Also used: Mezo's native BTC and MEZO ERC-20 precompiles (`0x7b7C…0000`, `0x7b7C…0001`) as token addresses in pool quotes, the Mezo testnet RPC `https://rpc.test.mezo.org` and the third-party x402 facilitator [`https://facilitator.vativ.io/supported`](https://facilitator.vativ.io/supported).
 
 ### Transactions
 
@@ -45,7 +47,7 @@ Also used: Mezo's native BTC and MEZO ERC-20 precompiles (`0x7b7C…0000`, `0x7b
 |---|---|
 | Lens deployed (block 16229406, 10651 bytes of code) | [`0x4c673819…821dd1`](https://explorer.test.mezo.org/tx/0x4c673819554eaf1fa88131e463253cc8f40a04df01093f799b997ffe56821dd1) |
 | BTC to MUSD swap on the Mezo DEX, to fund the buyer (0.0002 BTC for 15.74 MUSD) | [`0xe43a7aaf…c5be`](https://explorer.test.mezo.org/tx/0xe43a7aaf4a997a9b1a0242546874a8812f813e14b8cd293f304310fcd385c5be) |
-| **First paid call settled through the facilitator** (the day-one gate) | [`0x1499eccd…7b9d`](https://explorer.test.mezo.org/tx/0x1499eccd92b3932c53de8f0d5510ca9e8efb955c7c1c1c7ea53f9a2bfa6f7b9d) |
+| **First paid call settled through the facilitator** (the day-one gate, [log](evidence/gate-first-run.log)) | [`0x1499eccd…7b9d`](https://explorer.test.mezo.org/tx/0x1499eccd92b3932c53de8f0d5510ca9e8efb955c7c1c1c7ea53f9a2bfa6f7b9d) |
 | 402 then 200 on all four paid routes ([`evidence/gate-402-then-200.log`](evidence/gate-402-then-200.log)) | [`0xb2063d3a…2aa8`](https://explorer.test.mezo.org/tx/0xb2063d3a1c8c38ea19bdefd537938c528affc2fce3fcf4dc7218eeaa31752aa8), [`0x2697a4f4…6a9c`](https://explorer.test.mezo.org/tx/0x2697a4f4189a5559b19815ebd7f7a7bea5e4e703a4400d703136e7c3929a6a9c), [`0x21e1ec30…81ea`](https://explorer.test.mezo.org/tx/0x21e1ec30d4a3e78abac9ac74ceceef7e89f794da6c4ac4eb6d89d382941881ea), [`0x591aa181…6b18`](https://explorer.test.mezo.org/tx/0x591aa18114ded99f9f574addc25d283d703b6a6eafa36ec87302c8235faf6b18) |
 | Two payments made by an AI-agent tool call over MCP ([`evidence/mcp-session.log`](evidence/mcp-session.log)) | [`0x7b35e64c…0fcb`](https://explorer.test.mezo.org/tx/0x7b35e64ca7e324b39f26a0bf302a60ab407313bdf18d03c1b80bb69cfd3d0fcb), [`0xcbca7dd3…3893c`](https://explorer.test.mezo.org/tx/0xcbca7dd38472da280e4d69fb8aa84db70fe1e8b6742b963e692effba3463893c) |
 | The same two payments on the code after the payment review ([`evidence/mcp-session-review-1-final.log`](evidence/mcp-session-review-1-final.log)) | [`0xb15e02af…9119`](https://explorer.test.mezo.org/tx/0xb15e02af41c68da22d05e63afeeed84165cfb8f6446224a83504e97ee9cd9119), [`0x1113ccc1…b1c9`](https://explorer.test.mezo.org/tx/0x1113ccc138a4583ef40290af749641ad8fd951a255c740167829ed7df8a6b1c9) |
@@ -131,6 +133,8 @@ npm run mcp:session       # the real stdio server, every tool, two payments of 0
 npm run worker:smoke      # starts the Worker with wrangler dev, checks it, pays it once (0.001 MUSD) and rewrites evidence/worker-smoke.log; add `-- --no-pay` to pay nothing and write no log (it still reads the key file), or `-- --url <address>` to check a Worker that is already running, such as the deployed one (it starts nothing and writes no log)
 ```
 
+The lens itself was deployed with `npx tsx scripts/deploy.ts` after `npm run build:contracts` (it needs the funded key above and refuses to deploy again when the recorded address still has code; `--force` overrides). Its source was verified on the explorer with `npx tsx scripts/verify.ts`, which needs no key. Neither has an npm script.
+
 ## Deploy your own
 
 You need a free Cloudflare account. The Worker holds no secret, only the payee's address. `wrangler` is not a dependency of this repository (it would add LGPL image libraries, which `npm run check:licences` rejects); `npm run dev` and `npm run deploy` run `wrangler@4.151.1` through `npx --yes`, which downloads it on first use.
@@ -178,13 +182,13 @@ The paid endpoint asks the chain itself about every settlement, whatever the fac
 * The readable fields are cut off at a fixed number of places; `raw` is exact.
 * **The Worker's memory belongs to one instance.** Which transaction already paid for an answer, and the last settlement that `/status` shows, are kept in the running instance, and Cloudflare decides how many instances run and when one is replaced. Another instance does not know them: a payment sent at the same moment to two instances could be served twice (the answers are public chain data), and `/status` can show a different last settlement or none. On the deployed Worker `/status` did not show the payment just made in 2 of the 4 paid runs of 2026-10-19; a payment served twice by two instances was not tested.
 * **The Worker needs the facilitator once per instance.** Every route except `/`, `/api/payments` and the favicon asks the facilitator what it supports before it answers (the x402 library does that when the app is built). If the facilitator is down they answer `502` and say so; the console page and the payments list still work.
-* **`/api/payments` reads the public RPC.** At most one scan per 45 seconds per instance; if the RPC fails, the last good answer is served and marked stale. A scan goes back at most 114,000 blocks (12 windows of 9,500, because the RPC refuses queries over 10,000 blocks), roughly six days, and the page says which blocks it covered. An older payment is not listed.
+* **`/api/payments` reads the public RPC.** At most one scan per 45 seconds per instance; if the RPC fails, the last good answer is served and marked stale. A scan goes back at most 114,000 blocks (12 windows of 9,500, because the RPC refuses queries over 10,000 blocks), roughly five and a half to six days depending on the block time, and the page says which blocks it covered. An older payment is not listed.
 * **Cloudflare's limits were not measured.** The Worker was deployed on 2026-10-19. In the runs of that day no CPU-limit error (Cloudflare's 1102, which shows as a 503) and no other 5xx answer was seen, but the CPU time per request on Cloudflare was not measured. Cloudflare's documentation (read 2026-10-18) gives the free plan 10 ms of CPU time per request, 50 subrequests per request and 1 s of startup. Under Node, a cold paid call used about 2 to 5 ms of CPU, which is only an indication. `wrangler deploy --dry-run` reports a bundle of 2.66 MiB (0.48 MiB compressed).
 * The demo payee is a throwaway testnet address. Total paid in x402 payments up to 2026-10-19: 0.039 MUSD (the payee held exactly that when read on 2026-10-19, 17:47 IDT): 0.025 in build stage 1, 0.005 in the payment review, 0.002 in the two Worker runs of stage 2, 0.002 in the two payments of the video take of 2026-10-18 ([`evidence/video-take-2026-10-18.log`](evidence/video-take-2026-10-18.log)), 0.002 in two smoke runs against the deployed Worker, 0.002 in the two payments of the video take of 2026-10-19 ([`evidence/video-take-2026-10-19.log`](evidence/video-take-2026-10-19.log)) and 0.001 in a third smoke run against it. Payments made after 2026-10-19 are not in this total; the console lists the latest ones.
 
 ## Reused code
 
-The code in this repository was written for it, with one exception: the video scripts in `scripts/video` start from the author's own MIT-licensed Sealdrop video chain (github.com/Kylne700/sealdrop). `lib.mjs` and `listen.py` are copied; `config.mjs`, `tts.mjs`, `narration.mjs` and `asr-compare.mjs` are adapted (the first lines of each file say so). The other video scripts (`take.ts`, `record-live.mjs`, `scenes.mjs`, `assemble.mjs`, `post.mjs`, `build.sh`) and `scripts/deck/build.mjs` were written for this repository.
+The code in this repository was written for it, with one exception: the video scripts in `scripts/video` start from the author's own MIT-licensed Sealdrop video chain ([github.com/Kylne700/sealdrop](https://github.com/Kylne700/sealdrop)). `lib.mjs` and `listen.py` are copied; `config.mjs`, `tts.mjs`, `narration.mjs` and `asr-compare.mjs` are adapted (the first lines of each file say so). The other video scripts (`take.ts`, `record-live.mjs`, `scenes.mjs`, `assemble.mjs`, `post.mjs`, `build.sh`) and `scripts/deck/build.mjs` were written for this repository.
 
 Assets: `docs/fonts/` holds Inter and JetBrains Mono (SIL Open Font License 1.1, the licence texts sit next to the files); the deck and the video use them. The video's synthetic voice is Kokoro, run from a folder outside this repository, and its files are not included. The code depends on the packages in `package.json` (viem, hono, zod, the MCP SDK and the x402 packages, MIT or Apache-2.0).
 
