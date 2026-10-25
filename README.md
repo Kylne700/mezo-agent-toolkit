@@ -6,12 +6,16 @@ Live demo: https://mezo-agent-toolkit.kylne700.workers.dev
 
 **Check it in a minute (no key, no funds):** `npm ci`, then `npm run smoke` (about 40 s; 23 checks: every lens answer equals a direct read of the protocol at one pinned block, and an unpaid call to the endpoint gets a 402; it ends with `SMOKE PASSED`). To see it first: the [demo video](https://youtu.be/rVGGU6BSJxw), the [deck](docs/deck.pdf) and the [live console](https://mezo-agent-toolkit.kylne700.workers.dev).
 
+[![Screenshot of the live console, 2026-10-25: the Recent payments list read from the chain, with a link to the transaction on the Mezo explorer](docs/console-payments.png)](https://mezo-agent-toolkit.kylne700.workers.dev)
+
+[![Watch the demo video (1:33): Mezo Agent Toolkit](docs/video-thumbnail.png)](https://youtu.be/rVGGU6BSJxw)
+
 Built by Kylne700 with AI coding agents (Claude Code): a lead session plans, reviews and checks; sub-agents write the code.
 
 Three parts, all on **Mezo testnet (chain 31611)**:
 
 1. **`MezoLens`**, a read-only contract that answers the questions an agent actually asks about Mezo in one `eth_call` each: how healthy is this MUSD trove, where does it stand in the redemption queue, what does this swap quote and cost in price impact, which veBTC / veMEZO locks does this wallet hold.
-2. **A pay-per-call HTTP endpoint** (`npm run serve`) that serves those reads for 0.001 MUSD per call using [x402](https://www.x402.org) through the public Mezo facilitator. The buyer signs a permit; the facilitator sends the transaction and pays the BTC gas. The same app is also packaged as a **Cloudflare Worker** with a console page; it is deployed (see [Live](#live)), and [Deploy your own](#deploy-your-own) shows how to run your own.
+2. **A pay-per-call HTTP endpoint** (`npm run serve`) that serves those reads for 0.001 MUSD per call using [x402](https://www.x402.org) through a third-party facilitator (facilitator.vativ.io), which settles on Mezo. The buyer signs a permit; the facilitator sends the transaction and pays the BTC gas. The same app is also packaged as a **Cloudflare Worker** with a console page; it is deployed (see [Live](#live)), and [Deploy your own](#deploy-your-own) shows how to run your own.
 3. **An MCP server** (`npm run mcp`, stdio) with five tools: `trove_health`, `redemption_risk`, `pool_quote`, `ve_locks` and `pay_and_fetch`. `pay_and_fetch` pays x402 servers in MUSD under **hard spend limits that the operator sets in the server's environment and that no tool call can change**.
 
 Everything below was run for real on testnet. The logs are in [`evidence/`](evidence/).
@@ -33,7 +37,7 @@ All addresses are Mezo testnet and have code on chain (checked by the smoke test
 | **veMEZO** | [`0xaCE816CA2bcc9b12C59799dcC5A959Fb9b98111b`](https://explorer.test.mezo.org/address/0xaCE816CA2bcc9b12C59799dcC5A959Fb9b98111b) | `balanceOf`, `ownerToNFTokenIdList`, `locked`, `votingPowerOfNFT`, `voted` | Same, for veMEZO |
 | **HintHelpers** | [`0x4e4cBA3779d56386ED43631b4dCD6d8EacEcBCF6`](https://explorer.test.mezo.org/address/0x4e4cBA3779d56386ED43631b4dCD6d8EacEcBCF6) | `getRedemptionHints`, **in the verification scripts only** | An independent answer to "which trove would a redemption hit first", to compare with the lens |
 
-Also used: Mezo's native BTC and MEZO ERC-20 precompiles (`0x7b7C…0000`, `0x7b7C…0001`) as token addresses in pool quotes, the Mezo testnet RPC `https://rpc.test.mezo.org` and the public x402 facilitator `https://facilitator.vativ.io`.
+Also used: Mezo's native BTC and MEZO ERC-20 precompiles (`0x7b7C…0000`, `0x7b7C…0001`) as token addresses in pool quotes, the Mezo testnet RPC `https://rpc.test.mezo.org` and the public x402 facilitator [`https://facilitator.vativ.io/supported`](https://facilitator.vativ.io/supported).
 
 ### Transactions
 
