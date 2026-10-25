@@ -6,6 +6,8 @@ Let an AI agent read Mezo and pay for those reads in MUSD, with no BTC for gas.
 
 Built for the Mezo Buildathon on Akindo, Wave 1 (build period 16-26 October 2026), Track 2: Access and Distribution. First commit 2026-10-18. Mezo testnet only.
 
+**Who it is for:** developers who give an AI agent a Mezo wallet, MUSD borrowers who ask an agent where their trove ranks for redemption, and teams that sell Mezo reads over HTTP with their own payee and price. Some coding is needed (one MCP config entry, or a Worker deploy). Desktop and terminal first; the console also works on a phone (checked at 390 and 320 px wide). The toolkit itself has no region checks.
+
 Live demo: https://mezo-agent-toolkit.kylne700.workers.dev
 
 **Check it in a minute (no key, no funds):** `npm ci`, then `npm run smoke` (about 40 s; 23 checks: every lens answer equals a direct read of the protocol at one pinned block, and an unpaid call to the endpoint gets a 402; it ends with `SMOKE PASSED`). To see it first: the [demo video](https://youtu.be/rVGGU6BSJxw), the [deck](docs/deck.pdf) and the [live console](https://mezo-agent-toolkit.kylne700.workers.dev).
