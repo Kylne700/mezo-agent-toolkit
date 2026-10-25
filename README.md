@@ -1,5 +1,7 @@
 # Mezo Agent Toolkit
 
+[![test](https://github.com/Kylne700/mezo-agent-toolkit/actions/workflows/test.yml/badge.svg)](https://github.com/Kylne700/mezo-agent-toolkit/actions/workflows/test.yml)
+
 Let an AI agent read Mezo and pay for those reads in MUSD, with no BTC for gas.
 
 Built for the Mezo Buildathon on Akindo, Wave 1 (build period 16-26 October 2026), Track 2: Access and Distribution. First commit 2026-10-18. Mezo testnet only.
@@ -21,6 +23,16 @@ Three parts, all on **Mezo testnet (chain 31611)**:
 3. **An MCP server** (`npm run mcp`, stdio) with five tools: `trove_health`, `redemption_risk`, `pool_quote`, `ve_locks` and `pay_and_fetch`. `pay_and_fetch` pays x402 servers in MUSD under **hard spend limits that the operator sets in the server's environment and that no tool call can change**.
 
 Everything below was run for real on testnet. The logs are in [`evidence/`](evidence/).
+
+## Where each judging criterion is answered
+
+| Criterion | Where to look |
+|---|---|
+| Mezo Integration | [Mezo integration: contract, address, call, why](#mezo-integration-contract-address-call-why): the ten contracts in the table, with the calls used and why. [Transactions](#transactions): 18 testnet transactions in one table, each linked to the explorer. |
+| Product and Business Viability | [Deck](docs/deck.pdf) slides 1, 9 and 10 (the problem, who pays, Wave 2) and [Limits, stated plainly](#limits-stated-plainly). |
+| Technical Implementation | [How the numbers were checked](#how-the-numbers-were-checked): the tests, a smoke run against the chain, an MCP session and a Worker smoke. [CI](.github/workflows/test.yml) runs the typecheck, the tests and the repo checks on every push. |
+| User Experience | The [live console](https://mezo-agent-toolkit.kylne700.workers.dev) and [console-qa.log](evidence/console-qa.log) (51 checks: light and dark at 1280 and 390 px, light at 320 px, focus rings, no sideways overflow). |
+| Submission Materials | The [demo video](https://youtu.be/rVGGU6BSJxw) (1:33) and the [deck](docs/deck.pdf) (11 slides). |
 
 ## Mezo integration: contract, address, call, why
 
