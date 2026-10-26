@@ -86,17 +86,25 @@ Plans, not promises. Testnet only.
 Kylne700, solo, building with AI coding agents (Claude Code). GitHub: https://github.com/Kylne700
 ```
 
-## 13. Description (5,845 characters; allowed 800-5,900)
+## 13. Description (5,885 characters; allowed 800-5,900)
 
 ```text
-Mezo Agent Toolkit lets an AI agent read Mezo and pay for those reads in MUSD, with no BTC for gas. It runs on Mezo testnet (chain 31611), which the hack page accepts.
+TL;DR: An AI agent can read Mezo through one MCP server and pay for data in MUSD, with no BTC for gas, under spend limits that the operator sets.
 
-- Repo: https://github.com/Kylne700/mezo-agent-toolkit
-- Live: https://mezo-agent-toolkit.kylne700.workers.dev
 - Video: https://youtu.be/rVGGU6BSJxw
-- Deck: https://github.com/Kylne700/mezo-agent-toolkit/blob/main/docs/deck.pdf
+- Deck: https://github.com/Kylne700/mezo-agent-toolkit/blob/main/docs/deck.pdf (11 slides as of 2026-10-25)
 
-Check it yourself with no key: clone the repo, npm ci, npm run smoke (about 40 s, 23 checks: every read equals a direct read at a pinned block, and an unpaid call gets a 402).
+Check it yourself with no key (Node 22.12+): clone the repo, npm ci, npm run smoke (about 40 s, 23 checks: every read equals a direct read at a pinned block, and an unpaid call gets a 402).
+
+## At a glance
+
+- Category: Agent access and payments.
+- Track: Track 2 Access & Distribution. It asks how to make MUSD and MEZO easier to discover, access and use: here an agent reads Mezo in one call and pays in MUSD.
+- Chain: Mezo testnet (chain 31611), which the hack page accepts. Status: new. Readiness: testnet.
+- Target group: AI agent developers and teams that sell Mezo reads. Some coding needed. No region checks in the toolkit. Desktop and terminal first; the console also works on a phone.
+- Tech stack: TypeScript, Solidity, viem, Hono, zod, MCP SDK, x402 v2, Permit2, Cloudflare Workers, vitest.
+- Team: Kylne700, solo, building with AI coding agents (Claude Code). GitHub https://github.com/Kylne700.
+- Next three milestones, planned for Wave 2 (Nov 2-15): (1) one settlement ledger for all Worker instances; (2) spend limits that survive a restart, and an installable MCP package; (3) a ve gauge vote helper.
 
 ## The problem
 
@@ -104,35 +112,31 @@ Agents can read Mezo, but paying for data safely is hard. One question, such as 
 
 ## What it does
 
-1. Our MezoLens is a read-only contract on Mezo testnet (0xBDfD1C0B544319E25b4b99ee1f355e55230f6130). One eth_call answers one question: trove health, the position in the redemption queue (walked on chain, up to 300 nodes per call), a swap quote with its price impact, or the veBTC and veMEZO locks of a wallet.
-2. A pay-per-call HTTP endpoint serves those reads for 0.001 MUSD per call with x402. An unpaid request gets a 402 and the price. The agent signs a permit, the facilitator settles it on Mezo, and the data comes back. The same app runs as a Cloudflare Worker with a console page that lists the latest paid calls, read from the chain.
-3. An MCP server (stdio) gives an agent five tools. trove_health, redemption_risk, pool_quote and ve_locks are free reads. pay_and_fetch buys data from x402 servers.
+1. Our MezoLens is a read-only contract on Mezo testnet (0xBDfD1C0B544319E25b4b99ee1f355e55230f6130). One eth_call answers one question: trove health, the position in the redemption queue (up to 300 nodes per call), a swap quote with its price impact, or the veBTC and veMEZO locks of a wallet.
+2. A pay-per-call HTTP endpoint serves those reads for 0.001 MUSD per call with x402. An unpaid request gets a 402 and the price. The same app runs as a Cloudflare Worker with a console page that lists the latest paid calls, read from the chain.
+3. An MCP server (stdio) gives an agent five tools. trove_health, redemption_risk, pool_quote and ve_locks are free direct lens reads that do not go through x402. pay_and_fetch buys data from x402 servers.
 
 ## How MUSD is used
 
-MUSD is the unit the reads are priced in and the asset the agent pays with. The buyer signs a Permit2 permit for exactly the price and sends no transaction. The facilitator (facilitator.vativ.io, a third party) sends the transaction to the x402 Permit2 proxy and pays the BTC gas, so the agent pays no gas. On the explorer each payment is one transaction sent by the facilitator, one MUSD Transfer of 0.001 from the agent to the payee, and no change in the agent's BTC balance or nonce. The lens reads Mezo's lending market (TroveManager, SortedTroves, PriceFeed), DEX (the pool router) and vote-escrow system (veBTC, veMEZO). The toolkit adds no token and no protocol. It extends what Mezo already has. Track 2 asks how to make MUSD and MEZO easier to discover, access and use: here an agent reads Mezo in one call and pays in MUSD.
+MUSD is the unit the reads are priced in and the asset the agent pays with. The buyer signs a Permit2 permit for exactly the price and sends no transaction. The facilitator (facilitator.vativ.io) settles it: it sends the transaction to the x402 Permit2 proxy and pays the BTC gas, so the agent pays no gas. Then the data comes back. On the explorer each payment is one MUSD Transfer of 0.001 from the agent to the payee, and the agent's BTC balance and nonce do not change. The lens reads Mezo's lending market (TroveManager, SortedTroves, PriceFeed), DEX (the pool router) and vote-escrow system (veBTC, veMEZO). The toolkit adds no token and no protocol. It extends what Mezo already has.
 
 ## Who it is for and who pays
 
-Two kinds of user. A developer who gives an AI agent a Mezo wallet gets five tools in one MCP config entry and an operator-set spend limit the agent cannot change. A MUSD borrower can ask an agent where a trove ranks for redemption. A team that sells Mezo reads over HTTP can deploy the Worker with its own payee and price: each paid call is a MUSD transfer to the payee, and this toolkit takes no cut. Not there yet: users, revenue, anything beyond testnet. Paid use so far is our own test and demo runs (up to 2026-10-19): 39 transfers, 0.039 MUSD in all.
+Two kinds of user. A developer who gives an AI agent a Mezo wallet gets five tools in one MCP config entry and an operator-set spend limit the agent cannot change; a MUSD borrower can ask such an agent where a trove ranks for redemption. A team that sells Mezo reads over HTTP can deploy the Worker with its own payee and price: each paid call is a MUSD transfer to the payee, and this toolkit takes no cut. Not there yet: users, revenue. Paid use so far is our own test and demo runs (up to 2026-10-19): 39 transfers, 0.039 MUSD.
 
 ## Safety
 
-- Spend limits: pay_and_fetch checks and reserves the amount in MUSD base units before anything is signed. The limits (default 0.01 MUSD per call and 0.1 MUSD per session) and the list of hosts it may pay come only from the server's environment. The tool is off unless the operator gives it a key file. The tool takes a URL and nothing else, so the model cannot raise the limits. A refused payment says why and that nothing was paid.
+- Spend limits: pay_and_fetch checks and reserves the amount in MUSD base units before anything is signed. The limits (default 0.01 MUSD per call and 0.1 MUSD per session) and the list of hosts it may pay come only from the server's environment. The tool is off unless the operator gives it a key file. It takes a URL and nothing else, so the model cannot raise the limits. A refused payment says why and that nothing was paid.
 - No double payment: within one server process, if a payment was sent and not confirmed, the buyer does not pay that URL again until the chain shows the first one can no longer land.
-- Chain proof: the endpoint asks the chain about every settlement and serves data only when it finds the payment, whatever the facilitator reports. This came from a real failure. Mezo's public RPC sometimes answers null for a mined transaction. The facilitator then reports a failure although the transfer landed. Four payments of 0.001 MUSD were lost to this flake in development, before the final fix.
+- Chain proof: the endpoint asks the chain about every settlement and serves data only when it finds the payment, whatever the facilitator reports. Mezo's public RPC sometimes answers null for a mined transaction, so the facilitator reports a failure although the transfer landed. Four payments of 0.001 MUSD were lost to this flake in development, before the final fix.
 
 ## What was run
 
-173 unit and contract tests in 10 files pass (a fresh run on 2026-10-19). Runs against Mezo testnet: the smoke test (23 checks), a 402-then-200 run on all four paid routes, a real MCP session (29 checks), the Worker under wrangler dev (28 checks) and the Worker deployed on Cloudflare (25 checks, in each of two runs that paid). The console page passed 51 checks in a browser. The video shows two more payments, made to the deployed Worker in one run on 2026-10-19. Their hashes are in the YouTube description and in evidence/video-take-2026-10-19.log. A paid call took 12.7 s and 8.4 s in that run, because the data comes back only after the settlement.
+173 unit and contract tests in 10 files pass (a fresh run on 2026-10-19). Runs against Mezo testnet: the smoke test, a 402-then-200 run on all four paid routes, a real MCP session (29 checks), the Worker under wrangler dev (28 checks) and the Worker deployed on Cloudflare (25 checks, in each of two runs that paid). The video's two payments (to the deployed Worker, 2026-10-19) took 12.7 s and 8.4 s, because the data comes back only after the settlement. The console page passed 51 browser checks.
 
 ## Limits, stated plainly
 
-Testnet only. Nothing here calls Mezo mainnet. The facilitator is a third party: if it is down, paid calls fail, and the free read tools do not depend on it. In the paid runs the agent's BTC balance did not change; a wallet with no BTC at all was not tried. The MCP read tools are free direct lens reads and do not go through x402. A session limit belongs to one server process. The Worker keeps its payment memory per instance, so on Cloudflare its /status did not always show the latest payment. No 5xx answer was seen on 2026-10-19; CPU time per request was not measured. Overruling a reported facilitator failure is covered by offline tests; it has not happened live on the final code.
-
-Update 2026-10-25: the deck now has 11 slides.
-
-Next, in Wave 2 (Nov 2-15): one settlement ledger for all Worker instances, spend limits that survive a restart, an installable MCP package and a ve gauge vote helper. Plans, not promises.
+Testnet only. Nothing here calls Mezo mainnet. The facilitator is a third party: if it is down, paid calls fail, and the free read tools do not depend on it. A wallet with no BTC at all was not tried. A session limit belongs to one server process. The Worker keeps its payment memory per instance, so on Cloudflare its /status did not always show the latest payment. No 5xx answer was seen on 2026-10-19; CPU time per request was not measured. Overruling a reported facilitator failure is covered by offline tests; it has not happened live on the final code.
 ```
 
 ## 14. Submission comment (2,976 characters; allowed 500-3,000)
