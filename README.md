@@ -10,6 +10,19 @@ Built for the Mezo Buildathon on Akindo, Wave 1 (build period 16-26 October 2026
 
 Live demo: https://mezo-agent-toolkit.kylne700.workers.dev
 
+**Install the MCP server without cloning** (npm package `mezo-agent-toolkit`, Node 22.12 or newer; the four read tools need no key and no funds):
+
+```
+claude mcp add mezo -- npx -y mezo-agent-toolkit
+npx -y mezo-agent-toolkit --doctor    # checks the RPC, chain 31611 and the tool list; needs no key
+```
+
+For other MCP clients, add this server entry to the client's configuration; settings and troubleshooting are in [docs/INSTALL.md](docs/INSTALL.md).
+
+```json
+{ "mcpServers": { "mezo": { "command": "npx", "args": ["-y", "mezo-agent-toolkit"] } } }
+```
+
 **Check it in a minute (no key, no funds):** `npm ci`, then `npm run smoke` (about 40 s; 23 checks: every lens answer equals a direct read of the protocol at one pinned block, and an unpaid call to the endpoint gets a 402; it ends with `SMOKE PASSED`). To see it first: the [demo video](https://youtu.be/rVGGU6BSJxw), the [deck](docs/deck.pdf) and the [live console](https://mezo-agent-toolkit.kylne700.workers.dev).
 
 [![Screenshot of the live console, 2026-10-25: the Recent payments list read from the chain, with a link to the transaction on the Mezo explorer](docs/console-payments.png)](https://mezo-agent-toolkit.kylne700.workers.dev)
