@@ -1,0 +1,49 @@
+{
+ "note": "trove_status for the wallet through the MCP stdio entry, after the three trove transactions",
+ "answer": {
+  "borrower": "0xea2D4b92DDd760959BB1D8119430640885851A91",
+  "blockNumber": 16484207,
+  "blockTime": "2026-10-31T11:37:33.000Z",
+  "chainId": 31611,
+  "btcPriceUsd": "77366.72",
+  "tcr": "277.85",
+  "recoveryMode": false,
+  "status": "active",
+  "active": true,
+  "trove": {
+   "collateralBtc": "0.0453",
+   "principalMusd": "2091.900045",
+   "interestMusd": "0.000212",
+   "debtMusd": "2091.900258",
+   "netDebtMusd": "1891.900258"
+  },
+  "icr": "167.53",
+  "mcrDistance": {
+   "marginPoints": "57.53",
+   "priceDropToLiquidationPercent": "34.34",
+   "liquidationPriceUsd": "50796.69"
+  },
+  "liquidatable": false,
+  "maxBorrowingCapacity": "3162.847942",
+  "redemptionPosition": {
+   "musdAhead": "426393594.212462",
+   "trovesAhead": 221,
+   "skippedBelowMcr": 4,
+   "walkComplete": true,
+   "redemptionsOpen": true,
+   "basis": "A redemption takes the lowest-ratio trove first and walks toward the highest, skipping troves under the minimum ratio; each trove offers its debt (principal + interest) minus the 200 MUSD gas reserve. musdAhead adds that up for the redeemable troves the sorted list puts before this trove, read with the MezoLens redemption walk at this block; a redemption has to be larger than it to reach this trove. This is the trove's current spot in the list."
+  },
+  "warnings": [],
+  "summary": "Trove 0xea2D4b92DDd760959BB1D8119430640885851A91 at block 16484207: 0.0453 BTC against 2091.900258 MUSD of debt, ratio 167.53% (57.53 points above the 110% minimum). The system ratio is 277.85%. 426393594.212462 MUSD of redeemable debt is ahead of it in the redemption queue.",
+  "raw": {
+   "price": "77366728310000000000000",
+   "collateral": "45300000000000000",
+   "principal": "2091900045958526032552",
+   "interest": "212789852059440",
+   "debt": "2091900258748378091992",
+   "icr": "1675372799341749352",
+   "tcr": "2778571872077733350",
+   "maxBorrowingCapacity": "3162847942227272727272"
+  }
+ }
+}

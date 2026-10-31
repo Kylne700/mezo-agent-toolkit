@@ -1,0 +1,26 @@
+{
+ "note": "trove_status for the wallet through the MCP stdio entry, before any trove transaction",
+ "answer": {
+  "borrower": "0xea2D4b92DDd760959BB1D8119430640885851A91",
+  "blockNumber": 16484009,
+  "blockTime": "2026-10-31T11:23:50.000Z",
+  "chainId": 31611,
+  "btcPriceUsd": "77332.1",
+  "tcr": "277.73",
+  "recoveryMode": false,
+  "status": "nonExistent",
+  "active": false,
+  "trove": null,
+  "icr": null,
+  "mcrDistance": null,
+  "liquidatable": null,
+  "maxBorrowingCapacity": null,
+  "redemptionPosition": null,
+  "warnings": [],
+  "summary": "No open trove for 0xea2D4b92DDd760959BB1D8119430640885851A91 at block 16484009 (status: nonExistent).",
+  "raw": {
+   "price": "77332100180000000000000",
+   "tcr": "2777334322670692262"
+  }
+ }
+}

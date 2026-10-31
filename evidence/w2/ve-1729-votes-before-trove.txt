@@ -1,0 +1,8 @@
+{
+ "note": "direct PoolsVoter reads for NFT 1729 before any trove transaction",
+ "votes": {
+  "0x6f461c68B2c5492C0F5CCEc5a264d692aA7A8e16": "3654606480510818"
+ },
+ "usedWeights": "3654606480510818",
+ "lastVoted": "1793440894"
+}

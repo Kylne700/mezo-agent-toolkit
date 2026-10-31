@@ -1,0 +1,74 @@
+{
+ "note": "plan_repay (read only) just before the real trove_repay",
+ "answer": {
+  "refused": false,
+  "action": "repay",
+  "borrower": "0xea2D4b92DDd760959BB1D8119430640885851A91",
+  "blockNumber": 16484125,
+  "blockTime": "2026-10-31T11:31:55.000Z",
+  "chainId": 31611,
+  "to": "0xCdF7028ceAB81fA0C6971208e83fa7872994beE5",
+  "data": "0xdc283bb30000000000000000000000000000000000000000000000008ac7230489e800000000000000000000000000003db2f85e7a204ab666229e637a2b9ea92e566f49000000000000000000000000d74f60bb70d2a8b412ff12d8ef0ffdaae81b2b49",
+  "value": "0",
+  "gas": "434908",
+  "hints": {
+   "upper": "0x3Db2f85e7A204aB666229E637A2B9eA92e566F49",
+   "lower": "0xd74f60bb70d2A8B412fF12d8ef0ffdaAe81B2B49",
+   "nicr": "2165495446721724",
+   "approxHint": "0xd74f60bb70d2A8B412fF12d8ef0ffdaAe81B2B49"
+  },
+  "trove": {
+   "before": {
+    "collateralBtc": "0.0453",
+    "principalMusd": "2101.9",
+    "interestMusd": "0.000034",
+    "debtMusd": "2101.900034",
+    "netDebtMusd": "1901.900034"
+   },
+   "after": {
+    "collateralBtc": "0.0453",
+    "principalMusd": "2091.900034",
+    "interestMusd": "0",
+    "debtMusd": "2091.900034",
+    "netDebtMusd": "1891.900034"
+   }
+  },
+  "icrBefore": "166.63",
+  "icrAfter": "167.43",
+  "mcrDistance": {
+   "marginPoints": "57.43",
+   "priceDropToLiquidationPercent": "34.3",
+   "liquidationPriceUsd": "50796.68"
+  },
+  "recoveryMode": false,
+  "tcr": "277.68",
+  "tcrAfter": "277.68",
+  "maxBorrowingCapacity": "3162.847942",
+  "redemptionPosition": {
+   "musdAhead": "426393548.62796",
+   "trovesAhead": 221,
+   "skippedBelowMcr": 4,
+   "walkComplete": true,
+   "redemptionsOpen": true,
+   "basis": "A redemption takes the lowest-ratio trove first and walks toward the highest, skipping troves under the minimum ratio; each trove offers its debt (principal + interest) minus the 200 MUSD gas reserve. musdAhead adds that up for the redeemable troves the sorted list puts before this trove, read with the MezoLens redemption walk at this block; a redemption has to be larger than it to reach this trove. Counted for the spot after this change (between 0x3Db2f85e7A204aB666229E637A2B9eA92e566F49 and 0xd74f60bb70d2A8B412fF12d8ef0ffdaAe81B2B49; the trove's own old debt is taken out)."
+  },
+  "warnings": [],
+  "summary": "Repay 10 MUSD at block 16484125: debt 2101.900034 -> 2091.900034 MUSD (net debt 1891.900034, minimum 1800), ratio 166.63% -> 167.43%. Interest is paid first (0.000034 MUSD of it). Ratio after: 167.43%, 57.43 points above the 110% minimum (liquidation if BTC falls 34.3% to $50796.68). The system is not in Recovery Mode (system ratio 277.68%). Redemption position: 426393548.62796 MUSD of redeemable debt across 221 trove(s) is ahead of it.",
+  "raw": {
+   "repaid": "10000000000000000000",
+   "debt": "2101900034635410923082",
+   "netDebt": "1901900034635410923082",
+   "minNetDebt": "1800000000000000000000",
+   "musdBalance": "1915700457283614259046",
+   "price": "77320009410000000000000",
+   "icrAfter": "1674361283178358871",
+   "tcr": "2776894227648108710",
+   "tcrAfter": "2776894292325901490",
+   "nicr": "2165495446721724",
+   "maxBorrowingCapacity": "3162847942227272727272",
+   "collateralAfter": "45300000000000000",
+   "principalAfter": "2091900034635410923082",
+   "interestAfter": "0"
+  }
+ }
+}

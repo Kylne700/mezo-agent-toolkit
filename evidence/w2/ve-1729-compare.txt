@@ -1,0 +1,43 @@
+{
+ "stablePathsChecked": [
+  "nft.tokenId",
+  "nft.exists",
+  "nft.system",
+  "nft.owner",
+  "nft.amount",
+  "nft.unlocksAt",
+  "nft.isPermanent",
+  "nft.voted",
+  "nft.lastVoted",
+  "nft.votedThisEpoch",
+  "nft.usedWeights",
+  "nft.raw.amount",
+  "nft.raw.end",
+  "nft.raw.lastVoted",
+  "nft.raw.usedWeights"
+ ],
+ "differingPaths": [
+  "blockNumber",
+  "blockTime",
+  "epoch.secondsToNext",
+  "nft.votingPower",
+  "nft.raw.votingPower"
+ ],
+ "powerBefore": "3646451718608222",
+ "powerAfter": "3644813160407599",
+ "votesBefore": {
+  "note": "direct PoolsVoter reads for NFT 1729 before any trove transaction",
+  "votes": {
+   "0x6f461c68B2c5492C0F5CCEc5a264d692aA7A8e16": "3654606480510818"
+  },
+  "usedWeights": "3654606480510818",
+  "lastVoted": "1793440894"
+ },
+ "votesAfter": {
+  "votes": {
+   "0x6f461c68B2c5492C0F5CCEc5a264d692aA7A8e16": "3654606480510818"
+  },
+  "usedWeights": "3654606480510818",
+  "lastVoted": "1793440894"
+ }
+}

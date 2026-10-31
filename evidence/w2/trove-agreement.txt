@@ -1,0 +1,102 @@
+PASS: open: the tx went to BorrowerOperations 0xcdf7028ceab81fa0c6971208e83fa7872994bee5
+PASS: open: calldata calls openTrove (expected openTrove)
+PASS: open: tx value 45000000000000000 wei (expected 45000000000000000)
+PASS: open: first calldata argument 1900000000000000000000 (expected 1900000000000000000000)
+PASS: open: the calldata's hints 0x5b4b9c9ad2e5c6ef55a4186ad82580b61a67c6c5 / 0x0a5cd59a19eda28078b18860ebec23ed489a68db == the sent plan's hints (planBlock 16484110, upper 0x5B4b9C9AD2E5c6Ef55A4186ad82580B61A67c6C5, lower 0x0a5cd59a19EDa28078B18860eBEC23ed489A68db)
+PASS: open: the plan that was sent had ICR after 165.52% (>= 160)
+PASS: open (receipt block 16484113): the answer is for block 16484113, the receipt/read block is 16484113
+PASS: open (receipt block 16484113): the trove is active in both
+PASS: open (receipt block 16484113): collateral 45000000000000000 == Troves.coll 45000000000000000
+PASS: open (receipt block 16484113): principal 2101900000000000000000 == Troves.principal 2101900000000000000000
+PASS: open (receipt block 16484113): interest 0 == Troves.interestOwed 0
+PASS: open (receipt block 16484113): price 77314060810000000000000 == PriceFeed.fetchPrice 77314060810000000000000
+PASS: open (receipt block 16484113): ICR 1655232283386459869 == TroveManager.getCurrentICR 1655232283386459869
+PASS: open (receipt block 16484113): capacity 3162847942227272727272 == getTroveMaxBorrowingCapacity 3162847942227272727272 == Troves.maxBorrowingCapacity 3162847942227272727272
+PASS: topup: the tx went to BorrowerOperations 0xcdf7028ceab81fa0c6971208e83fa7872994bee5
+PASS: topup: calldata calls addColl (expected addColl)
+PASS: topup: tx value 300000000000000 wei (expected 300000000000000)
+PASS: topup: the calldata's hints 0xabb30839fe657d59b4cbcbb737f4af896c5a8b62 / 0x8e42315a5276f7069d516a38d97b9d16507f5e87 == the sent plan's hints (planBlock 16484118, upper 0xAbb30839FE657D59b4CBCbB737f4af896c5a8b62, lower 0x8E42315A5276f7069D516a38d97b9D16507f5e87)
+PASS: topup (receipt block 16484121): the answer is for block 16484121, the receipt/read block is 16484121
+PASS: topup (receipt block 16484121): the trove is active in both
+PASS: topup (receipt block 16484121): collateral 45300000000000000 == Troves.coll 45300000000000000
+PASS: topup (receipt block 16484121): principal 2101900000000000000000 == Troves.principal 2101900000000000000000
+PASS: topup (receipt block 16484121): interest 21980164624264 == Troves.interestOwed 21980164624264
+PASS: topup (receipt block 16484121): price 77307392990000000000000 == PriceFeed.fetchPrice 77307392990000000000000
+PASS: topup (receipt block 16484121): ICR 1666123443467972990 == TroveManager.getCurrentICR 1666123443467972990
+PASS: topup (receipt block 16484121): capacity 3162847942227272727272 == getTroveMaxBorrowingCapacity 3162847942227272727272 == Troves.maxBorrowingCapacity 3162847942227272727272
+PASS: repay: the tx went to BorrowerOperations 0xcdf7028ceab81fa0c6971208e83fa7872994bee5
+PASS: repay: calldata calls repayMUSD (expected repayMUSD)
+PASS: repay: tx value 0 wei (expected 0)
+PASS: repay: first calldata argument 10000000000000000000 (expected 10000000000000000000)
+PASS: repay: the calldata's hints 0x3db2f85e7a204ab666229e637a2b9ea92e566f49 / 0xd74f60bb70d2a8b412ff12d8ef0ffdaae81b2b49 == the sent plan's hints (planBlock 16484127, upper 0x3Db2f85e7A204aB666229E637A2B9eA92e566F49, lower 0xd74f60bb70d2A8B412fF12d8ef0ffdaAe81B2B49)
+PASS: repay (receipt block 16484130): the answer is for block 16484130, the receipt/read block is 16484130
+PASS: repay (receipt block 16484130): the trove is active in both
+PASS: repay (receipt block 16484130): collateral 45300000000000000 == Troves.coll 45300000000000000
+PASS: repay (receipt block 16484130): principal 2091900045958526032552 == Troves.principal 2091900045958526032552
+PASS: repay (receipt block 16484130): interest 0 == Troves.interestOwed 0
+PASS: repay (receipt block 16484130): price 77330462220000000000000 == PriceFeed.fetchPrice 77330462220000000000000
+PASS: repay (receipt block 16484130): ICR 1674587629238692503 == TroveManager.getCurrentICR 1674587629238692503
+PASS: repay (receipt block 16484130): capacity 3162847942227272727272 == getTroveMaxBorrowingCapacity 3162847942227272727272 == Troves.maxBorrowingCapacity 3162847942227272727272
+PASS: all three receipts are success and each receipt-block read-back agreed with the direct reads
+PASS: the stored borrow cap is identical at the three receipt blocks (3162847942227272727272, 3162847942227272727272, 3162847942227272727272 wei): a top-up and a repay leave it unchanged
+PASS: FINAL, later block 16484151 (not the brief's receipt-block check): the answer is for block 16484151, the receipt/read block is 16484151
+PASS: FINAL, later block 16484151 (not the brief's receipt-block check): the trove is active in both
+PASS: FINAL, later block 16484151 (not the brief's receipt-block check): collateral 45300000000000000 == Troves.coll 45300000000000000
+PASS: FINAL, later block 16484151 (not the brief's receipt-block check): principal 2091900045958526032552 == Troves.principal 2091900045958526032552
+PASS: FINAL, later block 16484151 (not the brief's receipt-block check): price 77353044430000000000000 == PriceFeed.fetchPrice 77353044430000000000000
+PASS: FINAL, later block 16484151 (not the brief's receipt-block check): ICR 1675076599254028060 == TroveManager.getCurrentICR 1675076599254028060
+PASS: FINAL, later block 16484151 (not the brief's receipt-block check): capacity 3162847942227272727272 == getTroveMaxBorrowingCapacity 3162847942227272727272 == Troves.maxBorrowingCapacity 3162847942227272727272
+PASS: brute-force walk (225 nodes) 426393562788826586142444944 wei / 221 troves / 4 skipped == MezoLens.redemptionRisk 426393562788826586142444944 wei / 221 / 4 at block 16484151
+PASS: trove_status redemptionPosition 426393562.788826 MUSD / 221 / 4 == brute-force walk at 6 decimals 426393562.788826 / 221 / 4
+PASS: ve_status 1729 nft.tokenId unchanged ("1729")
+PASS: ve_status 1729 nft.exists unchanged (true)
+PASS: ve_status 1729 nft.system unchanged ("LIVE")
+PASS: ve_status 1729 nft.owner unchanged ("0xea2D4b92DDd760959BB1D8119430640885851A91")
+PASS: ve_status 1729 nft.amount unchanged ("0.004")
+PASS: ve_status 1729 nft.unlocksAt unchanged ("2026-11-26T00:00:00.000Z")
+PASS: ve_status 1729 nft.isPermanent unchanged (false)
+PASS: ve_status 1729 nft.voted unchanged (true)
+PASS: ve_status 1729 nft.lastVoted unchanged ("2026-10-31T10:01:34.000Z")
+PASS: ve_status 1729 nft.votedThisEpoch unchanged (true)
+PASS: ve_status 1729 nft.usedWeights unchanged ("0.0036546064")
+PASS: ve_status 1729 nft.raw.amount unchanged ("4000000000000000")
+PASS: ve_status 1729 nft.raw.end unchanged ("1795651200")
+PASS: ve_status 1729 nft.raw.lastVoted unchanged ("1793440894")
+PASS: ve_status 1729 nft.raw.usedWeights unchanged ("3654606480510818")
+PASS: PoolsVoter per-pool votes, usedWeights and lastVoted for 1729 unchanged ({"votes":{"0x6f461c68B2c5492C0F5CCEc5a264d692aA7A8e16":"3654606480510818"},"usedWeights":"3654606480510818","lastVoted":"1793440894"})
+FAIL: ve_status 1729 differs only in the expected volatile fields (blockNumber, blockTime, epoch.secondsToNext, nft.votingPower, nft.raw.votingPower); unexpected: ["epoch.secondsToNext"]
+PASS: spent 0.045300000189847888 BTC <= the 0.0455 BTC limit
+walk: {"musdWei":"426393562788826586142444944","musdAhead":"426393562.788826","trovesAhead":221,"skippedBelowMcr":4,"steps":225}
+wallet BTC 0.000499998579819164, MUSD 1905.700457283614259046
+NOTE (lead-visible): the FAIL above is a bug in the driver, not a change to veNFT 1729: epoch.secondsToNext = epoch.next minus the block time (src/ve-actions.ts), a countdown that differs on every read; it was missing from the driver volatile list. The list was fixed and the post stage re-run below (all other paths in the first run were unchanged).
+PASS: all three receipts are success and each receipt-block read-back agreed with the direct reads
+PASS: the stored borrow cap is identical at the three receipt blocks (3162847942227272727272, 3162847942227272727272, 3162847942227272727272 wei): a top-up and a repay leave it unchanged
+PASS: FINAL, later block 16484207 (not the brief's receipt-block check): the answer is for block 16484207, the receipt/read block is 16484207
+PASS: FINAL, later block 16484207 (not the brief's receipt-block check): the trove is active in both
+PASS: FINAL, later block 16484207 (not the brief's receipt-block check): collateral 45300000000000000 == Troves.coll 45300000000000000
+PASS: FINAL, later block 16484207 (not the brief's receipt-block check): principal 2091900045958526032552 == Troves.principal 2091900045958526032552
+PASS: FINAL, later block 16484207 (not the brief's receipt-block check): price 77366728310000000000000 == PriceFeed.fetchPrice 77366728310000000000000
+PASS: FINAL, later block 16484207 (not the brief's receipt-block check): ICR 1675372799341749352 == TroveManager.getCurrentICR 1675372799341749352
+PASS: FINAL, later block 16484207 (not the brief's receipt-block check): capacity 3162847942227272727272 == getTroveMaxBorrowingCapacity 3162847942227272727272 == Troves.maxBorrowingCapacity 3162847942227272727272
+PASS: brute-force walk (225 nodes) 426393594212462027758710197 wei / 221 troves / 4 skipped == MezoLens.redemptionRisk 426393594212462027758710197 wei / 221 / 4 at block 16484207
+PASS: trove_status redemptionPosition 426393594.212462 MUSD / 221 / 4 == brute-force walk at 6 decimals 426393594.212462 / 221 / 4
+PASS: ve_status 1729 nft.tokenId unchanged ("1729")
+PASS: ve_status 1729 nft.exists unchanged (true)
+PASS: ve_status 1729 nft.system unchanged ("LIVE")
+PASS: ve_status 1729 nft.owner unchanged ("0xea2D4b92DDd760959BB1D8119430640885851A91")
+PASS: ve_status 1729 nft.amount unchanged ("0.004")
+PASS: ve_status 1729 nft.unlocksAt unchanged ("2026-11-26T00:00:00.000Z")
+PASS: ve_status 1729 nft.isPermanent unchanged (false)
+PASS: ve_status 1729 nft.voted unchanged (true)
+PASS: ve_status 1729 nft.lastVoted unchanged ("2026-10-31T10:01:34.000Z")
+PASS: ve_status 1729 nft.votedThisEpoch unchanged (true)
+PASS: ve_status 1729 nft.usedWeights unchanged ("0.0036546064")
+PASS: ve_status 1729 nft.raw.amount unchanged ("4000000000000000")
+PASS: ve_status 1729 nft.raw.end unchanged ("1795651200")
+PASS: ve_status 1729 nft.raw.lastVoted unchanged ("1793440894")
+PASS: ve_status 1729 nft.raw.usedWeights unchanged ("3654606480510818")
+PASS: PoolsVoter per-pool votes, usedWeights and lastVoted for 1729 unchanged ({"votes":{"0x6f461c68B2c5492C0F5CCEc5a264d692aA7A8e16":"3654606480510818"},"usedWeights":"3654606480510818","lastVoted":"1793440894"})
+PASS: ve_status 1729 differs only in the expected volatile fields (blockNumber, blockTime, epoch.secondsToNext, nft.votingPower, nft.raw.votingPower); unexpected: []
+PASS: spent 0.045300000189847888 BTC <= the 0.0455 BTC limit
+walk: {"musdWei":"426393594212462027758710197","musdAhead":"426393594.212462","trovesAhead":221,"skippedBelowMcr":4,"steps":225}
+wallet BTC 0.000499998579819164, MUSD 1905.700457283614259046
