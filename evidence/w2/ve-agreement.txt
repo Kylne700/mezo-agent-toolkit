@@ -1,0 +1,20 @@
+checks run by real-run.mts post
+PASS: voted(1729) == true on chain at block 16482891 (direct read)
+PASS: ve_status owner == ownerOf(1729) == our wallet
+PASS: ve_status lock amount/end == locked(1729): 4000000000000000 / 1795651200
+PASS: ve_status votingPower == votingPowerOfNFT: 3654143517547978
+PASS: ve_status lastVoted / usedWeights == voter: 1793440894 / 3654606480510818
+PASS: ve_status flags: voted, votedThisEpoch, canVoteNow false
+PASS: ve_status shown amounts == direct values truncated (amount 8 places, power 10 places)
+PASS: ve_status voter.totalWeight == totalWeight(): 21.23659
+PASS: ve_status blockTime == timestamp of the block it names
+PASS: epochAt(1793441174) == voter.epochStart/Next/VoteStart/VoteEnd: 1793232000/1793836800/1793235600/1793833200
+PASS: votes(1729, pool 0) == usedWeights == 3654606480510818 (100% of our power sits on pool 0)
+PASS: weights(pool 0) rose by exactly our 3654606480510818 in the vote block 16482823 (6151227561446505312 -> 6154882167927016130)
+PASS: gauge_rewards pool 0 weight == weights(pool 0) at its block 16482891: 6.154882
+PASS: gauge_rewards yourVote == votes(id, pool 0) at its block: 0.0036546064
+PASS: RewardsDistributor.claim(1729) simulated from our wallet returns 0
+PASS: gauge_rewards: nothing claimable for our NFT yet (the epoch has not ended)
+PASS: ve_locks (new lens 0x659203438789Ce052a9148Ef5A807508ab5eE40c) agrees with direct reads for our wallet at block 16482899: 0 differences, 1 lock(s) listed
+PASS: total spent (lock + gas) 0.004000000159924604 BTC <= 0.0045 BTC
+PASS: wallet difference == lock amount + the three fees: 4000000159924604 == 4000000000000000 + 159924604

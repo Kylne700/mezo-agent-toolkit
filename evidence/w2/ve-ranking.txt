@@ -1,0 +1,21 @@
+gauge_rewards ranking at block 16482789 (2026-10-29T00:00:00.000Z epoch): MUSD fees booked this epoch per unit of vote weight, pools that take votes only
+ 1. #0 MUSD Savings Rate                weight   6.151227  booked   22464.8801 MUSD  per unit weight 3652.097065
+ 2. #2 Stable AMM - MUSD/mUSDC          weight   0.601064  booked       0.0647 MUSD  per unit weight 0.107712
+ 3. #1 Volatile AMM - MUSD/BTC          weight   8.646551  booked       0.1153 MUSD  per unit weight 0.013338
+ 4. #3 Stable AMM - MUSD/mUSDT          weight          0  booked            0 MUSD  per unit weight no votes
+ 5. #4 Volatile AMM - MUSD/mT           weight   0.408777  booked            0 MUSD  per unit weight 0
+ 6. #5 Stable AMM - mcbBTC/BTC          weight   0.277243  booked            0 MUSD  per unit weight 0
+ 7. #6 Volatile AMM - MUSD/bMUSD        weight          0  booked            0 MUSD  per unit weight no votes
+ 8. #7 Stable AMM - MUSD/bMUSD          weight    0.00031  booked            0 MUSD  per unit weight 0
+ 9. #8 (no name)                        weight   0.065331  booked            0 MUSD  per unit weight 0
+10. #9 (no name)                        weight   0.043385  booked            0 MUSD  per unit weight 0
+11. #10 (no name)                        weight   0.008756  booked            0 MUSD  per unit weight 0
+12. #11 Tigris BTC-Backed mUSDC Gauge (testnet) weight          0  booked            0 MUSD  per unit weight no votes
+13. #12 Tigris BTC-Backed mUSDC (testnet) weight          0  booked            0 MUSD  per unit weight no votes
+14. #13 Tigris BTC-Backed mUSDC (testnet) weight          0  booked            0 MUSD  per unit weight no votes
+15. #14 Mezo BTC-mUSDC Lending Vault     weight   0.042792  booked            0 MUSD  per unit weight 0
+16. #15 (no name)                        weight   2.493748  booked            0 MUSD  per unit weight 0
+17. #16 (no name)                        weight   2.493748  booked            0 MUSD  per unit weight 0
+not votable: none
+pool 0 = MUSD Savings Rate (0x6f461c68B2c5492C0F5CCEc5a264d692aA7A8e16); best pool = #0 MUSD Savings Rate; best/pool0 per-unit-weight ratio = 1 (pool 0 is the best)
+decision: vote 100% for pool 0 "MUSD Savings Rate" (no other pool pays MUSD fees at >= 2x per unit weight)

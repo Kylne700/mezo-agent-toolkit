@@ -1,0 +1,5 @@
+wallet before the ve run: 0.049799998929591656 BTC; after: 0.045799998769667052 BTC; difference: 0.004000000159924604 BTC (lock 0.004 + gas)
+approve: {"hash":"0x52c8e63ad219c682f2630839530ef9c9a2f311a8b51843b762741ccbb1387b26","status":"success","blockNumber":"16482800","nonce":5,"gasUsed":"25540","effectiveGasPrice":"146","feeBtc":"0.00000000000372884"}
+lock: {"hash":"0xfed42ec9a5d3cb7390ef9e216df8e9249733692863878d260ac833dfe4231c2c","status":"success","blockNumber":"16482808","nonce":6,"gasUsed":"548254","effectiveGasPrice":"146","feeBtc":"0.000000000080045084"}
+vote: {"hash":"0xaca4dfa53ad82d7b91c6591cc1d3aaa2dc491125e74ca39efc52b90791d4e897","status":"success","blockNumber":"16482823","nonce":7,"gasUsed":"521580","effectiveGasPrice":"146","feeBtc":"0.00000000007615068"}
+fees of the three transactions (gasUsed x effectiveGasPrice): 0.000000000159924604 BTC

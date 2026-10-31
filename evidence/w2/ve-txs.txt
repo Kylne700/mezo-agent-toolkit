@@ -1,0 +1,57 @@
+--- ve_approve_btc 0.004 BTC (exact), tool answer:
+{
+ "sent": true,
+ "hash": "0x52c8e63ad219c682f2630839530ef9c9a2f311a8b51843b762741ccbb1387b26",
+ "status": "success",
+ "explorer": "https://explorer.test.mezo.org/tx/0x52c8e63ad219c682f2630839530ef9c9a2f311a8b51843b762741ccbb1387b26",
+ "blockNumber": "16482800",
+ "gasUsed": "25540",
+ "spender": "0x38E35d92E6Bfc6787272A62345856B13eA12130a",
+ "allowanceBefore": "0",
+ "allowance": "0.004"
+}
+on-chain facts (own receipt): {"hash":"0x52c8e63ad219c682f2630839530ef9c9a2f311a8b51843b762741ccbb1387b26","status":"success","blockNumber":"16482800","nonce":5,"gasUsed":"25540","effectiveGasPrice":"146","feeBtc":"0.00000000000372884"}
+--- ve_lock 0.004 BTC for 28 days, tool answer:
+{
+ "sent": true,
+ "hash": "0xfed42ec9a5d3cb7390ef9e216df8e9249733692863878d260ac833dfe4231c2c",
+ "status": "success",
+ "explorer": "https://explorer.test.mezo.org/tx/0xfed42ec9a5d3cb7390ef9e216df8e9249733692863878d260ac833dfe4231c2c",
+ "blockNumber": "16482808",
+ "gasUsed": "548254",
+ "tokenId": "1729",
+ "amount": "0.004",
+ "unlocksAt": "2026-11-26T00:00:00.000Z",
+ "nextStep": "wait for the next block (voting power is 0 in the block the NFT arrives), then call ve_vote"
+}
+on-chain facts (own receipt): {"hash":"0xfed42ec9a5d3cb7390ef9e216df8e9249733692863878d260ac833dfe4231c2c","status":"success","blockNumber":"16482808","nonce":6,"gasUsed":"548254","effectiveGasPrice":"146","feeBtc":"0.000000000080045084"}
+--- ve_vote 100% for pool 0 (MUSD Savings Rate), NFT 1729, tool answer:
+{
+ "sent": true,
+ "hash": "0xaca4dfa53ad82d7b91c6591cc1d3aaa2dc491125e74ca39efc52b90791d4e897",
+ "status": "success",
+ "explorer": "https://explorer.test.mezo.org/tx/0xaca4dfa53ad82d7b91c6591cc1d3aaa2dc491125e74ca39efc52b90791d4e897",
+ "blockNumber": null,
+ "gasUsed": null,
+ "tokenId": "1729",
+ "voted": false,
+ "lastVoted": "1970-01-01T00:00:00.000Z",
+ "usedWeights": "0",
+ "totalWeight": "21.2329363716",
+ "pools": [
+  {
+   "pool": "0x6f461c68B2c5492C0F5CCEc5a264d692aA7A8e16",
+   "relativeWeight": 100,
+   "yourVotes": "0",
+   "poolWeight": "6.1512275614",
+   "raw": {
+    "yourVotes": "0",
+    "poolWeight": "6151227561446505312"
+   }
+  }
+ ]
+}
+on-chain facts (own receipt): {"hash":"0xaca4dfa53ad82d7b91c6591cc1d3aaa2dc491125e74ca39efc52b90791d4e897","status":"success","blockNumber":"16482823","nonce":7,"gasUsed":"521580","effectiveGasPrice":"146","feeBtc":"0.00000000007615068"}
+--- NOTE (stage V): the ve_vote answer above was produced BEFORE a fix. The RPC is several nodes behind one URL: the node asked for the receipt did not have it yet (blockNumber and gasUsed null) and the read-back came from a node one block behind, so it shows voted false / usedWeights 0 although the vote WAS mined (the write core's receipt: success; own receipt lookup above: block 16482823; voted(1729) == true and usedWeights 3654606480510818 in ve-agreement.txt).
+    Fix in src/ve-actions.ts: the receipt is asked for again for up to 15 s, the read-back is pinned to the receipt's block (and waits for the node to have it), and with no receipt the answer shows no state, only "read it with ve_status".
+    Tests: test/ve.test.ts "an RPC node that is behind" (both fail on the old code, pass on the new).

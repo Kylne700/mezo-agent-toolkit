@@ -1,0 +1,42 @@
+{
+ "note": "ve_locks (new lens) for our wallet vs direct veBTC reads at the same block",
+ "blockNumber": 16482899,
+ "answerLocks": 1,
+ "directLocks": 1,
+ "differences": [],
+ "answer": {
+  "blockNumber": 16482899,
+  "blockTime": "2026-10-31T10:06:47.000Z",
+  "chainId": 31611,
+  "lens": "0x659203438789Ce052a9148Ef5A807508ab5eE40c",
+  "owner": "0xea2D4b92DDd760959BB1D8119430640885851A91",
+  "veBtcCount": 1,
+  "veMezoCount": 0,
+  "returned": 1,
+  "locks": [
+   {
+    "escrow": "veBTC",
+    "tokenId": "1729",
+    "amount": "0.004",
+    "isPermanent": false,
+    "unlocksAt": "2026-11-26T00:00:00.000Z",
+    "secondsLeft": 2209993,
+    "expired": false,
+    "votingPower": "0.00365408",
+    "voted": true,
+    "raw": {
+     "escrow": "0x38E35d92E6Bfc6787272A62345856B13eA12130a",
+     "tokenId": "1729",
+     "amount": "4000000000000000",
+     "end": "1795651200",
+     "isPermanent": false,
+     "votingPower": "3654088954055929",
+     "voted": true,
+     "secondsLeft": "2209993",
+     "expired": false
+    }
+   }
+  ],
+  "summary": "0xea2D4b92DDd760959BB1D8119430640885851A91 holds 1 veBTC and 0 veMEZO lock(s); 1 returned."
+ }
+}

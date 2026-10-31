@@ -1,0 +1,7 @@
+claim simulations at the head block (eth_call with a "from"; no transaction was sent)
+earned(MUSD, 1729) on the 17 fee contracts: all 0
+RewardsDistributor.claim(1729) from our wallet: ok, returned 0
+PoolsVoter.claimFeesAndBribes(all 17 fee contracts, [MUSD], 1729) from our wallet: ok
+RewardsDistributor.claim(1727) from its owner 0xee76...209B: ok, returned 0
+PoolsVoter.claimFeesAndBribes(all 17 fee contracts, [MUSD], 1727) from its owner: ok
+gauge_rewards claimable for NFT 1727: []; for ours: []
