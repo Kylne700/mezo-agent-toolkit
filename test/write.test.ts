@@ -129,6 +129,7 @@ describe('every refusal stops before the transaction is sent', () => {
     expect(refused(await w.send(pay('1.5')))).toMatch(/over the per-call cap of 1 MUSD/)
     expect(refused(await w.send(addColl('0.5')))).toMatch(/over the per-call cap of 0.01 BTC/)
     expect(refused(await w.send(pay('0.1', 'approve')))).toMatch(/risky action/)
+    noCall(rpc)
     noSend(rpc)
   })
 
@@ -137,12 +138,14 @@ describe('every refusal stops before the transaction is sent', () => {
     const sneaky = { ...pay('1.5'), musd: 0n, maxMusdPerCall: '1000', MEZO_WRITE_MAX_MUSD_PER_CALL: '1000', caps: { musdPerCall: 10n ** 30n }, risky: true }
     expect(refused(await w.send(sneaky as never))).toMatch(/1.5 MUSD is over the per-call cap of 1 MUSD/)
     expect(refused(await w.send({ ...pay('0.1', 'approve'), MEZO_WRITE_RISKY: '1' } as never))).toMatch(/risky action/)
+    noCall(rpc)
     noSend(rpc)
   })
 
   it('an entry that declares no amount cannot hide the BTC sent as tx value', async () => {
     const { w, rpc } = setup()
     expect(refused(await w.send(addColl('0.011')))).toMatch(/0.011 BTC \(gas fee included\) is over the per-call cap of 0.01 BTC/)
+    noCall(rpc)
     noSend(rpc)
   })
 
