@@ -1,0 +1,13 @@
+MezoLens redeployed on the LIVE vote-escrow system (stage V, 2026-10-31)
+  why        the Wave 1 lens (0xBDfD1C0B544319E25b4b99ee1f355e55230f6130) was built with the OLD veBTC (0xB63f...9231); the LIVE veBTC has no balanceOfNFT
+  build      npm run build:contracts: solc 0.8.36+commit.8a079791, 10650 bytes deployed, artifacts unchanged (already rebuilt in 9194bbc)
+  deploy     scripts/deploy.ts --force, key only as MEZO_KEY_FILE (never opened or printed here)
+             tx       0x5342268ad642bbc386da866a7626f4d7708f4a0f7cff0a608bb5d448b132f3cb
+             block    16482080, status success, gasUsed 2351895, effectiveGasPrice 146 wei, cost 0.00000000034337667 BTC
+             address  0x659203438789Ce052a9148Ef5A807508ab5eE40c
+             veBTC()  0x38E35d92E6Bfc6787272A62345856B13eA12130a (= ADDRESSES.veBTC, LIVE)    veMEZO() 0xaCE816CA2bcc9b12C59799dcC5A959Fb9b98111b
+  verify     scripts/verify.ts: "Smart-contract verification started" -> https://explorer.test.mezo.org/address/0x659203438789Ce052a9148Ef5A807508ab5eE40c?tab=contract
+             api.explorer.test.mezo.org/api/v2/smart-contracts/<address>: name MezoLens, is_verified true, compiler v0.8.36+commit.8a079791
+  record     deployments/testnet.json now holds the new address; README lens row and Transactions table updated (the Wave 1 deploy tx stays, marked superseded)
+  smoke      evidence/w2/v-smoke-rpc.txt: the repo smoke without its section 3 (it starts the x402 app, which calls the third-party facilitator) and with RPC receipts
+             instead of explorer lookups for the README tx links; ve_locks equals the direct reads (veBTC #1728, 1 lock), SMOKE PASSED

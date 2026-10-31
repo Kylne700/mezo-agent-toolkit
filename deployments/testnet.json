@@ -1,20 +1,20 @@
 {
   "network": "eip155:31611",
   "MezoLens": {
-    "address": "0xBDfD1C0B544319E25b4b99ee1f355e55230f6130",
-    "txHash": "0x4c673819554eaf1fa88131e463253cc8f40a04df01093f799b997ffe56821dd1",
-    "blockNumber": 16229406,
+    "address": "0x659203438789Ce052a9148Ef5A807508ab5eE40c",
+    "txHash": "0x5342268ad642bbc386da866a7626f4d7708f4a0f7cff0a608bb5d448b132f3cb",
+    "blockNumber": 16482080,
     "deployer": "0xea2D4b92DDd760959BB1D8119430640885851A91",
     "constructorArgs": {
       "troveManager": "0xE47c80e8c23f6B4A1aE41c34837a0599D5D16bb0",
       "sortedTroves": "0x722E4D24FD6Ff8b0AC679450F3D91294607268fA",
       "priceFeed": "0x86bCF0841622a5dAC14A313a15f96A95421b9366",
       "router": "0x9a1ff7FE3a0F69959A3fBa1F1e5ee18e1A9CD7E9",
-      "veBTC": "0xB63fcCd03521Cf21907627bd7fA465C129479231",
+      "veBTC": "0x38E35d92E6Bfc6787272A62345856B13eA12130a",
       "veMEZO": "0xaCE816CA2bcc9b12C59799dcC5A959Fb9b98111b"
     },
     "compiler": "0.8.36+commit.8a079791.Emscripten.clang",
-    "deployedCodeBytes": 10651,
-    "explorer": "https://explorer.test.mezo.org/address/0xBDfD1C0B544319E25b4b99ee1f355e55230f6130"
+    "deployedCodeBytes": 10650,
+    "explorer": "https://explorer.test.mezo.org/address/0x659203438789Ce052a9148Ef5A807508ab5eE40c"
   }
 }

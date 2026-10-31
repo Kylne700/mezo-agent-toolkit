@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url'
 import { parseUnits, type Address } from 'viem'
 import deployment from '../deployments/testnet.json' with { type: 'json' }
 import { publicClient } from '../src/clients.ts'
-import { ADDRESSES, CHAIN_ID, FACILITATOR_URL, NETWORK } from '../src/config.ts'
+import { ADDRESSES, CHAIN_ID, FACILITATOR_URL, LEGACY_VE, NETWORK } from '../src/config.ts'
 import { createLens } from '../src/lens.ts'
 import { startServer } from '../src/serve.ts'
 import { differences, directPool, directQueue, directSystem, directTrove, directVe, lockDifferences, systemDifferences, troveFromTail } from './lib/direct.ts'
@@ -118,9 +118,9 @@ log('')
 const readme = readFileSync(fileURLToPath(new URL('../README.md', import.meta.url)), 'utf8')
 const table = readme.slice(readme.indexOf('## Mezo integration'), readme.indexOf('### Transactions'))
 const listed = [...new Set(table.match(/0x[0-9a-fA-F]{40}\b/g) ?? [])]
-const known = new Set([...Object.values(ADDRESSES), lens.address].map((a) => a.toLowerCase()))
+const known = new Set([...Object.values(ADDRESSES), ...Object.values(LEGACY_VE), lens.address].map((a) => a.toLowerCase()))
 check(listed.length >= 10, `the README integration table lists ${listed.length} addresses (at least 10 expected)`)
-verdict('every address in the README table is one the toolkit uses (src/config.ts or the lens)', listed.filter((a) => !known.has(a.toLowerCase())).map((a) => `${a} is in the README but not in the code`))
+verdict('every address in the README table is one the toolkit uses (src/config.ts, LEGACY_VE or the lens)', listed.filter((a) => !known.has(a.toLowerCase())).map((a) => `${a} is in the README but not in the code`))
 const empty: string[] = []
 for (const a of listed) {
   const c = await pub.getCode({ address: a as Address })

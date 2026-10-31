@@ -1,0 +1,27 @@
+smoke test, Mezo testnet (chain 31611), read-only, no key   2026-10-31T09:12:22.686Z
+PASS  the RPC is chain 31611
+PASS  eth_getCode(0x659203438789Ce052a9148Ef5A807508ab5eE40c) is not empty
+PASS  the lens code is 10650 bytes, as recorded when it was deployed
+
+pinned block 16482112 (2026-10-31T09:12:10.000Z): each number is read once through the lens and once straight from the protocol contracts
+PASS  trove_health, tail trove 0x4799e9fB361Fb6a85473bB08dA00A4012E02Cf08: 10 raw integers and 9 shown amounts equal the direct reads
+    Trove is below the 110% minimum ratio (107.13%) and can be liquidated.
+PASS  trove_health, fifth trove from the tail 0xdeB23eb3bCdc2A08cC64c45586149Fbd83053920: 10 raw integers and 9 shown amounts equal the direct reads
+    Trove holds 110.02% collateral against a 110% minimum; BTC can fall 0.02% to about $77279.2 before liquidation.
+PASS  system_snapshot: 14 raw values equal the direct reads, and the first redeemable trove equals the HintHelpers answer (0xdeB23eb3bCdc2A08cC64c45586149Fbd83053920)
+PASS  redemption_risk, one call, for 0xdeB23eb3bCdc2A08cC64c45586149Fbd83053920: 0 redeemable troves and 0 MUSD ahead equal a node-by-node walk from the tail
+PASS  redemption_risk, paged two nodes per call (3 calls): same result as the direct walk, and the same system part
+PASS  redemption_risk, stopped by the step cap: walkComplete is false and the counters equal a direct 2-node walk
+PASS  pool_quote 0.001 BTC -> 78.60539289 MUSD (impact 0%): equals the router's own getAmountsOut and reserves
+PASS  pool_quote 100 MUSD -> 0.00127115 BTC (impact 0%): equals the router's own getAmountsOut and reserves
+PASS  pool_quote 100 BTC -> 7300811.10417577 MUSD (impact 7.04%): equals the router's own getAmountsOut and reserves
+PASS  ve_locks for 0x51169351aA29b5b10C718205729F164C7cf48af9: 1 of 1 veBTC + 0 veMEZO locks equal the direct reads (unlock time, seconds left, voting power, voted)
+PASS  ve_locks reports a running lock (veBTC #1728, 2213270 seconds left at the pinned block)
+
+PASS  the README integration table lists 16 addresses (at least 10 expected)
+PASS  every address in the README table is one the toolkit uses (src/config.ts, LEGACY_VE or the lens)
+PASS  every address in the README table has code on chain (16 checked)
+PASS  the README links 23 transactions (at least 10 expected)
+PASS  every transaction the README links succeeded on chain (23 checked by RPC receipt)
+
+SMOKE PASSED
