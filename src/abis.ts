@@ -48,12 +48,12 @@ export const hintHelpersAbi = parseAbi([
   'function getRedemptionHints(uint256 _amount, uint256 _price, uint256 _maxIterations) view returns (address firstRedemptionHint, uint256 partialRedemptionHintNICR, uint256 truncatedAmount)',
 ])
 
-// veBTC and veMEZO are Solidly-style vote escrows; veMEZO has one more field in its lock record and a different voting power getter.
+// veBTC and veMEZO are Solidly-style vote escrows. The LIVE veBTC has no balanceOfNFT and returns a fourth lock field (boost), which this ABI does not decode.
 export const veBtcAbi = parseAbi([
   'function balanceOf(address owner) view returns (uint256)',
   'function ownerToNFTokenIdList(address owner, uint256 index) view returns (uint256)',
   'function locked(uint256 tokenId) view returns ((int128 amount, uint256 end, bool isPermanent))',
-  'function balanceOfNFT(uint256 tokenId) view returns (uint256)',
+  'function votingPowerOfNFT(uint256 tokenId) view returns (uint256)',
   'function voted(uint256 tokenId) view returns (bool)',
 ])
 

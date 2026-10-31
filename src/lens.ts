@@ -452,7 +452,8 @@ export function createLens(client: ReadClient, address: Address = deployedLensAd
       const [m, res] = await Promise.all([meta(block), read<readonly [LockRaw[], bigint, bigint]>(block, 'veLocks', [owner, max])])
       const [locks, veBtcCount, veMezoCount] = res
       const out: LockResult[] = locks.map((k) => ({
-        escrow: isAddressEqual(k.escrow, ADDRESSES.veBTC) ? 'veBTC' : 'veMEZO',
+        // veMEZO is the same in both ve systems, so this also labels a lens deployed against the legacy veBTC correctly.
+        escrow: isAddressEqual(k.escrow, ADDRESSES.veMEZO) ? 'veMEZO' : 'veBTC',
         tokenId: k.tokenId.toString(),
         amount: fixed(k.amount, 18, 8),
         isPermanent: k.isPermanent,

@@ -30,13 +30,25 @@ export const ADDRESSES = {
   priceFeed: '0x86bCF0841622a5dAC14A313a15f96A95421b9366',
   borrowerOperations: '0xCdF7028ceAB81fA0C6971208e83fa7872994beE5',
   poolRouter: '0x9a1ff7FE3a0F69959A3fBa1F1e5ee18e1A9CD7E9',
-  veBTC: '0xB63fcCd03521Cf21907627bd7fA465C129479231',
+  // The LIVE vote-escrow system (the one testnet.mezo.org uses; it distributes every epoch).
+  veBTC: '0x38E35d92E6Bfc6787272A62345856B13eA12130a',
+  poolsVoter: '0x263F1Fd5fB7F866881e1B6cD7d5d6c40Fd985F0D',
+  rewardsDistributor: '0x9050218f89F0b5b17df4a30Ba4Fc97C72E307442',
+  boostVoter: '0x21d7bDF5a5929AD179F8cA0c9014A0B62ae6Bfd1',
   veMEZO: '0xaCE816CA2bcc9b12C59799dcC5A959Fb9b98111b',
   permit2: '0x000000000022D473030F116dDEE9F6B43aC78BA3',
   x402Proxy: '0x402085c248EeA27D92E8b30b2C58ed07f9E20001',
 } as const satisfies Record<string, Address>
 
-export const TOKENS: Record<string, Address> = { BTC: ADDRESSES.btc, MUSD: ADDRESSES.musd, MEZO: ADDRESSES.mezo }
+// The OLD veBTC system, still listed in Mezo's docs: its distribution stopped on 2025-11-13, so votes and claims there pay nothing.
+// Kept so a read can tell which system a veNFT or contract is on; the toolkit does not read it.
+export const LEGACY_VE = {
+  veBTC: '0xB63fcCd03521Cf21907627bd7fA465C129479231',
+  voter: '0x72F8dd7F44fFa19E45955aa20A5486E8EB255738',
+  rewardsDistributor: '0x10B0E7b3411F4A38ca2F6BB697aA28D607924729',
+} as const satisfies Record<string, Address>
+
+export const TOKENS: Record<string, Address> ={ BTC: ADDRESSES.btc, MUSD: ADDRESSES.musd, MEZO: ADDRESSES.mezo }
 
 // Receiving address for the demo endpoint (a throwaway testnet address; its key is never needed to run the server). Override with PAYEE_ADDRESS.
 export const DEFAULT_PAYEE = '0xa37a04189696C371f487ff8da414192D62f39A4f' as const satisfies Address

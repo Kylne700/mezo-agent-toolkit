@@ -197,7 +197,7 @@ export async function directVe(pub: ReadClient, owner: Address, block: bigint, t
     const index = btc ? BigInt(i) : BigInt(i) - nBtc
     const tokenId = await r<bigint>(escrow, abi, 'ownerToNFTokenIdList', [owner, index])
     const l = await r<{ amount: bigint; end: bigint; isPermanent: boolean }>(escrow, abi, 'locked', [tokenId])
-    const votingPower = await r<bigint>(escrow, abi, btc ? 'balanceOfNFT' : 'votingPowerOfNFT', [tokenId])
+    const votingPower = await r<bigint>(escrow, abi, 'votingPowerOfNFT', [tokenId])
     const voted = await r<boolean>(escrow, abi, 'voted', [tokenId])
     const amount = l.amount > 0n ? l.amount : 0n
     const expired = !l.isPermanent && l.end <= timestamp
