@@ -2,8 +2,9 @@
 
 The npm package `mezo-agent-toolkit` is the MCP server in one file (`dist/mcp.js`, its libraries are inside it). Nothing is cloned and nothing else is installed: your MCP client runs it with `npx`. It talks to **Mezo testnet (chain 31611)**.
 
-- Four read tools work with no key and no funds: `trove_health`, `redemption_risk`, `pool_quote`, `ve_locks`.
+- Six read tools work with no key and no funds: `trove_health`, `redemption_risk`, `pool_quote`, `ve_locks`, `ve_status` (the LIVE vote-escrow system, the epoch and one NFT) and `gauge_rewards` (the pools ranked by fees per unit of vote weight, and what an NFT can claim).
 - `pay_and_fetch` spends testnet MUSD and is **off** until you point `MEZO_KEY_FILE` at a throwaway testnet key (see "Settings").
+- Six vote-escrow write tools (`ve_approve_btc`, `ve_lock`, `ve_vote`, `ve_poke`, `ve_claim_rewards`, `ve_claim_rebase`) send real testnet transactions. They are not listed at all until the operator sets `MEZO_WRITE_ENABLE=testnet` (see "Vote-escrow writes").
 
 Needs Node.js 22.12 or newer (the package says `^22.12.0 || ^24.0.0 || >=26.0.0`).
 
@@ -42,7 +43,7 @@ The check needs no key. It reads from the RPC and sends no transaction. It print
 mezo-agent-toolkit 0.2.0 doctor (node v24.18.0)
 ok   rpc       https://rpc.test.mezo.org answered at block 16479784
 ok   chain id  31611 (Mezo testnet)
-ok   tools     5: trove_health, redemption_risk, pool_quote, ve_locks, pay_and_fetch
+ok   tools     7: trove_health, redemption_risk, pool_quote, ve_locks, ve_status, gauge_rewards, pay_and_fetch
      writes    enabled: no, no wallet is configured (the operator sets MEZO_KEY_FILE to a file that holds a funded Mezo testnet key)
 result: ok
 ```
@@ -69,12 +70,34 @@ In a JSON configuration, add `"env": { "MEZO_KEY_FILE": "/path/to/testnet.key" }
 
 A limit that does not parse switches payments off instead of falling back to a default. Use a throwaway testnet key and keep the key file outside any repository. The limits cap what the server will sign; they are set by whoever configures the server, not by the model.
 
+## Vote-escrow writes (off by default)
+
+The six `ve_*` write tools work on the LIVE vote-escrow system (veBTC, the pools voter, the rewards distributor). No tool argument can set a key, a cap or a gas value: the operator's environment does, and the model cannot change it.
+
+```
+claude mcp add mezo -e MEZO_KEY_FILE=/path/to/testnet.key -e MEZO_WRITE_ENABLE=testnet -e MEZO_WRITE_RECEIPTS_FILE=/path/to/receipts.jsonl -e MEZO_WRITE_MAX_BTC_PER_CALL=0.0041 -e MEZO_WRITE_MAX_BTC_PER_DAY=0.0082 -e MEZO_WRITE_RISKY=1 -- npx -y mezo-agent-toolkit
+```
+
+| Variable | Meaning | Default |
+| --- | --- | --- |
+| `MEZO_WRITE_ENABLE` | Exactly `testnet` lists the write tools | off |
+| `MEZO_KEY_FILE` | The wallet that signs (the same file that switches `pay_and_fetch` on) | none: every write refuses |
+| `MEZO_WRITE_RECEIPTS_FILE` | A JSON-lines file with one line per sent transaction. It is also the daily ledger the caps read | none: every write refuses |
+| `MEZO_WRITE_MAX_BTC_PER_CALL`, `MEZO_WRITE_MAX_BTC_PER_DAY` | BTC caps per call and per UTC day. They count the tx value, the BTC that `ve_approve_btc` allows and that `ve_lock` locks, and the worst-case gas fee | `0`: nothing may move |
+| `MEZO_WRITE_MAX_MUSD_PER_CALL`, `MEZO_WRITE_MAX_MUSD_PER_DAY` | The same for MUSD | `0` |
+| `MEZO_WRITE_RISKY` | `1` lets risky actions through. `ve_lock` is one: the BTC stays locked until the unlock time (at most 28 days) | off |
+| `MEZO_POLICY_FILE` | A JSON file that can only tighten the caps, the allow-list and the risky flag | none |
+| `MEZO_WRITE_KILL_FILE` | While this file exists, nothing is sent | a file named `STOP` next to the receipts file |
+
+An approve and the lock it pays for each count as the full BTC amount, so locking 0.004 BTC needs a per-day cap above 0.008 BTC plus fees. A lock takes two calls (`ve_approve_btc` for the exact amount, then `ve_lock`) and a vote needs a later block (`ve_vote` says so if the NFT has no voting power yet). What the guards cover, and what they do not, is in [THREAT-MODEL.md](THREAT-MODEL.md).
+
 ## Troubleshooting
 
 - **The client cannot start the server.** Run `npx -y mezo-agent-toolkit --doctor` in a terminal. If that works but the client fails, the client may have a different `PATH`: put the full path of `npx` in `command`.
 - **`rpc` fails in the check.** The RPC did not answer. Check the network, or set `MEZO_RPC_URL` to another Mezo testnet RPC. The check prints the host of the URL, not its path.
 - **`chain id` fails.** `MEZO_RPC_URL` points at a different chain than Mezo testnet (31611).
-- **`pay_and_fetch` says it is switched off.** Read `writes` in the check output: it names the reason (no `MEZO_KEY_FILE`, an unreadable key file, or a limit that does not parse). The four read tools are not affected.
+- **`pay_and_fetch` says it is switched off.** Read `writes` in the check output: it names the reason (no `MEZO_KEY_FILE`, an unreadable key file, or a limit that does not parse). The six read tools are not affected.
+- **A `ve_*` write tool refuses.** The answer names the reason and nothing was sent. With `MEZO_WRITE_ENABLE=testnet` exported in your shell, `--doctor` prints a `ve writes asked for but off:` line when the setup is incomplete (no key file, no receipts file, a cap that does not parse).
 
 ## What is in the package
 

@@ -41,7 +41,7 @@ const INSPECTOR = 9330
 const PRICE = 1_000_000_000_000_000n // $0.001 in MUSD base units (18 decimals)
 const PER_CALL = '0.01'
 const PER_SESSION = '0.1'
-const TOOLS = ['pay_and_fetch', 'pool_quote', 'redemption_risk', 'trove_health', 've_locks']
+const TOOLS = ['gauge_rewards', 'pay_and_fetch', 'pool_quote', 'redemption_risk', 'trove_health', 've_locks', 've_status'] // the ve write tools exist only with MEZO_WRITE_ENABLE=testnet, which these scripts never set
 
 const { log, check, verdict, failures, save } = createReport()
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -267,7 +267,7 @@ try {
     for (let i = 0; i < 100 && !stderr.includes('"mcp-ready"'); i++) await sleep(100)
     const { tools } = await client.listTools()
     said += JSON.stringify(tools)
-    check(same(tools.map((t) => t.name).sort(), TOOLS), `tools/list returns the five tools: ${tools.map((t) => t.name).sort().join(', ')}`)
+    check(same(tools.map((t) => t.name).sort(), TOOLS), `tools/list returns the seven tools: ${tools.map((t) => t.name).sort().join(', ')}`)
 
     // The refusal first: it must cost nothing and never reach the Worker. `localhost` is the same machine but not the listed host.
     const walletBefore = await snapshot(payee)
