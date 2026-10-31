@@ -49,6 +49,7 @@
     "worker:smoke": "tsx scripts/worker-smoke.ts",
     "mcp:session": "tsx scripts/mcp-session.ts",
     "gate": "tsx scripts/gate.ts",
+    "w2:prove": "tsx scripts/w2-prove.ts",
     "check:secrets": "node scripts/secret-scan.mjs",
     "check:licences": "node scripts/licence-check.mjs",
     "check:privacy": "node scripts/privacy-check.mjs",
