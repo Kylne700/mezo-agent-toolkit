@@ -1,0 +1,80 @@
+{
+ "note": "reads at block 16485143 just before trove_liquidate of the lowest trove",
+ "borrower": "0x4799e9fB361Fb6a85473bB08dA00A4012E02Cf08",
+ "block": "16485143",
+ "price": "77482601800000000000000",
+ "mcr": "1100000000000000000",
+ "target": {
+  "status": 1,
+  "icr": "1073940832174108128",
+  "coll": "27724714266464624",
+  "principal": "2000000001902521748578",
+  "interest": "280582623193022027"
+ },
+ "sp": {
+  "deposit": "10000000000000000000",
+  "compounded": "10000000000000000000",
+  "collateralGain": "0",
+  "totalDeposits": "86224464117764111279105888",
+  "collateralBalance": "176336610670446524085"
+ },
+ "musd": "1895700457283614259046",
+ "btc": "499998553672462",
+ "sp_status": {
+  "blockNumber": 16485142,
+  "blockTime": "2026-10-31T12:42:27.000Z",
+  "chainId": 31611,
+  "address": "0xea2D4b92DDd760959BB1D8119430640885851A91",
+  "deposit": {
+   "musd": "10",
+   "initialMusd": "10",
+   "musdLoss": "0",
+   "btcGain": "0"
+  },
+  "pool": {
+   "totalMusd": "86224464.117764",
+   "collateralBtc": "176.33661067"
+  },
+  "withdraw": {
+   "blocked": true,
+   "reason": "the last trove of the sorted list is at 107.39%, under the pool's 110% minimum, so the pool refuses every non-zero withdrawal until that trove is liquidated, topped up or repaid",
+   "mcr": "110",
+   "btcPriceUsd": "77483.67",
+   "lowestIcr": "107.39",
+   "lowestTrove": "0x4799e9fB361Fb6a85473bB08dA00A4012E02Cf08",
+   "trovesRead": 4,
+   "underMcr": [
+    {
+     "trove": "0x4799e9fB361Fb6a85473bB08dA00A4012E02Cf08",
+     "icr": "107.39",
+     "collateralBtc": "0.02772471",
+     "debtMusd": "2000.2805"
+    },
+    {
+     "trove": "0xE1CB426518F06CE90B6F22cdA7f9BA0aef58C007",
+     "icr": "108.14",
+     "collateralBtc": "0.0287",
+     "debtMusd": "2056.2373"
+    },
+    {
+     "trove": "0xac89fFA908D0bD7A9EE78DfAd4b40362d9971b15",
+     "icr": "108.83",
+     "collateralBtc": "0.045",
+     "debtMusd": "3203.6261"
+    }
+   ],
+   "walkComplete": true,
+   "foundBy": "the pool checks only the LAST trove of the SortedTroves list (ordered by collateral over principal debt, interest not counted) against its price feed and MCR; this read does the same, then walks toward the list head up to 8 troves and stops at the first one at or above the minimum. lowestIcr is the lowest ratio among the troves read, so a trove further up whose interest pushed it lower is not excluded."
+  },
+  "raw": {
+   "deposit": "10000000000000000000",
+   "compounded": "10000000000000000000",
+   "collateralGain": "0",
+   "totalDeposits": "86224464117764111279105888",
+   "collateralBalance": "176336610670446524085",
+   "mcr": "1100000000000000000",
+   "price": "77483674180000000000000",
+   "lowestIcr": "1073955697164499576"
+  }
+ }
+}

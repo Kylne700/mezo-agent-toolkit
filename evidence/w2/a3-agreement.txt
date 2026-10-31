@@ -1,0 +1,50 @@
+PASS: approve: MUSD allowance of the wallet for the Stability Pool at the receipt block is 10 (asked 10)
+PASS: deposit (receipt block 16485134): the answer is for block 16485134, the receipt block is 16485134
+PASS: deposit (receipt block 16485134): sp_status raw.deposit 10000000000000000000 == direct StabilityPool read 10000000000000000000
+PASS: deposit (receipt block 16485134): sp_status raw.compounded 10000000000000000000 == direct StabilityPool read 10000000000000000000
+PASS: deposit (receipt block 16485134): sp_status raw.collateralGain 0 == direct StabilityPool read 0
+PASS: deposit (receipt block 16485134): sp_status raw.totalDeposits 86224464117764111279105888 == direct StabilityPool read 86224464117764111279105888
+PASS: deposit (receipt block 16485134): sp_status raw.collateralBalance 176336610670446524085 == direct StabilityPool read 176336610670446524085
+PASS: deposit: the wallet's compounded deposit at the receipt block is 10000000000000000000 wei (>= 10 MUSD)
+PASS: withdraw: refused because the pool is blocked, with the pool's own revert text in the reason
+PASS: liquidate: the receipt carries TroveLiquidated for 0x4799e9fB361Fb6a85473bB08dA00A4012E02Cf08 and the Liquidation totals
+PASS: liquidate: the tool's liquidation read-back equals the Liquidation event in the receipt ({"principalMusd":"2000.000001902521748578","interestMusd":"0.280588960940729419","collateralBtc":"0.027586090695132301","collateralCompensationBtc":"0.000138623571332323","gasCompensationMusd":"200"})
+PASS: liquidate: the tool's troveLiquidated read-back equals the TroveLiquidated event in the receipt ({"debtMusd":"2000.000001902521748578","collateralBtc":"0.027724714266464624"})
+PASS: liquidate: the target trove went from status 1 (active) at 16485145 to 3 (closedByLiquidation) at 16485146
+PASS: liquidate: the target's ICR at block 16485145 was 107.39%, under MCR 110%
+PASS: liquidate: wallet MUSD +200 == gas compensation in the event 200
+PASS: liquidate: wallet BTC 0.000138623510762033 == collateral compensation 0.000138623571332323 minus gas 0.00000000006057029
+PASS: liquidate: the pool's MUSD total fell (86224464117764111279105888 -> 86222463837173247816627891) and its BTC rose (176336610670446524085 -> 176364196761141656386)
+PASS: liquidate (receipt block 16485146): the answer is for block 16485146, the receipt block is 16485146
+PASS: liquidate (receipt block 16485146): sp_status raw.deposit 10000000000000000000 == direct StabilityPool read 10000000000000000000
+PASS: liquidate (receipt block 16485146): sp_status raw.compounded 9999768014726292583 == direct StabilityPool read 9999768014726292583
+PASS: liquidate (receipt block 16485146): sp_status raw.collateralGain 3199334550 == direct StabilityPool read 3199334550
+PASS: liquidate (receipt block 16485146): sp_status raw.totalDeposits 86222463837173247816627891 == direct StabilityPool read 86222463837173247816627891
+PASS: liquidate (receipt block 16485146): sp_status raw.collateralBalance 176364196761141656386 == direct StabilityPool read 176364196761141656386
+PASS: withdraw2: refused because the pool is blocked, with the pool's own revert text in the reason
+PASS: revoke: allowance_status lists 0 non-zero allowance(s); direct reads of the same pairs find 0
+PASS: revoke: approve_revoke refuses when the allowance is 0 (Refused, nothing was sent: 0x1CCA7E410eE41739792eA0A24e00349Dd247680e has no MUSD allowance from this wallet, so there is nothing to revoke)
+PASS: ve_status 1729 nft.tokenId unchanged ("1729")
+PASS: ve_status 1729 nft.exists unchanged (true)
+PASS: ve_status 1729 nft.system unchanged ("LIVE")
+PASS: ve_status 1729 nft.owner unchanged ("0xea2D4b92DDd760959BB1D8119430640885851A91")
+PASS: ve_status 1729 nft.amount unchanged ("0.004")
+PASS: ve_status 1729 nft.unlocksAt unchanged ("2026-11-26T00:00:00.000Z")
+PASS: ve_status 1729 nft.isPermanent unchanged (false)
+PASS: ve_status 1729 nft.voted unchanged (true)
+PASS: ve_status 1729 nft.lastVoted unchanged ("2026-10-31T10:01:34.000Z")
+PASS: ve_status 1729 nft.votedThisEpoch unchanged (true)
+PASS: ve_status 1729 nft.usedWeights unchanged ("0.0036546064")
+PASS: ve_status 1729 nft.raw.amount unchanged ("4000000000000000")
+PASS: ve_status 1729 nft.raw.end unchanged ("1795651200")
+PASS: ve_status 1729 nft.raw.lastVoted unchanged ("1793440894")
+PASS: ve_status 1729 nft.raw.usedWeights unchanged ("3654606480510818")
+PASS: PoolsVoter per-pool votes, usedWeights and lastVoted for 1729 unchanged ({"votes":{"0x6f461c68B2c5492C0F5CCEc5a264d692aA7A8e16":"3654606480510818"},"usedWeights":"3654606480510818","lastVoted":"1793440894"})
+PASS: ve_status 1729 differs only in the expected volatile fields (blockNumber, blockTime, epoch.secondsToNext, nft.votingPower, nft.raw.votingPower)
+PASS: trove: the stored struct (collateral, principal, interest owed, stake, status, rate, last update, borrow cap) is identical to before: ["45300000000000000","2091900045958526032552","0","45300000000000000","1","100","1793446332","3162847942227272727272"]
+PASS: trove: no pending redistribution rewards
+PASS: trove: total debt 2091.902789025217066711 -> 2091.902938839879264324 MUSD (interest only: +0.000149814662197613)
+PASS: MUSD liquid 2095.700457283614259046 >= 1895 (the trove close-out reserve)
+PASS: BTC: net change 0.000138623484615331 == compensation 0.000138623571332323 minus gas 0.000000000086716992 (no BTC spent beyond gas)
+PASS: wallet nonce moved by 3, the number of txs this run sent (approve, deposit, liquidate)
+PASS: MUSD: net change 190 == +200 gas compensation -10 deposited

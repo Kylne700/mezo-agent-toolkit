@@ -1,0 +1,120 @@
+{
+ "note": "reads at the receipt block 16485146 (and at 16485145, the block before it)",
+ "borrower": "0x4799e9fB361Fb6a85473bB08dA00A4012E02Cf08",
+ "receiptBlock": "16485146",
+ "atReceiptBlock": {
+  "block": "16485146",
+  "price": "77483051310000000000000",
+  "mcr": "1100000000000000000",
+  "target": {
+   "status": 3,
+   "icr": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+   "coll": "0",
+   "principal": "0",
+   "interest": "0"
+  },
+  "sp": {
+   "deposit": "10000000000000000000",
+   "compounded": "9999768014726292583",
+   "collateralGain": "3199334550",
+   "totalDeposits": "86222463837173247816627891",
+   "collateralBalance": "176364196761141656386"
+  },
+  "musd": "2095700457283614259046",
+  "btc": "638622064434495"
+ },
+ "atBlockBefore": {
+  "block": "16485145",
+  "price": "77483489090000000000000",
+  "mcr": "1100000000000000000",
+  "target": {
+   "status": 1,
+   "icr": "1073953127997704566",
+   "coll": "27724714266464624",
+   "principal": "2000000001902521748578",
+   "interest": "280587059616417201"
+  },
+  "sp": {
+   "deposit": "10000000000000000000",
+   "compounded": "10000000000000000000",
+   "collateralGain": "0",
+   "totalDeposits": "86224464117764111279105888",
+   "collateralBalance": "176336610670446524085"
+  },
+  "musd": "1895700457283614259046",
+  "btc": "499998553672462"
+ },
+ "toolAnswer": {
+  "sent": true,
+  "hash": "0x2eba8e0781420e3ea41dd2189d10ac7e7607530b4b0b3bb1eb37dbb70246dace",
+  "status": "success",
+  "explorer": "https://explorer.test.mezo.org/tx/0x2eba8e0781420e3ea41dd2189d10ac7e7607530b4b0b3bb1eb37dbb70246dace",
+  "blockNumber": "16485146",
+  "gasUsed": "414865",
+  "borrower": "0x4799e9fB361Fb6a85473bB08dA00A4012E02Cf08",
+  "icrBefore": "107.39",
+  "troveStatusAfter": "closedByLiquidation",
+  "troveLiquidated": {
+   "debtMusd": "2000.000001902521748578",
+   "collateralBtc": "0.027724714266464624"
+  },
+  "liquidation": {
+   "principalMusd": "2000.000001902521748578",
+   "interestMusd": "0.280588960940729419",
+   "collateralBtc": "0.027586090695132301",
+   "collateralCompensationBtc": "0.000138623571332323",
+   "gasCompensationMusd": "200"
+  },
+  "spAfter": {
+   "blockNumber": 16485146,
+   "blockTime": "2026-10-31T12:42:41.000Z",
+   "chainId": 31611,
+   "address": "0xea2D4b92DDd760959BB1D8119430640885851A91",
+   "deposit": {
+    "musd": "9.999768014726292583",
+    "initialMusd": "10",
+    "musdLoss": "0.000231985273707417",
+    "btcGain": "0.00000000319933455"
+   },
+   "pool": {
+    "totalMusd": "86222463.837173",
+    "collateralBtc": "176.36419676"
+   },
+   "withdraw": {
+    "blocked": true,
+    "reason": "the last trove of the sorted list is at 108.14%, under the pool's 110% minimum, so the pool refuses every non-zero withdrawal until that trove is liquidated, topped up or repaid",
+    "mcr": "110",
+    "btcPriceUsd": "77483.05",
+    "lowestIcr": "108.14",
+    "lowestTrove": "0xE1CB426518F06CE90B6F22cdA7f9BA0aef58C007",
+    "trovesRead": 3,
+    "underMcr": [
+     {
+      "trove": "0xE1CB426518F06CE90B6F22cdA7f9BA0aef58C007",
+      "icr": "108.14",
+      "collateralBtc": "0.0287",
+      "debtMusd": "2056.2373"
+     },
+     {
+      "trove": "0xac89fFA908D0bD7A9EE78DfAd4b40362d9971b15",
+      "icr": "108.83",
+      "collateralBtc": "0.045",
+      "debtMusd": "3203.6261"
+     }
+    ],
+    "walkComplete": true,
+    "foundBy": "the pool checks only the LAST trove of the SortedTroves list (ordered by collateral over principal debt, interest not counted) against its price feed and MCR; this read does the same, then walks toward the list head up to 8 troves and stops at the first one at or above the minimum. lowestIcr is the lowest ratio among the troves read, so a trove further up whose interest pushed it lower is not excluded."
+   },
+   "raw": {
+    "deposit": "10000000000000000000",
+    "compounded": "9999768014726292583",
+    "collateralGain": "3199334550",
+    "totalDeposits": "86222463837173247816627891",
+    "collateralBalance": "176364196761141656386",
+    "mcr": "1100000000000000000",
+    "price": "77483051310000000000000",
+    "lowestIcr": "1081472212293316238"
+   }
+  }
+ }
+}

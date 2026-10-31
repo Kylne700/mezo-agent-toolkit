@@ -1,0 +1,47 @@
+{
+ "note": "no non-zero BTC or MUSD allowance exists, so no revoke transaction was needed; the read shows 0 and approve_revoke refuses with that reason (nothing sent)",
+ "allowance_status": {
+  "blockNumber": 16485156,
+  "blockTime": "2026-10-31T12:43:25.000Z",
+  "chainId": 31611,
+  "address": "0xea2D4b92DDd760959BB1D8119430640885851A91",
+  "summary": "no non-zero allowance found",
+  "allowances": [],
+  "checked": {
+   "tokens": [
+    "BTC",
+    "MUSD"
+   ],
+   "spenders": [
+    "StabilityPool",
+    "BorrowerOperations",
+    "veBTC",
+    "veMEZO",
+    "permit2",
+    "x402Proxy",
+    "poolRouter",
+    "legacy veBTC"
+   ]
+  }
+ },
+ "direct": {
+  "MUSD->0x1CCA7E410eE41739792eA0A24e00349Dd247680e": "0",
+  "MUSD->0xCdF7028ceAB81fA0C6971208e83fa7872994beE5": "0",
+  "MUSD->0x38E35d92E6Bfc6787272A62345856B13eA12130a": "0",
+  "MUSD->0xaCE816CA2bcc9b12C59799dcC5A959Fb9b98111b": "0",
+  "MUSD->0x000000000022D473030F116dDEE9F6B43aC78BA3": "0",
+  "MUSD->0x402085c248EeA27D92E8b30b2C58ed07f9E20001": "0",
+  "MUSD->0x9a1ff7FE3a0F69959A3fBa1F1e5ee18e1A9CD7E9": "0",
+  "BTC->0x1CCA7E410eE41739792eA0A24e00349Dd247680e": "0",
+  "BTC->0xCdF7028ceAB81fA0C6971208e83fa7872994beE5": "0",
+  "BTC->0x38E35d92E6Bfc6787272A62345856B13eA12130a": "0",
+  "BTC->0xaCE816CA2bcc9b12C59799dcC5A959Fb9b98111b": "0",
+  "BTC->0x000000000022D473030F116dDEE9F6B43aC78BA3": "0",
+  "BTC->0x402085c248EeA27D92E8b30b2C58ed07f9E20001": "0",
+  "BTC->0x9a1ff7FE3a0F69959A3fBa1F1e5ee18e1A9CD7E9": "0"
+ },
+ "approve_revoke_MUSD_to_StabilityPool": {
+  "isError": true,
+  "text": "Refused, nothing was sent: 0x1CCA7E410eE41739792eA0A24e00349Dd247680e has no MUSD allowance from this wallet, so there is nothing to revoke"
+ }
+}

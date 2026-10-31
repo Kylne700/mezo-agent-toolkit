@@ -1,0 +1,12 @@
+withdraw at 2026-10-31T12:42:18.092Z: read-only simulation (eth_call from the wallet) of withdrawFromSP(1 MUSD) reverted: Execution reverted with reason: StabilityPool: Cannot withdraw while there are troves with ICR < MCR.
+--- sp_withdraw {"amount":"1"} (2026-10-31T12:42:24.221Z), tool answer (error result):
+{
+ "sent": false,
+ "reason": "the pool refuses every non-zero withdrawal while a trove is under its 110% minimum: the lowest ratio found is 107.42% (trove 0x4799e9fB361Fb6a85473bB08dA00A4012E02Cf08) at block 16485138; a simulation of this exact call reverts: Execution reverted with reason: StabilityPool: Cannot withdraw while there are troves with ICR < MCR."
+}
+withdraw2 at 2026-10-31T12:43:19.231Z: read-only simulation (eth_call from the wallet) of withdrawFromSP(1 MUSD) reverted: Execution reverted with reason: StabilityPool: Cannot withdraw while there are troves with ICR < MCR.
+--- sp_withdraw {"amount":"1"} (2026-10-31T12:43:24.687Z), tool answer (error result):
+{
+ "sent": false,
+ "reason": "the pool refuses every non-zero withdrawal while a trove is under its 110% minimum: the lowest ratio found is 108.14% (trove 0xE1CB426518F06CE90B6F22cdA7f9BA0aef58C007) at block 16485153; a simulation of this exact call reverts: Execution reverted with reason: StabilityPool: Cannot withdraw while there are troves with ICR < MCR."
+}

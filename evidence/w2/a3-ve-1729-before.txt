@@ -1,0 +1,82 @@
+{
+ "note": "ve_status for NFT 1729 through the MCP stdio entry, before any A3 transaction",
+ "answer": {
+  "blockNumber": 16485120,
+  "blockTime": "2026-10-31T12:40:56.000Z",
+  "chainId": 31611,
+  "systems": {
+   "live": {
+    "label": "LIVE",
+    "veBTC": "0x38E35d92E6Bfc6787272A62345856B13eA12130a",
+    "voter": "0x263F1Fd5fB7F866881e1B6cD7d5d6c40Fd985F0D",
+    "rewardsDistributor": "0x9050218f89F0b5b17df4a30Ba4Fc97C72E307442",
+    "depositor": "0x814b08D5293689F5F57f8B31E40A7903C0A4E191",
+    "activePeriod": "2026-10-29T00:00:00.000Z",
+    "epochsBehind": 0,
+    "distributing": true
+   },
+   "legacy": {
+    "label": "LEGACY",
+    "veBTC": "0xB63fcCd03521Cf21907627bd7fA465C129479231",
+    "voter": "0x72F8dd7F44fFa19E45955aa20A5486E8EB255738",
+    "rewardsDistributor": "0x10B0E7b3411F4A38ca2F6BB697aA28D607924729",
+    "depositor": "0x63aD4D014246eaD52408dF3BC8F046107cbf6065",
+    "activePeriod": "2025-11-13T00:00:00.000Z",
+    "epochsBehind": 50,
+    "distributing": false
+   }
+  },
+  "epoch": {
+   "start": "2026-10-29T00:00:00.000Z",
+   "next": "2026-11-05T00:00:00.000Z",
+   "voteOpens": "2026-10-29T01:00:00.000Z",
+   "voteCloses": "2026-11-04T23:00:00.000Z",
+   "phase": "voting",
+   "secondsToNext": 386344,
+   "canVoteNow": true
+  },
+  "voter": {
+   "address": "0x263F1Fd5fB7F866881e1B6cD7d5d6c40Fd985F0D",
+   "pools": 17,
+   "totalWeight": "21.23659",
+   "maxVotingNum": 30,
+   "raw": {
+    "totalWeight": "21236590978111408633"
+   }
+  },
+  "nft": {
+   "tokenId": "1729",
+   "exists": true,
+   "system": "LIVE",
+   "owner": "0xea2D4b92DDd760959BB1D8119430640885851A91",
+   "amount": "0.004",
+   "unlocksAt": "2026-11-26T00:00:00.000Z",
+   "isPermanent": false,
+   "votingPower": "0.0036387962",
+   "voted": true,
+   "lastVoted": "2026-10-31T10:01:34.000Z",
+   "votedThisEpoch": true,
+   "usedWeights": "0.0036546064",
+   "isWhitelisted": false,
+   "canVoteNow": false,
+   "why": [
+    "it already voted in this epoch (at 2026-10-31T10:01:34.000Z); the next vote opens after 2026-11-05T01:00:00.000Z"
+   ],
+   "raw": {
+    "amount": "4000000000000000",
+    "end": "1795651200",
+    "votingPower": "3638796295329832",
+    "lastVoted": "1793440894",
+    "usedWeights": "3654606480510818"
+   }
+  },
+  "summary": "LIVE distributes (rolled 2026-10-29T00:00:00.000Z); LEGACY is stalled since 2025-11-13T00:00:00.000Z (50 epochs behind). Epoch 2026-10-29T00:00:00.000Z to 2026-11-05T00:00:00.000Z, phase voting: votes are accepted after 2026-10-29T01:00:00.000Z and up to 2026-11-04T23:00:00.000Z. NFT 1729: cannot vote now (it already voted in this epoch (at 2026-10-31T10:01:34.000Z); the next vote opens after 2026-11-05T01:00:00.000Z)."
+ },
+ "votes": {
+  "votes": {
+   "0x6f461c68B2c5492C0F5CCEc5a264d692aA7A8e16": "3654606480510818"
+  },
+  "usedWeights": "3654606480510818",
+  "lastVoted": "1793440894"
+ }
+}

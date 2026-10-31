@@ -1,0 +1,81 @@
+--- sp_approve_musd {"amount":"10"} (2026-10-31T12:41:49.176Z), tool answer:
+{
+ "sent": true,
+ "hash": "0x61f55d466fe3a9675d2adc16a377d0a2553807283ac2ef90261dfe0abe39a78a",
+ "status": "success",
+ "explorer": "https://explorer.test.mezo.org/tx/0x61f55d466fe3a9675d2adc16a377d0a2553807283ac2ef90261dfe0abe39a78a",
+ "blockNumber": "16485131",
+ "gasUsed": "46382",
+ "spender": "0x1CCA7E410eE41739792eA0A24e00349Dd247680e",
+ "allowanceBefore": "0",
+ "allowance": "10"
+}
+on-chain facts (own receipt): {"hash":"0x61f55d466fe3a9675d2adc16a377d0a2553807283ac2ef90261dfe0abe39a78a","status":"success","blockNumber":"16485131","nonce":11,"gasUsed":"46382","effectiveGasPrice":"146","feeWei":"6771772","valueWei":"0","to":"0x118917a40faf1cd7a13db0ef56c86de7973ac503"}
+--- sp_deposit {"amount":"10"} (2026-10-31T12:42:05.789Z), tool answer:
+{
+ "sent": true,
+ "hash": "0xce607af072d221d11b54438604ae1d93a8e1977ce8ee02d19f74dd3f38904b5a",
+ "status": "success",
+ "explorer": "https://explorer.test.mezo.org/tx/0xce607af072d221d11b54438604ae1d93a8e1977ce8ee02d19f74dd3f38904b5a",
+ "blockNumber": "16485134",
+ "gasUsed": "132705",
+ "spAfter": {
+  "blockNumber": 16485134,
+  "blockTime": "2026-10-31T12:41:55.000Z",
+  "chainId": 31611,
+  "address": "0xea2D4b92DDd760959BB1D8119430640885851A91",
+  "deposit": {
+   "musd": "10",
+   "initialMusd": "10",
+   "musdLoss": "0",
+   "btcGain": "0"
+  },
+  "pool": {
+   "totalMusd": "86224464.117764",
+   "collateralBtc": "176.33661067"
+  },
+  "withdraw": {
+   "blocked": true,
+   "reason": "the last trove of the sorted list is at 107.42%, under the pool's 110% minimum, so the pool refuses every non-zero withdrawal until that trove is liquidated, topped up or repaid",
+   "mcr": "110",
+   "btcPriceUsd": "77508.27",
+   "lowestIcr": "107.42",
+   "lowestTrove": "0x4799e9fB361Fb6a85473bB08dA00A4012E02Cf08",
+   "trovesRead": 4,
+   "underMcr": [
+    {
+     "trove": "0x4799e9fB361Fb6a85473bB08dA00A4012E02Cf08",
+     "icr": "107.42",
+     "collateralBtc": "0.02772471",
+     "debtMusd": "2000.2805"
+    },
+    {
+     "trove": "0xE1CB426518F06CE90B6F22cdA7f9BA0aef58C007",
+     "icr": "108.18",
+     "collateralBtc": "0.0287",
+     "debtMusd": "2056.2373"
+    },
+    {
+     "trove": "0xac89fFA908D0bD7A9EE78DfAd4b40362d9971b15",
+     "icr": "108.87",
+     "collateralBtc": "0.045",
+     "debtMusd": "3203.6261"
+    }
+   ],
+   "walkComplete": true,
+   "foundBy": "the pool checks only the LAST trove of the SortedTroves list (ordered by collateral over principal debt, interest not counted) against its price feed and MCR; this read does the same, then walks toward the list head up to 8 troves and stops at the first one at or above the minimum. lowestIcr is the lowest ratio among the troves read, so a trove further up whose interest pushed it lower is not excluded."
+  },
+  "raw": {
+   "deposit": "10000000000000000000",
+   "compounded": "10000000000000000000",
+   "collateralGain": "0",
+   "totalDeposits": "86224464117764111279105888",
+   "collateralBalance": "176336610670446524085",
+   "mcr": "1100000000000000000",
+   "price": "77508277310000000000000",
+   "lowestIcr": "1074296717590854378"
+  }
+ }
+}
+on-chain facts (own receipt): {"hash":"0xce607af072d221d11b54438604ae1d93a8e1977ce8ee02d19f74dd3f38904b5a","status":"success","blockNumber":"16485134","nonce":12,"gasUsed":"132705","effectiveGasPrice":"146","feeWei":"19374930","valueWei":"0","to":"0x1cca7e410ee41739792ea0a24e00349dd247680e"}
+direct StabilityPool reads at the deposit receipt block 16485134: {"deposit":"10000000000000000000","compounded":"10000000000000000000","collateralGain":"0","totalDeposits":"86224464117764111279105888","collateralBalance":"176336610670446524085"}
