@@ -1,0 +1,106 @@
+Install proof for the npm package mezo-agent-toolkit (built from the committed tree)
+date (UTC): 2026-10-31
+node v24.18.0, npm 11.16.0
+Everything below runs with an empty HOME and its own npm cache, in empty directories outside the repo. <tmp> is a temporary directory, <repo> the checkout.
+
+$ npm pack --pack-destination <tmp>/pack
+mezo-agent-toolkit-0.2.0.tgz
+npm notice
+npm notice package: mezo-agent-toolkit@0.2.0
+npm notice Tarball Contents
+npm notice 1.1kB LICENSE
+npm notice 35.0kB README.md
+npm notice 2.6MB dist/mcp.js
+npm notice 2.2kB package.json
+npm notice 577B server.json
+npm notice Tarball Details
+npm notice name: mezo-agent-toolkit
+npm notice version: 0.2.0
+npm notice filename: mezo-agent-toolkit-0.2.0.tgz
+npm notice package size: 470.8 kB
+npm notice unpacked size: 2.6 MB
+npm notice shasum: b92a4140513bf04f692a64f9c57b7118dacd3a09
+npm notice integrity: sha512-IMGjWKg59yO2b[...]tLUp6c70Q/ZIQ==
+npm notice total files: 5
+npm notice
+(exit 0)
+
+$ npm install --offline <tarball>      # in an empty directory; the package has no dependencies, so nothing is fetched
+
+added 1 package in 137ms
+(exit 0)
+
+$ ls node_modules
+mezo-agent-toolkit
+(exit 0)
+
+$ node_modules/.bin/mezo-agent-toolkit --version
+0.2.0
+(exit 0)
+
+$ node_modules/.bin/mezo-agent-toolkit --help | head -4
+mezo-agent-toolkit 0.2.0: an MCP server for Mezo testnet (free chain reads, and optional MUSD payments over x402)
+
+  npx -y mezo-agent-toolkit             start the MCP server on stdio (an MCP client runs this for you)
+  npx -y mezo-agent-toolkit --doctor    check the RPC, the chain id, the tool list and whether payments are on (needs no key)
+(exit 0)
+
+$ node_modules/.bin/mezo-agent-toolkit --doctor      # live Mezo testnet RPC, no key
+mezo-agent-toolkit 0.2.0 doctor (node v24.18.0)
+ok   rpc       https://rpc.test.mezo.org answered at block 16479937
+ok   chain id  31611 (Mezo testnet)
+ok   tools     5: trove_health, redemption_risk, pool_quote, ve_locks, pay_and_fetch
+     writes    enabled: no, no wallet is configured (the operator sets MEZO_KEY_FILE to a file that holds a funded Mezo testnet key)
+result: ok
+(exit 0)
+
+$ MCP client over stdio against node_modules/.bin/mezo-agent-toolkit (the client code is at the end of this file)
+server: mezo-agent-toolkit 0.2.0
+tools (5): trove_health, redemption_risk, pool_quote, ve_locks, pay_and_fetch
+stderr: {"event":"mcp-ready","lens":"0xBDfD1C0B544319E25b4b99ee1f355e55230f6130","payments":{"off":"no wallet is configured (the operator sets MEZO_KEY_FILE to a file that holds a funded Mezo testnet key)"}}
+(exit 0)
+
+$ npx --offline -y --package=<tarball> mezo-agent-toolkit --version   # the npx route, in another empty directory
+0.2.0
+(exit 0)
+
+$ npx --offline -y --package=<tarball> mezo-agent-toolkit --doctor    # live Mezo testnet RPC, no key
+mezo-agent-toolkit 0.2.0 doctor (node v24.18.0)
+ok   rpc       https://rpc.test.mezo.org answered at block 16479938
+ok   chain id  31611 (Mezo testnet)
+ok   tools     5: trove_health, redemption_risk, pool_quote, ve_locks, pay_and_fetch
+     writes    enabled: no, no wallet is configured (the operator sets MEZO_KEY_FILE to a file that holds a funded Mezo testnet key)
+result: ok
+(exit 0)
+
+$ npm view mezo-agent-toolkit name version   # the registry; E404 means the name is not taken
+npm error code E404
+npm error 404 Not Found - GET https://registry.npmjs.org/mezo-agent-toolkit - Not found
+npm error 404
+npm error 404  The requested resource 'mezo-agent-toolkit@*' could not be found or you do not have permission to access it.
+npm error 404
+npm error 404 Note that you can also install from a
+npm error 404 tarball, folder, http url, or git url.
+npm error A complete log of this run can be found in: <tmp>/cache/_logs/2026-10-31T06_41_23_344Z-debug-0.log
+(exit 1)
+
+--- MCP client code (list-tools.cjs) ---
+// MCP client over stdio: starts the installed bin from the consumer directory and lists its tools.
+const { createRequire } = require('node:module')
+const [, , repo, bin, cwd] = process.argv
+const req = createRequire(repo + '/package.json')
+const { Client } = req('@modelcontextprotocol/sdk/client/index.js')
+const { StdioClientTransport, getDefaultEnvironment } = req('@modelcontextprotocol/sdk/client/stdio.js')
+;(async () => {
+  const transport = new StdioClientTransport({ command: bin, args: [], cwd, env: getDefaultEnvironment(), stderr: 'pipe' })
+  let stderr = ''
+  transport.stderr?.on('data', (d) => (stderr += d))
+  const client = new Client({ name: 'install-proof', version: '0.0.0' })
+  await client.connect(transport)
+  const v = client.getServerVersion()
+  const { tools } = await client.listTools()
+  console.log(`server: ${v.name} ${v.version}`)
+  console.log(`tools (${tools.length}): ${tools.map((t) => t.name).join(', ')}`)
+  console.log(`stderr: ${stderr.trim().split('\n')[0]}`)
+  await client.close()
+})().catch((e) => { console.log('FAILED:', e.message); process.exit(1) })
