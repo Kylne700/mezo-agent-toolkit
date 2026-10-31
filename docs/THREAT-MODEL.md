@@ -1,7 +1,7 @@
 # Threat model: the guarded write path
 
-Scope: `src/signer-env.ts`, `src/policy.ts`, `src/write.ts`, `src/receipts.ts`, `src/ve-actions.ts`, `src/trove-actions.ts` and `src/sp-actions.ts`, whose fourteen write tools are the only callers (`src/plan.ts`, the trove planner, and the two Stability Pool reads only read the chain and have no signer). Mezo testnet only (chain 31611).
-The six `ve_*`, the three `trove_*` and the five Stability Pool tools (`sp_approve_musd`, `sp_deposit`, `sp_withdraw`, `trove_liquidate`, `approve_revoke`) call `createWriter(...).send({ to, data, value })`. They are registered only when the operator sets `MEZO_WRITE_ENABLE=testnet`. The reads (`ve_status`, `gauge_rewards`, `plan_open`, `plan_top_up`, `plan_repay`, `trove_status`, `sp_status`, `allowance_status` and the older tools) never touch the writer.
+Scope: `src/signer-env.ts`, `src/policy.ts`, `src/write.ts`, `src/receipts.ts`, `src/ve-actions.ts`, `src/trove-actions.ts` and `src/sp-actions.ts`, whose fourteen write tools are the only callers (`src/plan.ts`, the trove planner, and the three Stability Pool reads (`sp_status`, `allowance_status`, `plan_sp_deposit`) only read the chain and have no signer; the paid plan routes in `src/app.ts` call only those, and a test fails if `src/app.ts` or any `src/worker*.ts` imports, directly or through another file, a signer or key module). Mezo testnet only (chain 31611).
+The six `ve_*`, the three `trove_*` and the five Stability Pool tools (`sp_approve_musd`, `sp_deposit`, `sp_withdraw`, `trove_liquidate`, `approve_revoke`) call `createWriter(...).send({ to, data, value })`. They are registered only when the operator sets `MEZO_WRITE_ENABLE=testnet`. The reads (`ve_status`, `gauge_rewards`, `plan_open`, `plan_top_up`, `plan_repay`, `trove_status`, `sp_status`, `allowance_status`, `plan_sp_deposit` and the older tools) never touch the writer.
 
 ## Assets
 

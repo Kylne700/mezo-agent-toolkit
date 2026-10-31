@@ -2,22 +2,26 @@
 // It takes every line of evidence/w2/receipts.jsonl (what the write core logged for each real transaction) plus the MezoLens deploy tx from
 // deployments/testnet.json, fetches each transaction and its receipt, checks that the ledger agrees with the chain (sender, target, nonce, selector,
 // gas, amounts) and then reads the state the leg claims at the receipt's block and at the block before it.
+// The x402_* line (a paid plan call) has its own prover: the facilitator, not the wallet, sent that transaction. It checks the receipt, the one MUSD Transfer and that
+// the saved plan answer is what the planner gives again at the block the answer names.
 // One PASS, FAIL or SKIP line per leg. SKIP = the RPC no longer serves state at that old block (pruned); the receipt checks of that leg still ran and passed.
 // The exit code is 1 on any FAIL. Only hashes of our own ledger and our own deploy are fetched; any other 64-hex string found in evidence/w2/*.txt is only counted.
 // Usage: npm run w2:prove
 import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { isDeepStrictEqual } from 'node:util'
 import { decodeFunctionData, isAddressEqual, parseAbi, parseEventLogs, zeroAddress, type Abi, type Address, type Hex } from 'viem'
 import deployment from '../deployments/testnet.json' with { type: 'json' }
 import { borrowerOperationsAbi, erc20Abi, poolsVoterAbi, priceFeedAbi, stabilityPoolAbi, troveManagerAbi, veBtcAbi } from '../src/abis.ts'
 import { publicClient } from '../src/clients.ts'
 import { ADDRESSES, CHAIN_ID, RPC_URL } from '../src/config.ts'
-import { TROVE_STATUS, fixed, percent, withRetry } from '../src/lens.ts'
+import { TROVE_STATUS, createLens, fixed, percent, withRetry } from '../src/lens.ts'
+import { createPlanner } from '../src/plan.ts'
 import { ALLOW } from '../src/policy.ts'
 import { createSp } from '../src/sp-actions.ts'
 import { createReport } from './lib/report.ts'
 
-type Line = { at: string; name: string; from: Address; to: Address; selector: Hex; nonce: number; hash: Hex; status: string; musd: string; btc: string; gas: string; maxFeePerGas: string }
+type Line = { at: string; name: string; from: Address; to: Address; selector: Hex; nonce: number; hash: Hex; status: string; musd: string; btc: string; gas: string; maxFeePerGas: string; buyer?: Address; payTo?: Address; route?: string; block?: number; plan?: string }  // the last five only on x402 lines
 type Tx = Awaited<ReturnType<ReturnType<typeof publicClient>['getTransaction']>>
 type Receipt = Awaited<ReturnType<ReturnType<typeof publicClient>['getTransactionReceipt']>>
 interface Ctx { line: Line; tx: Tx; rc: Receipt; block: bigint; ts: bigint; me: Address; facts: string[]; problems: string[] }
@@ -229,6 +233,45 @@ async function proveLine(line: Line) {
   verdict(c, title, skipped)
 }
 
+/** An x402 line: the wallet paid its own paywalled server for one plan answer. The facilitator sent that transaction and paid its gas, so the sender and allow-list checks of proveLine do not apply. */
+async function proveX402(line: Line) {
+  const title = `${line.name.padEnd(20)} nonce ${line.nonce}  ${line.hash}`
+  const { buyer, payTo } = line
+  let c: Ctx
+  try {
+    const [tx, rc] = await Promise.all([again(() => pub.getTransaction({ hash: line.hash })), again(() => pub.getTransactionReceipt({ hash: line.hash }))])
+    const ts = (await again(() => pub.getBlock({ blockNumber: rc.blockNumber }))).timestamp
+    c = { line, tx, rc, block: rc.blockNumber, ts, me: buyer!, facts: [], problems: [] }
+  } catch (e) {
+    return void r.check(false, title, [`the chain has no such transaction or receipt: ${msg(e)}`])
+  }
+  const { tx, rc } = c
+  must(c, rc.status === 'success' && line.status === 'success', `receipt status ${rc.status} at block ${c.block} (${iso(c.ts)}); the ledger says ${line.status}`)
+  must(c, same(tx.from, line.from) && same(tx.to, line.to) && tx.nonce === line.nonce && tx.input.slice(0, 10) === line.selector && c.block === BigInt(line.block ?? -1), `sent by ${tx.from} to ${tx.to}, nonce ${tx.nonce}, selector ${tx.input.slice(0, 10)}, block ${c.block}: as the ledger says`)
+  must(c, !same(tx.from, buyer), `the sender ${tx.from} is not the paying wallet ${buyer}: the facilitator paid the gas`)
+  must(c, tx.gas === BigInt(line.gas) && (tx.maxFeePerGas ?? tx.gasPrice) === BigInt(line.maxFeePerGas), `gas limit ${tx.gas} (used ${rc.gasUsed}), max fee per gas ${tx.maxFeePerGas ?? tx.gasPrice}: as the ledger says`)
+  const moves = transfers(c)
+  const paid = moves.filter((l) => same(l.args.from, buyer) && same(l.args.to, payTo) && l.args.value.toString() === line.musd)
+  must(c, moves.length === 1 && paid.length === 1, `the receipt holds ${moves.length} MUSD Transfer log(s), ${paid.length} of them ${f(BigInt(line.musd))} MUSD from ${buyer} to ${payTo}${same(buyer, payTo) ? ' (the wallet itself, so the net cost is zero)' : ''}`)
+  // The saved plan answer is the one this payment bought: asking the planner again at the block the answer names must give the same JSON (the gas estimate is taken at the latest block, so it is left out).
+  let skipped = ''
+  let at = 0n
+  try {
+    let saved: { request: { address: string; amountBtc: string }; answer: { blockNumber: number }; settlement: { transaction: string } }
+    try { saved = JSON.parse(readFileSync(dir + line.plan!, 'utf8')) } catch { throw new Error(`cannot read ${line.plan}`) }
+    at = BigInt(saved.answer.blockNumber)
+    must(c, saved.settlement.transaction.toLowerCase() === line.hash.toLowerCase() && at < c.block, `${line.plan} holds the answer bought by this transaction (planned at block ${at}, settled at block ${c.block})`)
+    const bare = (x: unknown) => Object.fromEntries(Object.entries(JSON.parse(JSON.stringify(x))).filter(([k]) => k !== 'gas'))
+    const fresh = await createPlanner(pub, createLens(pub)).topUp(saved.request, { blockNumber: at })
+    must(c, isDeepStrictEqual(bare(saved.answer), bare(fresh)), `asking the top-up planner again at block ${at} gives the saved answer (${Object.keys(bare(fresh)).length} fields, gas left out)`)
+  } catch (e) {
+    const served = at > 0n && (await again(() => pub.getBalance({ address: buyer!, blockNumber: at }), 6).then(() => true, () => false))
+    if (at === 0n || served) must(c, false, `the saved answer could not be re-checked: ${msg(e)}`)
+    else skipped = `the node no longer serves state at block ${at}`
+  }
+  verdict(c, title, skipped)
+}
+
 async function proveDeploy() {
   const d = deployment.MezoLens
   const hash = d.txHash as Hex
@@ -260,7 +303,7 @@ for (const [i, text] of readFileSync(dir + 'receipts.jsonl', 'utf8').split('\n')
   if (!text.trim()) continue
   try { lines.push(JSON.parse(text) as Line) } catch { r.check(false, `receipts.jsonl line ${i + 1} is JSON`, [text.slice(0, 80)]) }
 }
-for (const line of lines) await proveLine(line)
+for (const line of lines) await (line.name.startsWith('x402_') ? proveX402(line) : proveLine(line))
 
 r.log('\n# The MezoLens deploy of deployments/testnet.json')
 await proveDeploy()

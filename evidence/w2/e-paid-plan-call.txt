@@ -1,0 +1,27 @@
+Wave 2: one real paid plan call (x402 on Mezo testnet)   2026-10-31T13:39:40.921Z
+wallet, buyer and payee: 0xea2D4b92DDd760959BB1D8119430640885851A91
+PASS  eth_chainId is 31611 and the key is the wallet 0xea2D4b92DDd760959BB1D8119430640885851A91
+
+# Dry runs (reads only; nothing is signed)
+POST /plan/top-up: a plan; 24 RPC requests
+POST /plan/repay: a plan; 23 RPC requests
+POST /plan/sp-deposit: a plan; 26 RPC requests
+PASS  the top-up of 0.0001 BTC is a plan, not a refusal
+
+# POST /plan/top-up on a local server (payTo = the wallet), real facilitator facilitator.vativ.io
+before: block 16485967, 2095.700457283614259046 MUSD, 0.000638622064434495 BTC
+PASS  unpaid call answers 402 asking 0.005 MUSD to the wallet itself (got 402)
+PASS  bad input answers 400 with no challenge (got 400)
+facilitator answered: verify: valid | settle: success
+the whole paid call made 29 RPC requests (the buyer's reads, the plan, the settlement check) and 2 facilitator requests
+PASS  paid call answers 200, carries a settlement and authorised 0.005 MUSD (got 200, paid true, authorised 0.005)
+the plan: a plan at block 16485969: Add 0.0001 BTC to the trove at block 16485969: collateral 0.0453 -> 0.0454 BTC, ratio 167.47% -> 167.84%. The borrow cap stays 3162.847942 MUSD and only limits borrowing more, which this does not do. Ratio after: 167.84%
+PASS  the paid answer equals the planner's own answer at block 16485969 (gas 444325 vs 444325 left out)
+settlement transaction 0x693383537b0b2d9f76d07626db79fce23c19a9224575a80e81433d3694a5624d
+ledger line appended; the ledger still reads (1930.005 MUSD and 0.053300000639982416 BTC counted on 2026-10-31)
+PASS  the settlement receipt says success, block 16485971, gas used 125000
+PASS  it was mined after this run began (block 16485971 > 16485967)
+PASS  the transaction was sent by 0x7b384430907f15d3b658a2393fc98ca1a9d6cefa, not by the wallet: the facilitator paid the gas
+PASS  its receipt holds 1 MUSD Transfer log(s), exactly one of them wallet -> wallet of 0.005 MUSD (found 1)
+PASS  net cost zero: 2095.700457283614259046 MUSD and 0.000638622064434495 BTC after (before: 2095.700457283614259046 and 0.000638622064434495)
+PASS  the server's /status names the same settlement (recovered from the chain: false)
