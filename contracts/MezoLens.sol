@@ -41,6 +41,7 @@ interface IPoolRouter {
     function getAmountsOut(uint256 amountIn, Route[] calldata routes) external view returns (uint256[] memory amounts);
 }
 
+// The LIVE veBTC (the one with a booster): it has no balanceOfNFT, and its locked() returns a fourth word (boost) that this 3-field struct ignores.
 interface IVeBTC {
     struct LockedBalance {
         int128 amount;
@@ -51,7 +52,7 @@ interface IVeBTC {
     function balanceOf(address owner) external view returns (uint256);
     function ownerToNFTokenIdList(address owner, uint256 index) external view returns (uint256);
     function locked(uint256 tokenId) external view returns (LockedBalance memory);
-    function balanceOfNFT(uint256 tokenId) external view returns (uint256);
+    function votingPowerOfNFT(uint256 tokenId) external view returns (uint256);
     function voted(uint256 tokenId) external view returns (bool);
 }
 
@@ -311,7 +312,7 @@ contract MezoLens {
         k.amount = l.amount > 0 ? uint256(uint128(l.amount)) : 0;
         k.end = l.end;
         k.isPermanent = l.isPermanent;
-        k.votingPower = veBTC.balanceOfNFT(k.tokenId);
+        k.votingPower = veBTC.votingPowerOfNFT(k.tokenId);
         k.voted = veBTC.voted(k.tokenId);
         _timing(k);
     }

@@ -152,11 +152,13 @@ contract MockRouter {
     }
 }
 
+// Shaped like the LIVE veBTC: locked() returns four words (with boost) and voting power comes from votingPowerOfNFT; there is no balanceOfNFT.
 contract MockVeBTC {
     struct LockedBalance {
         int128 amount;
         uint256 end;
         bool isPermanent;
+        uint256 boost;
     }
 
     mapping(address => uint256[]) private ids;
@@ -166,7 +168,7 @@ contract MockVeBTC {
 
     function add(address owner, uint256 id, int128 amount, uint256 end, bool perm, uint256 vp, bool hasVoted) external {
         ids[owner].push(id);
-        lockOf[id] = LockedBalance(amount, end, perm);
+        lockOf[id] = LockedBalance(amount, end, perm, 3e18);
         power[id] = vp;
         voted[id] = hasVoted;
     }
@@ -183,7 +185,7 @@ contract MockVeBTC {
         return lockOf[id];
     }
 
-    function balanceOfNFT(uint256 id) external view returns (uint256) {
+    function votingPowerOfNFT(uint256 id) external view returns (uint256) {
         return power[id];
     }
 }
