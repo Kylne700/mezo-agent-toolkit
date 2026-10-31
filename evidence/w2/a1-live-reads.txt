@@ -1,0 +1,36 @@
+# A1 live reads, 2026-10-31T08:33:33Z, command: tsx scripts/w2-live-reads.ts 1727 (in mezo-toolkit, branch w2/a-writes)
+ok   eth_chainId 31611 (https://rpc.test.mezo.org)
+     every read below is at block 16481554 (2026-10-31T08:33:26.000Z)
+
+# Code at every ve address in src/config.ts (eth_getCode)
+ok   LIVE veBTC                0x38E35d92E6Bfc6787272A62345856B13eA12130a 1159 bytes
+ok   LIVE poolsVoter           0x263F1Fd5fB7F866881e1B6cD7d5d6c40Fd985F0D 1159 bytes
+ok   LIVE rewardsDistributor   0x9050218f89F0b5b17df4a30Ba4Fc97C72E307442 5937 bytes
+ok   LIVE boostVoter           0x21d7bDF5a5929AD179F8cA0c9014A0B62ae6Bfd1 1159 bytes
+ok   LIVE veMEZO               0xaCE816CA2bcc9b12C59799dcC5A959Fb9b98111b 1159 bytes
+ok   LEGACY veBTC              0xB63fcCd03521Cf21907627bd7fA465C129479231 1159 bytes
+ok   LEGACY voter              0x72F8dd7F44fFa19E45955aa20A5486E8EB255738 16572 bytes
+ok   LEGACY rewardsDistributor 0x10B0E7b3411F4A38ca2F6BB697aA28D607924729 5875 bytes
+
+# Every veBTC function the lens calls, read directly on LIVE veBTC 0x38E35d92E6Bfc6787272A62345856B13eA12130a for NFT 1727
+     ownerOf(1727) = 0xee76C202a9e43988c55DC86816a6c14211Db209B (helper read, not a lens call)
+ok   balanceOf(owner)            0x70a08231 = 3
+ok   ownerToNFTokenIdList(owner, i) 0x8bf9d84c = [1724, 1725, 1727]
+ok   locked(1727)                0xb45a3c0e = amount 107370359322384, end 1795651200 (2026-11-26T00:00:00.000Z), isPermanent false
+ok   votingPowerOfNFT(1727)      0x03709b10 = 98333797892866
+ok   voted(1727)                 0x8fbb38ff = true
+ok   balanceOfNFT(1727)          0xe7e242d4 reverts (The contract function "balanceOfNFT" reverted.): the W1 lens called this, LIVE veBTC does not have it
+
+# The lens built from artifacts/MezoLens.json, run against LIVE as a deployless eth_call (nothing is deployed)
+     the lens deployed for Wave 1 (0xBDfD1C0B544319E25b4b99ee1f355e55230f6130) reads veBTC 0xB63fcCd03521Cf21907627bd7fA465C129479231 = LEGACY_VE.veBTC
+ok   veLocks(owner, 25): veBtcCount 3, 3 locks returned
+ok   lens lock 1724: amount 1695591979450670, votingPower 1128988667305554, voted true, secondsLeft 1610794 = the direct reads
+ok   lens lock 1725: amount 1695100044537433, votingPower 704886108052830, voted true, secondsLeft 1005994 = the direct reads
+ok   lens lock 1727: amount 107370359322384, votingPower 98333797892866, voted true, secondsLeft 2215594 = the direct reads
+
+# Which system distributes: the rewards distributor's depositor and its active period
+     LIVE   rewardsDistributor 0x9050218f89F0b5b17df4a30Ba4Fc97C72E307442: depositor 0x814b08D5293689F5F57f8B31E40A7903C0A4E191, activePeriod 1793232000 (2026-10-29T00:00:00.000Z)
+     LEGACY rewardsDistributor 0x10B0E7b3411F4A38ca2F6BB697aA28D607924729: depositor 0x63aD4D014246eaD52408dF3BC8F046107cbf6065, activePeriod 1762992000 (2025-11-13T00:00:00.000Z)
+
+result: ok
+exit 0
