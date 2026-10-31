@@ -1,9 +1,9 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { encodeFunctionData, maxUint256, type Abi, type Address } from 'viem'
+import { encodeFunctionData, maxUint256, parseAbi, type Abi, type Address } from 'viem'
 import { afterAll, describe, expect, it } from 'vitest'
-import { erc20Abi, poolsVoterAbi, rewardsDistributorAbi, veBtcAbi } from '../src/abis.ts'
+import { borrowerOperationsAbi, erc20Abi, poolsVoterAbi, rewardsDistributorAbi, veBtcAbi } from '../src/abis.ts'
 import { ADDRESSES, LEGACY_VE } from '../src/config.ts'
 import { ALLOW, DEFAULT_MAX_GAS, MAX_LOCK_SECONDS, checkWrite, policyFromEnv } from '../src/policy.ts'
 import { usedOn } from '../src/receipts.ts'
@@ -49,7 +49,7 @@ describe('checkWrite', () => {
     expect(reason(checkWrite(p, pay('0.1', 'transfer', ADDRESSES.btc), none))).toMatch(/no allow-list entry for selector 0xa9059cbb on 0x7b7C/)
     const transferFrom = encodeFunctionData({ abi: [{ type: 'function', name: 'transferFrom', stateMutability: 'nonpayable', inputs: [{ type: 'address' }, { type: 'address' }, { type: 'uint256' }], outputs: [] }], functionName: 'transferFrom', args: [OTHER, OTHER, 1n] })
     expect(reason(checkWrite(p, { to: ADDRESSES.musd, data: transferFrom, value: 0n }, none))).toMatch(/no allow-list entry for selector 0x23b872dd/)
-    expect(reason(checkWrite(policyFromEnv(env), pay('0.1'), none))).toMatch(/no allow-list entry/) // the shipped ALLOW holds only the ve actions (below)
+    expect(reason(checkWrite(policyFromEnv(env), pay('0.1'), none))).toMatch(/no allow-list entry/) // the shipped ALLOW holds only the ve and trove actions (below)
   })
 
   it('reads the MUSD amount from the calldata and enforces the per-call cap (the cap itself passes)', () => {
@@ -83,7 +83,7 @@ describe('checkWrite', () => {
   })
 })
 
-describe('the shipped allow-list holds the LIVE ve actions and nothing else', () => {
+describe('the shipped allow-list holds the LIVE ve and trove actions and nothing else', () => {
   const safe = policyFromEnv(env) // the shipped ALLOW, risky off
   const risky = policyFromEnv({ ...env, MEZO_WRITE_RISKY: '1' })
   const call = (to: Address, abi: Abi, functionName: string, args: unknown[], value = 0n) => ({ to, data: encodeFunctionData({ abi, functionName, args }), value })
@@ -97,16 +97,16 @@ describe('the shipped allow-list holds the LIVE ve actions and nothing else', ()
   const ones = (n: number) => Array.from({ length: n }, () => 1n)
   const day = 86_400n
 
-  it('has six entries, all on the LIVE contracts and none on the stalled LEGACY ones, each contract and selector once', () => {
-    expect(ALLOW.map((e) => e.name)).toEqual(['ve_approve_btc', 've_lock', 've_vote', 've_poke', 've_claim_rewards', 've_claim_rebase'])
-    const live = [ADDRESSES.btc, ADDRESSES.veBTC, ADDRESSES.poolsVoter, ADDRESSES.rewardsDistributor].map((a) => a.toLowerCase())
+  it('has nine entries, all on the LIVE contracts and none on the stalled LEGACY ones, each contract and selector once', () => {
+    expect(ALLOW.map((e) => e.name)).toEqual(['ve_approve_btc', 've_lock', 've_vote', 've_poke', 've_claim_rewards', 've_claim_rebase', 'trove_open', 'trove_add_coll', 'trove_repay'])
+    const live = [ADDRESSES.btc, ADDRESSES.veBTC, ADDRESSES.poolsVoter, ADDRESSES.rewardsDistributor, ADDRESSES.borrowerOperations].map((a) => a.toLowerCase())
     const legacy = Object.values(LEGACY_VE).map((a) => a.toLowerCase())
     for (const e of ALLOW) {
       expect(live, e.name).toContain(e.contract.toLowerCase())
       expect(legacy, e.name).not.toContain(e.contract.toLowerCase())
     }
     expect(new Set(ALLOW.map((e) => `${e.contract}:${e.selector}`)).size).toBe(ALLOW.length)
-    expect(ALLOW.filter((e) => e.risky).map((e) => e.name)).toEqual(['ve_lock'])
+    expect(ALLOW.filter((e) => e.risky).map((e) => e.name)).toEqual(['ve_lock', 'trove_open'])
   })
 
   it('approve: only for veBTC, only an exact non-zero amount, and the amount counts as BTC against the caps', () => {
@@ -154,6 +154,36 @@ describe('the shipped allow-list holds the LIVE ve actions and nothing else', ()
     expect(checkWrite(safe, claim(addrs(60), tokens(60)), none).ok).toBe(true)
     for (const bad of [claim([], []), claim(addrs(61), tokens(61)), claim(addrs(2), tokens(1))])
       expect(reason(checkWrite(safe, bad, none))).toMatch(/cannot read the amounts in the ve_claim_rewards calldata/)
+  })
+
+  it('trove: openTrove is risky and counts its debt as MUSD and its value as BTC once; addColl counts its value; repayMUSD counts the repayment as MUSD', () => {
+    const open = (debt: bigint, value: bigint) => call(ADDRESSES.borrowerOperations, borrowerOperationsAbi, 'openTrove', [debt, OTHER, OTHER], value)
+    const addColl = (value: bigint) => call(ADDRESSES.borrowerOperations, borrowerOperationsAbi, 'addColl', [OTHER, OTHER], value)
+    const repay = (amount: bigint) => call(ADDRESSES.borrowerOperations, borrowerOperationsAbi, 'repayMUSD', [amount, OTHER, OTHER])
+    expect(reason(checkWrite(safe, open(u('0.5'), u('0.005')), none))).toMatch(/trove_open is a risky action, refused unless the operator sets MEZO_WRITE_RISKY=1/)
+    expect(checkWrite(risky, open(u('0.5'), u('0.005')), none)).toMatchObject({ ok: true, musd: u('0.5'), btc: u('0.005') })
+    expect(reason(checkWrite(risky, open(u('1.5'), u('0.005')), none))).toMatch(/1.5 MUSD is over the per-call cap of 1 MUSD/)
+    expect(reason(checkWrite(risky, open(u('0.5'), u('0.011')), none))).toMatch(/over the per-call cap of 0.01 BTC/)
+    expect(reason(checkWrite(risky, open(0n, u('0.005')), none))).toMatch(/cannot read the amounts in the trove_open calldata/)
+    expect(checkWrite(safe, addColl(u('0.005')), none)).toMatchObject({ ok: true, musd: 0n, btc: u('0.005') })
+    expect(reason(checkWrite(safe, addColl(u('0.011')), none))).toMatch(/over the per-call cap of 0.01 BTC/)
+    expect(checkWrite(safe, repay(u('0.5')), none)).toMatchObject({ ok: true, musd: u('0.5'), btc: 0n })
+    expect(reason(checkWrite(safe, repay(u('1.5')), none))).toMatch(/1.5 MUSD is over the per-call cap of 1 MUSD/)
+    expect(reason(checkWrite(safe, repay(0n), none))).toMatch(/cannot read the amounts in the trove_repay calldata/)
+    expect(checkWrite(safe, { ...repay(u('0.5')), value: u('0.005') }, none)).toMatchObject({ ok: true, btc: u('0.005') }) // a stray value on a repayment still counts as BTC
+  })
+
+  it('does not list the other BorrowerOperations calls: taking collateral or debt out, closing or refinancing the trove, claiming collateral', () => {
+    const bo = parseAbi([
+      'function withdrawColl(uint256, address, address)',
+      'function withdrawMUSD(uint256, address, address)',
+      'function closeTrove()',
+      'function refinance(address, address)',
+      'function adjustTrove(uint256, uint256, bool, address, address) payable',
+      'function claimCollateral()',
+    ])
+    const args: Record<string, unknown[]> = { withdrawColl: [1n, OTHER, OTHER], withdrawMUSD: [1n, OTHER, OTHER], closeTrove: [], refinance: [OTHER, OTHER], adjustTrove: [1n, 1n, true, OTHER, OTHER], claimCollateral: [] }
+    for (const [name, a] of Object.entries(args)) expect(reason(checkWrite(risky, call(ADDRESSES.borrowerOperations, bo, name, a), none)), name).toMatch(/no allow-list entry for selector 0x[0-9a-f]{8} on 0xCdF7/)
   })
 
   it('a ve call that carries value is still a BTC transfer for the caps, and the gas fee counts', () => {

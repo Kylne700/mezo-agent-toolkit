@@ -32,6 +32,11 @@ export const troveManagerAbi = parseAbi([
   'function getEntireSystemColl() view returns (uint256)',
   'function getEntireSystemDebt() view returns (uint256)',
   'function checkRecoveryMode(uint256 price) view returns (bool)',
+  // What the trove planner and its tests read directly.
+  'function getCurrentICR(address borrower, uint256 price) view returns (uint256)',
+  'function getTroveMaxBorrowingCapacity(address borrower) view returns (uint256)',
+  'function getTroveOwnersCount() view returns (uint256)',
+  'function Troves(address borrower) view returns (uint256 coll, uint256 principal, uint256 interestOwed, uint256 stake, uint8 status, uint16 interestRate, uint256 lastInterestUpdateTime, uint256 maxBorrowingCapacity, uint128 arrayIndex)',
 ])
 
 export const sortedTrovesAbi = parseAbi([
@@ -40,13 +45,27 @@ export const sortedTrovesAbi = parseAbi([
   'function getPrev(address id) view returns (address)',
   'function getSize() view returns (uint256)',
   'function contains(address id) view returns (bool)',
+  'function getNext(address id) view returns (address)',
+  'function findInsertPosition(uint256 nicr, address prevId, address nextId) view returns (address, address)',
 ])
 
 export const priceFeedAbi = parseAbi(['function fetchPrice() view returns (uint256)'])
 
 export const hintHelpersAbi = parseAbi([
   'function getRedemptionHints(uint256 _amount, uint256 _price, uint256 _maxIterations) view returns (address firstRedemptionHint, uint256 partialRedemptionHintNICR, uint256 truncatedAmount)',
+  'function getApproxHint(uint256 _CR, uint256 _numTrials, uint256 _inputRandomSeed) view returns (address hintAddress, uint256 diff, uint256 latestRandomSeed)',
 ])
+
+// BorrowerOperations, the trove entry points (read from the verified source). The hints are the neighbours in SortedTroves, higher ratio first.
+export const borrowerOperationsAbi = parseAbi([
+  'function openTrove(uint256 _debtAmount, address _upperHint, address _lowerHint) payable',
+  'function addColl(address _upperHint, address _lowerHint) payable',
+  'function repayMUSD(uint256 _amount, address _upperHint, address _lowerHint)',
+  'function minNetDebt() view returns (uint256)',
+  'function borrowingRate() view returns (uint256)',
+  'function governableVariables() view returns (address)',
+])
+export const governableVariablesAbi = parseAbi(['function isAccountFeeExempt(address account) view returns (bool)'])
 
 // veBTC and veMEZO are Solidly-style vote escrows. The LIVE veBTC has no balanceOfNFT and returns a fourth lock field (boost), which this ABI does not decode.
 // The last four entries are what the write tools use (createLock pulls BTC through the ERC-20 interface, so it needs an exact approve first).

@@ -128,7 +128,7 @@ describe('the command line of the bundle, run from a directory outside the repo'
     try {
       await client.connect(transport)
       const { tools } = await client.listTools()
-      expect(tools.map((t) => t.name)).toEqual(expect.arrayContaining(['trove_health', 'redemption_risk', 'pool_quote', 've_locks', 'pay_and_fetch']))
+      expect(tools.map((t) => t.name)).toEqual(expect.arrayContaining(['trove_health', 'redemption_risk', 'pool_quote', 've_locks', 'pay_and_fetch', 'plan_open', 'plan_top_up', 'plan_repay', 'trove_status']))
       expect(client.getServerVersion()?.version).toBe(pkg.version)
       expect(stderr).toMatch(/"event":"mcp-ready"/)
     } finally {

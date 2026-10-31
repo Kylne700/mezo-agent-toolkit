@@ -7,7 +7,7 @@
 // Unset caps are 0 (fail closed): a call that moves MUSD or BTC (gas fees included) is refused until the operator sets a cap.
 import { readFileSync } from 'node:fs'
 import { decodeFunctionData, formatUnits, getAbiItem, isAddressEqual, parseUnits, toFunctionSelector, type Abi, type AbiFunction, type Address, type Hex } from 'viem'
-import { erc20Abi, poolsVoterAbi, rewardsDistributorAbi, veBtcAbi } from './abis.ts'
+import { borrowerOperationsAbi, erc20Abi, poolsVoterAbi, rewardsDistributorAbi, veBtcAbi } from './abis.ts'
 import { ADDRESSES } from './config.ts'
 
 export type Env = Record<string, string | undefined>
@@ -88,8 +88,35 @@ const VE: readonly AllowEntry[] = [
   { name: 've_claim_rebase', contract: ADDRESSES.rewardsDistributor, selector: selectorOf(rewardsDistributorAbi, 'claim'), amounts: () => NO_FUNDS },
 ]
 
-/** Every contract function the write path may call: the LIVE ve system (see docs/THREAT-MODEL.md). Nothing else is allowed, and the operator's caps still apply to each call. */
-export const ALLOW: readonly AllowEntry[] = VE
+// The trove calls go straight to BorrowerOperations. openTrove and addColl are payable: the BTC they carry is the tx value, which the core counts as BTC,
+// so their btc is 0 here (counting it again would double it). openTrove mints MUSD (counted at the requested debt, the fee comes on top) and repayMUSD burns it.
+const TROVE: readonly AllowEntry[] = [
+  {
+    name: 'trove_open',
+    contract: ADDRESSES.borrowerOperations,
+    selector: selectorOf(borrowerOperationsAbi, 'openTrove'),
+    risky: true, // the collateral is locked in the trove and can be liquidated or redeemed against
+    amounts: (data) => {
+      const [debt] = argsOf(borrowerOperationsAbi, data)
+      if (debt === 0n) throw new Error('a trove needs a non-zero debt')
+      return { musd: debt, btc: 0n }
+    },
+  },
+  { name: 'trove_add_coll', contract: ADDRESSES.borrowerOperations, selector: selectorOf(borrowerOperationsAbi, 'addColl'), amounts: () => NO_FUNDS },
+  {
+    name: 'trove_repay',
+    contract: ADDRESSES.borrowerOperations,
+    selector: selectorOf(borrowerOperationsAbi, 'repayMUSD'),
+    amounts: (data) => {
+      const [amount] = argsOf(borrowerOperationsAbi, data)
+      if (amount === 0n) throw new Error('a repayment needs a non-zero amount')
+      return { musd: amount, btc: 0n }
+    },
+  },
+]
+
+/** Every contract function the write path may call: the LIVE ve system and the trove calls (see docs/THREAT-MODEL.md). Nothing else is allowed, and the operator's caps still apply to each call. */
+export const ALLOW: readonly AllowEntry[] = [...VE, ...TROVE]
 
 /** Gas cap of one write; a policy file can only lower it. */
 export const DEFAULT_MAX_GAS = 3_000_000n

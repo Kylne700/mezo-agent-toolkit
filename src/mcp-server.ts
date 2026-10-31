@@ -1,6 +1,7 @@
 // The MCP server: four free chain reads through the MezoLens contract, one tool that pays for data over x402 under hard spend limits,
-// two free reads of the LIVE vote-escrow system (ve_status, gauge_rewards) and, only when the operator turns writes on, six guarded write tools.
-// The factory takes the lens, the buyer and the ve tools as arguments (no files, no environment), so tests run it in memory and the stdio entry (mcp.ts) wires the real ones.
+// two free reads of the LIVE vote-escrow system (ve_status, gauge_rewards), four free trove planners (plan_open, plan_top_up, plan_repay, trove_status) and,
+// only when the operator turns writes on, nine guarded write tools (six vote-escrow, three trove).
+// The factory takes the lens, the buyer, the ve tools and the trove tools as arguments (no files, no environment), so tests run it in memory and the stdio entry (mcp.ts) wires the real ones.
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
@@ -8,6 +9,7 @@ import pkg from '../package.json' with { type: 'json' }
 import { InputError, addressShape, parseAddress, parseAmountText, parseBool, parseToken, poolShape } from './inputs.ts'
 import type { Lens } from './lens.ts'
 import { PaymentRefused, type Buyer } from './pay.ts'
+import type { Trove } from './trove-actions.ts'
 import type { Outcome, Ve } from './ve-actions.ts'
 
 export interface McpOptions {
@@ -17,6 +19,8 @@ export interface McpOptions {
   payOffReason?: string
   /** The LIVE vote-escrow tools. Without it, ve_status and gauge_rewards are not offered; its `write` part exists only when the operator enabled writes. */
   ve?: Ve
+  /** The trove planners and trove_status. Without it they are not offered; its `write` part exists only when the operator enabled writes. */
+  trove?: Trove
 }
 
 const text = (s: string) => [{ type: 'text' as const, text: s }]
@@ -49,14 +53,19 @@ async function write(fn: () => Promise<Outcome>): Promise<CallToolResult> {
 }
 
 const READ_NOTE = 'Reads Mezo testnet through the MezoLens contract, free and with no key. Amounts are decimal strings; `raw` holds the exact integers (18 decimals). Every answer names the block it was read at.'
+const PLAN_NOTE = 'Reads Mezo testnet (the trove contracts, the sorted list and the MezoLens redemption walk), free and with no key; nothing is sent. Amounts are decimal strings; `raw` holds the exact integers (18 decimals). A plan that breaks a rule comes back as data with `refused: true` and the reason. Every answer names the block it was read at.'
+// Every write is a real testnet transaction through the guarded writer; hosts that honour these hints should ask the user first.
+const sends = { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true }
+const WRITE_NOTE = 'Sends a real Mezo testnet transaction through the guarded writer: the operator\'s allow-list, spend caps and kill file apply, and every send is recorded. A refusal means nothing was sent.'
 
-export function createMcpServer({ lens, buyer, payOffReason, ve }: McpOptions): McpServer {
+export function createMcpServer({ lens, buyer, payOffReason, ve, trove }: McpOptions): McpServer {
   const server = new McpServer(
     { name: 'mezo-agent-toolkit', version: pkg.version },
     {
       instructions:
-        `Mezo testnet only. ${ve ? 'Six' : 'Four'} free read tools (MUSD troves, the redemption queue, DEX quotes, veBTC and veMEZO locks${ve ? ', the LIVE vote-escrow status, gauge rewards' : ''}) and pay_and_fetch, which buys data from x402 endpoints in MUSD under spend limits set by the operator.` +
-        (ve?.write ? ' Six more tools (ve_approve_btc, ve_lock, ve_vote, ve_poke, ve_claim_rewards, ve_claim_rebase) send real testnet transactions through a guarded writer, under allow-list and caps the operator set.' : ''),
+        `Mezo testnet only. ${4 + (ve ? 2 : 0) + (trove ? 4 : 0)} free read tools (MUSD troves, the redemption queue, DEX quotes, veBTC and veMEZO locks${ve ? ', the LIVE vote-escrow status, gauge rewards' : ''}${trove ? ', trove plans and status' : ''}) and pay_and_fetch, which buys data from x402 endpoints in MUSD under spend limits set by the operator.` +
+        (ve?.write ? ' Six more tools (ve_approve_btc, ve_lock, ve_vote, ve_poke, ve_claim_rewards, ve_claim_rebase) send real testnet transactions through a guarded writer, under allow-list and caps the operator set.' : '') +
+        (trove?.write ? ' Three more (trove_open, trove_add_coll, trove_repay) open a MUSD trove, add collateral and repay on the same guarded writer; they plan first and refuse what plan_open, plan_top_up or plan_repay would refuse, so read those first.' : ''),
     },
   )
   const readOnly = { readOnlyHint: true, openWorldHint: true }
@@ -137,9 +146,6 @@ export function createMcpServer({ lens, buyer, payOffReason, ve }: McpOptions): 
       (a) => read(() => ve.rewards({ tokenId: a.tokenId })),
     )
     if (w) {
-      // Every write is a real testnet transaction through the guarded writer; hosts that honour these hints should ask the user first.
-      const sends = { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true }
-      const WRITE_NOTE = 'Sends a real Mezo testnet transaction through the guarded writer: the operator\'s allow-list, spend caps and kill file apply, and every send is recorded. A refusal means nothing was sent.'
       const id = { tokenId: z.string().describe('A veBTC NFT id on the LIVE system that the wallet owns, for example "1727"') }
       server.registerTool(
         've_approve_btc',
@@ -200,6 +206,84 @@ export function createMcpServer({ lens, buyer, payOffReason, ve }: McpOptions): 
           annotations: sends,
         },
         (a) => write(() => w.claimRebase({ tokenId: a.tokenId })),
+      )
+    }
+  }
+
+  if (trove) {
+    const w = trove.write
+    const btc = (what: string) => z.string().describe(`${what} as a plain decimal in BTC, for example "0.045"`)
+    const musd = (what: string) => z.string().describe(`${what} as a plain decimal in MUSD, for example "1900"`)
+    server.registerTool(
+      'plan_open',
+      {
+        title: 'Plan opening a MUSD trove',
+        description: `Plan opening a MUSD trove (a collateralised loan) for one wallet: checks the minimum net debt, the 110% minimum ratio, the Recovery Mode rules and the wallet's BTC, then returns the exact calldata with the sorted-list hints, the ratio after, the distance to liquidation, the system ratio, the borrow cap and the redemption position (the redeemable MUSD ahead of it, and how that is counted). debtMusd is what the wallet receives: the 0.1% fee and the 200 MUSD gas reserve are added to the debt. ${PLAN_NOTE}`,
+        inputSchema: { ...addressShape('Wallet that would open the trove'), collateralBtc: btc('BTC to deposit as collateral'), debtMusd: musd('MUSD to borrow') },
+        annotations: readOnly,
+      },
+      (a) => read(() => trove.open({ address: a.address, collateralBtc: a.collateralBtc, debtMusd: a.debtMusd })),
+    )
+    server.registerTool(
+      'plan_top_up',
+      {
+        title: 'Plan adding collateral to a trove',
+        description: `Plan adding BTC collateral to one wallet's open trove: the ratio before and after, the hints, the redemption position after the move and the checks outside and inside Recovery Mode (outside it even a pure top-up must leave the trove at 110% or more). ${PLAN_NOTE}`,
+        inputSchema: { ...addressShape('Owner of the trove'), amountBtc: btc('BTC to add') },
+        annotations: readOnly,
+      },
+      (a) => read(() => trove.topUp({ address: a.address, amountBtc: a.amountBtc })),
+    )
+    server.registerTool(
+      'plan_repay',
+      {
+        title: 'Plan repaying MUSD debt of a trove',
+        description: `Plan repaying MUSD debt of one wallet's open trove: the debt and ratio before and after, the wallet's MUSD, the minimum net debt (what is left after the 200 MUSD gas reserve must stay above it), the hints and the redemption position after the move. Interest is paid first. ${PLAN_NOTE}`,
+        inputSchema: { ...addressShape('Owner of the trove'), amountMusd: musd('MUSD to repay') },
+        annotations: readOnly,
+      },
+      (a) => read(() => trove.repay({ address: a.address, amountMusd: a.amountMusd })),
+    )
+    server.registerTool(
+      'trove_status',
+      {
+        title: 'MUSD trove status with queue position',
+        description: `One trove, for any address, with the numbers the plans use: collateral, principal, interest and debt, the collateral ratio and its distance to the 110% minimum, the system ratio and whether Recovery Mode is on, the stored borrow cap, and the redemption position (the redeemable MUSD ahead of the trove). ${PLAN_NOTE}`,
+        inputSchema: addressShape('Owner of the trove'),
+        annotations: readOnly,
+      },
+      (a) => read(() => trove.status({ address: a.address })),
+    )
+    if (w) {
+      server.registerTool(
+        'trove_open',
+        {
+          title: 'Open a MUSD trove (risky)',
+          description: `Open a MUSD trove for the operator's wallet: deposit BTC as collateral and borrow MUSD. It plans first with the sorted-list hints and refuses what plan_open would refuse (call plan_open and read its warnings first). Risky: the collateral stays in the trove and can be liquidated or redeemed against, so the operator must have set MEZO_WRITE_RISKY=1. The wallet can have one trove at a time. ${WRITE_NOTE}`,
+          inputSchema: { collateralBtc: btc('BTC to deposit as collateral'), debtMusd: musd('MUSD to borrow (the fee and the gas reserve come on top)') },
+          annotations: sends,
+        },
+        (a) => write(() => w.open({ collateralBtc: a.collateralBtc, debtMusd: a.debtMusd })),
+      )
+      server.registerTool(
+        'trove_add_coll',
+        {
+          title: 'Add collateral to the trove',
+          description: `Add BTC collateral to the operator's open trove, which raises its collateral ratio. It plans first and refuses what plan_top_up would refuse. ${WRITE_NOTE}`,
+          inputSchema: { amountBtc: btc('BTC to add') },
+          annotations: sends,
+        },
+        (a) => write(() => w.addColl({ amountBtc: a.amountBtc })),
+      )
+      server.registerTool(
+        'trove_repay',
+        {
+          title: 'Repay MUSD debt of the trove',
+          description: `Repay MUSD debt of the operator's open trove from the wallet's MUSD (no approval needed: the MUSD is burned). Interest is paid first. It plans first and refuses what plan_repay would refuse, including a repayment that leaves less than the minimum net debt. ${WRITE_NOTE}`,
+          inputSchema: { amountMusd: musd('MUSD to repay') },
+          annotations: sends,
+        },
+        (a) => write(() => w.repay({ amountMusd: a.amountMusd })),
       )
     }
   }
