@@ -36,6 +36,10 @@ export const troveManagerAbi = parseAbi([
   'function getCurrentICR(address borrower, uint256 price) view returns (uint256)',
   'function getTroveMaxBorrowingCapacity(address borrower) view returns (uint256)',
   'function getTroveOwnersCount() view returns (uint256)',
+  // Anyone may liquidate a trove under the minimum ratio; the caller earns the gas compensation (200 MUSD and 0.5% of the collateral).
+  'function liquidate(address borrower)',
+  'event TroveLiquidated(address indexed borrower, uint256 debt, uint256 coll, uint8 operation)',
+  'event Liquidation(uint256 liquidatedPrincipal, uint256 liquidatedInterest, uint256 liquidatedColl, uint256 collGasCompensation, uint256 gasCompensation)',
   'function Troves(address borrower) view returns (uint256 coll, uint256 principal, uint256 interestOwed, uint256 stake, uint8 status, uint16 interestRate, uint256 lastInterestUpdateTime, uint256 maxBorrowingCapacity, uint128 arrayIndex)',
 ])
 
@@ -126,3 +130,19 @@ export const rewardAbi = parseAbi([
 ])
 
 export const poolNameAbi = parseAbi(['function name() view returns (string)'])
+
+// The Stability Pool (read from the verified implementation behind the proxy). A deposit is MUSD that absorbs liquidated debt and earns the liquidated BTC.
+export const stabilityPoolAbi = parseAbi([
+  'function provideToSP(uint256 _amount)',
+  'function withdrawFromSP(uint256 _amount)',
+  'function deposits(address) view returns (uint256)',
+  'function getCompoundedMUSDDeposit(address) view returns (uint256)',
+  'function getDepositorCollateralGain(address) view returns (uint256)',
+  'function getTotalMUSDDeposits() view returns (uint256)',
+  'function getCollateralBalance() view returns (uint256)',
+  'function MCR() view returns (uint256)',
+  // The contracts the pool itself asks before it lets a withdrawal through.
+  'function sortedTroves() view returns (address)',
+  'function priceFeed() view returns (address)',
+  'function troveManager() view returns (address)',
+])

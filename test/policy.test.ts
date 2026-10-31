@@ -1,9 +1,9 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { encodeFunctionData, maxUint256, parseAbi, type Abi, type Address } from 'viem'
+import { encodeFunctionData, maxUint256, parseAbi, zeroAddress, type Abi, type Address } from 'viem'
 import { afterAll, describe, expect, it } from 'vitest'
-import { borrowerOperationsAbi, erc20Abi, poolsVoterAbi, rewardsDistributorAbi, veBtcAbi } from '../src/abis.ts'
+import { borrowerOperationsAbi, erc20Abi, poolsVoterAbi, rewardsDistributorAbi, stabilityPoolAbi, troveManagerAbi, veBtcAbi } from '../src/abis.ts'
 import { ADDRESSES, LEGACY_VE } from '../src/config.ts'
 import { ALLOW, DEFAULT_MAX_GAS, MAX_LOCK_SECONDS, checkWrite, policyFromEnv } from '../src/policy.ts'
 import { usedOn } from '../src/receipts.ts'
@@ -83,7 +83,7 @@ describe('checkWrite', () => {
   })
 })
 
-describe('the shipped allow-list holds the LIVE ve and trove actions and nothing else', () => {
+describe('the shipped allow-list holds the LIVE ve, trove, Stability Pool and revoke actions and nothing else', () => {
   const safe = policyFromEnv(env) // the shipped ALLOW, risky off
   const risky = policyFromEnv({ ...env, MEZO_WRITE_RISKY: '1' })
   const call = (to: Address, abi: Abi, functionName: string, args: unknown[], value = 0n) => ({ to, data: encodeFunctionData({ abi, functionName, args }), value })
@@ -97,21 +97,25 @@ describe('the shipped allow-list holds the LIVE ve and trove actions and nothing
   const ones = (n: number) => Array.from({ length: n }, () => 1n)
   const day = 86_400n
 
-  it('has nine entries, all on the LIVE contracts and none on the stalled LEGACY ones, each contract and selector once', () => {
-    expect(ALLOW.map((e) => e.name)).toEqual(['ve_approve_btc', 've_lock', 've_vote', 've_poke', 've_claim_rewards', 've_claim_rebase', 'trove_open', 'trove_add_coll', 'trove_repay'])
-    const live = [ADDRESSES.btc, ADDRESSES.veBTC, ADDRESSES.poolsVoter, ADDRESSES.rewardsDistributor, ADDRESSES.borrowerOperations].map((a) => a.toLowerCase())
+  it('has fifteen entries, all on the LIVE contracts and none on the stalled LEGACY ones; a contract and selector is listed once, except approve (two entries each on BTC and MUSD, told apart by the calldata)', () => {
+    expect(ALLOW.map((e) => e.name)).toEqual([
+      've_approve_btc', 've_lock', 've_vote', 've_poke', 've_claim_rewards', 've_claim_rebase', 'trove_open', 'trove_add_coll', 'trove_repay',
+      'sp_approve_musd', 'sp_deposit', 'sp_withdraw', 'trove_liquidate', 'approve_revoke_btc', 'approve_revoke_musd',
+    ])
+    const live = [ADDRESSES.btc, ADDRESSES.musd, ADDRESSES.veBTC, ADDRESSES.poolsVoter, ADDRESSES.rewardsDistributor, ADDRESSES.borrowerOperations, ADDRESSES.stabilityPool, ADDRESSES.troveManager].map((a) => a.toLowerCase())
     const legacy = Object.values(LEGACY_VE).map((a) => a.toLowerCase())
     for (const e of ALLOW) {
       expect(live, e.name).toContain(e.contract.toLowerCase())
       expect(legacy, e.name).not.toContain(e.contract.toLowerCase())
     }
-    expect(new Set(ALLOW.map((e) => `${e.contract}:${e.selector}`)).size).toBe(ALLOW.length)
-    expect(ALLOW.filter((e) => e.risky).map((e) => e.name)).toEqual(['ve_lock', 'trove_open'])
+    const keys = ALLOW.map((e) => `${e.contract}:${e.selector}`)
+    expect(keys.length - new Set(keys).size).toBe(2) // BTC.approve and MUSD.approve are the only shared functions
+    expect(ALLOW.filter((e) => e.risky).map((e) => e.name)).toEqual(['ve_lock', 'trove_open', 'trove_liquidate'])
   })
 
-  it('approve: only for veBTC, only an exact non-zero amount, and the amount counts as BTC against the caps', () => {
+  it('approve: for veBTC an exact non-zero amount, counted as BTC against the caps; any other spender is refused', () => {
     expect(checkWrite(safe, approve(ADDRESSES.veBTC, u('0.004')), none)).toMatchObject({ ok: true, musd: 0n, btc: u('0.004') })
-    for (const bad of [approve(OTHER, u('0.004')), approve(ADDRESSES.poolsVoter, u('0.004')), approve(ADDRESSES.veBTC, 0n), approve(ADDRESSES.veBTC, maxUint256), approve(ADDRESSES.veBTC, 21_000_000n * 10n ** 18n + 1n)])
+    for (const bad of [approve(OTHER, u('0.004')), approve(ADDRESSES.poolsVoter, u('0.004')), approve(ADDRESSES.veBTC, maxUint256), approve(ADDRESSES.veBTC, 21_000_000n * 10n ** 18n + 1n)])
       expect(reason(checkWrite(safe, bad, none))).toMatch(/cannot read the amounts in the ve_approve_btc calldata/)
     expect(reason(checkWrite(safe, approve(ADDRESSES.veBTC, u('0.011')), none))).toMatch(/over the per-call cap of 0.01 BTC/)
     expect(reason(checkWrite(safe, approve(ADDRESSES.veBTC, 21_000_000n * 10n ** 18n), none))).toMatch(/over the per-call cap/)
@@ -184,6 +188,52 @@ describe('the shipped allow-list holds the LIVE ve and trove actions and nothing
     ])
     const args: Record<string, unknown[]> = { withdrawColl: [1n, OTHER, OTHER], withdrawMUSD: [1n, OTHER, OTHER], closeTrove: [], refinance: [OTHER, OTHER], adjustTrove: [1n, 1n, true, OTHER, OTHER], claimCollateral: [] }
     for (const [name, a] of Object.entries(args)) expect(reason(checkWrite(risky, call(ADDRESSES.borrowerOperations, bo, name, a), none)), name).toMatch(/no allow-list entry for selector 0x[0-9a-f]{8} on 0xCdF7/)
+  })
+
+  const spCall = (name: 'provideToSP' | 'withdrawFromSP', amount: bigint) => call(ADDRESSES.stabilityPool, stabilityPoolAbi, name, [amount])
+  const musdApprove = (spender: Address, amount: bigint) => call(ADDRESSES.musd, erc20Abi, 'approve', [spender, amount])
+  const liquidate = (borrower: Address) => call(ADDRESSES.troveManager, troveManagerAbi, 'liquidate', [borrower])
+
+  it('Stability Pool: an exact MUSD approve to the pool only, a deposit and a withdrawal counted as MUSD, a zero amount refused', () => {
+    expect(checkWrite(safe, musdApprove(ADDRESSES.stabilityPool, u('0.5')), none)).toMatchObject({ ok: true, musd: u('0.5'), btc: 0n, entry: { name: 'sp_approve_musd' } })
+    for (const bad of [musdApprove(OTHER, u('0.5')), musdApprove(ADDRESSES.borrowerOperations, u('0.5')), musdApprove(ADDRESSES.stabilityPool, maxUint256)])
+      expect(reason(checkWrite(safe, bad, none))).toMatch(/cannot read the amounts in the sp_approve_musd calldata/)
+    expect(reason(checkWrite(safe, musdApprove(ADDRESSES.stabilityPool, u('1.5')), none))).toMatch(/1.5 MUSD is over the per-call cap of 1 MUSD/)
+    for (const [name, fn] of [['sp_deposit', 'provideToSP'], ['sp_withdraw', 'withdrawFromSP']] as const) {
+      expect(checkWrite(safe, spCall(fn, u('0.5')), none)).toMatchObject({ ok: true, musd: u('0.5'), btc: 0n, entry: { name } })
+      expect(reason(checkWrite(safe, spCall(fn, u('1.5')), none))).toMatch(/1.5 MUSD is over the per-call cap of 1 MUSD/)
+      expect(reason(checkWrite(safe, spCall(fn, 0n), none))).toContain(`cannot read the amounts in the ${name} calldata`)
+    }
+    expect(reason(checkWrite(safe, { ...spCall('provideToSP', u('0.5')), value: u('0.011') }, none))).toMatch(/over the per-call cap of 0.01 BTC/) // a stray value still counts as BTC
+  })
+
+  it('liquidate: a risky call on someone else\'s trove that moves none of the wallet\'s funds; the zero address is refused', () => {
+    expect(reason(checkWrite(safe, liquidate(OTHER), none))).toMatch(/trove_liquidate is a risky action, refused unless the operator sets MEZO_WRITE_RISKY=1/)
+    expect(checkWrite(risky, liquidate(OTHER), none)).toMatchObject({ ok: true, musd: 0n, btc: 0n, entry: { name: 'trove_liquidate' } })
+    expect(reason(checkWrite(risky, liquidate(zeroAddress), none))).toMatch(/cannot read the amounts in the trove_liquidate calldata/)
+  })
+
+  it('revoke: an approve to exactly 0 for any spender on BTC or MUSD moves nothing, and the policy file can leave it out', () => {
+    for (const [token, name] of [[ADDRESSES.btc, 'approve_revoke_btc'], [ADDRESSES.musd, 'approve_revoke_musd']] as const) {
+      for (const spender of [OTHER, ADDRESSES.veBTC, ADDRESSES.stabilityPool])
+        expect(checkWrite(safe, call(token, erc20Abi, 'approve', [spender, 0n]), none)).toMatchObject({ ok: true, musd: 0n, btc: 0n, entry: { name } })
+      expect(reason(checkWrite(safe, call(token, erc20Abi, 'approve', [zeroAddress, 0n]), none))).toMatch(/cannot read the amounts/)
+    }
+    // The approve entries tell each other apart on the calldata: every approve shape the tools send is accepted by exactly one entry.
+    for (const tx of [approve(ADDRESSES.veBTC, u('0.004')), approve(OTHER, 0n), musdApprove(ADDRESSES.stabilityPool, u('10')), musdApprove(OTHER, 0n)]) {
+      const accepted = ALLOW.filter((e) => e.contract.toLowerCase() === tx.to.toLowerCase() && tx.data.startsWith(e.selector)).filter((e) => { try { e.amounts(tx.data); return true } catch { return false } })
+      expect(accepted.length).toBe(1)
+    }
+    const noRevoke = policyFromEnv({ ...env, MEZO_POLICY_FILE: file(JSON.stringify({ allow: ['ve_approve_btc', 'sp_approve_musd'] })) })
+    expect(reason(checkWrite(noRevoke, approve(OTHER, 0n), none))).toMatch(/cannot read the amounts in the ve_approve_btc calldata/)
+    expect(checkWrite(noRevoke, approve(ADDRESSES.veBTC, u('0.004')), none).ok).toBe(true)
+  })
+
+  it('does not list the other Stability Pool and TroveManager calls: the gain claim into a trove, a batch liquidation, a redemption', () => {
+    const other = parseAbi(['function withdrawCollateralGainToTrove(address, address)', 'function batchLiquidateTroves(address[])', 'function redeemCollateral(uint256, address, address, address, uint256, uint256)'])
+    expect(reason(checkWrite(risky, call(ADDRESSES.stabilityPool, other, 'withdrawCollateralGainToTrove', [OTHER, OTHER]), none))).toMatch(/no allow-list entry for selector 0x[0-9a-f]{8} on 0x1CCA/)
+    expect(reason(checkWrite(risky, call(ADDRESSES.troveManager, other, 'batchLiquidateTroves', [[OTHER]]), none))).toMatch(/no allow-list entry for selector 0x[0-9a-f]{8} on 0xE47c/)
+    expect(reason(checkWrite(risky, call(ADDRESSES.troveManager, other, 'redeemCollateral', [1n, OTHER, OTHER, OTHER, 1n, 1n]), none))).toMatch(/no allow-list entry/)
   })
 
   it('a ve call that carries value is still a BTC transfer for the caps, and the gas fee counts', () => {

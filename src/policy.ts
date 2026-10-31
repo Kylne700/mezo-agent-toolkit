@@ -6,8 +6,8 @@
 // calldata that will be signed, and the transaction value always counts as BTC, so a caller cannot under-declare an amount.
 // Unset caps are 0 (fail closed): a call that moves MUSD or BTC (gas fees included) is refused until the operator sets a cap.
 import { readFileSync } from 'node:fs'
-import { decodeFunctionData, formatUnits, getAbiItem, isAddressEqual, parseUnits, toFunctionSelector, type Abi, type AbiFunction, type Address, type Hex } from 'viem'
-import { borrowerOperationsAbi, erc20Abi, poolsVoterAbi, rewardsDistributorAbi, veBtcAbi } from './abis.ts'
+import { decodeFunctionData, formatUnits, getAbiItem, isAddressEqual, parseUnits, toFunctionSelector, zeroAddress, type Abi, type AbiFunction, type Address, type Hex } from 'viem'
+import { borrowerOperationsAbi, erc20Abi, poolsVoterAbi, rewardsDistributorAbi, stabilityPoolAbi, troveManagerAbi, veBtcAbi } from './abis.ts'
 import { ADDRESSES } from './config.ts'
 
 export type Env = Record<string, string | undefined>
@@ -115,8 +115,51 @@ const TROVE: readonly AllowEntry[] = [
   },
 ]
 
-/** Every contract function the write path may call: the LIVE ve system and the trove calls (see docs/THREAT-MODEL.md). Nothing else is allowed, and the operator's caps still apply to each call. */
-export const ALLOW: readonly AllowEntry[] = [...VE, ...TROVE]
+// The Stability Pool, liquidation and allowance clean-up. A deposit pulls MUSD with transferFrom, so sp_approve_musd comes first (exact, to the pool only, counted as MUSD like the deposit it pays for).
+// A withdrawal is counted at the requested amount, the most it can move. A liquidation moves none of the wallet's funds (the caller is paid for it) but is risky: it is the protocol's own call on someone else's trove.
+// A revoke only lowers an allowance to 0 and so moves nothing. The approve entries share a function with ve_approve_btc, so each one decides on the calldata (see checkWrite).
+const revoke = (data: Hex) => {
+  const [spender, amount] = argsOf(erc20Abi, data)
+  if (amount !== 0n) throw new Error('a revoke sets the allowance to exactly 0')
+  if (isAddressEqual(spender, zeroAddress)) throw new Error('a revoke needs a spender')
+  return NO_FUNDS
+}
+const spAmount = (data: Hex) => {
+  const [amount] = argsOf(stabilityPoolAbi, data)
+  if (amount === 0n) throw new Error('an amount must be non-zero') // withdrawFromSP(0) only claims the BTC gain and is not offered
+  return { musd: amount, btc: 0n }
+}
+const STABILITY: readonly AllowEntry[] = [
+  {
+    name: 'sp_approve_musd',
+    contract: ADDRESSES.musd,
+    selector: selectorOf(erc20Abi, 'approve'),
+    amounts: (data) => {
+      const [spender, amount] = argsOf(erc20Abi, data)
+      if (!isAddressEqual(spender, ADDRESSES.stabilityPool)) throw new Error('the spender must be the Stability Pool')
+      if (amount === 0n || amount > UNLIMITED_BTC) throw new Error('an approval must be an exact, non-zero amount')
+      return { musd: amount, btc: 0n }
+    },
+  },
+  { name: 'sp_deposit', contract: ADDRESSES.stabilityPool, selector: selectorOf(stabilityPoolAbi, 'provideToSP'), amounts: spAmount },
+  { name: 'sp_withdraw', contract: ADDRESSES.stabilityPool, selector: selectorOf(stabilityPoolAbi, 'withdrawFromSP'), amounts: spAmount },
+  {
+    name: 'trove_liquidate',
+    contract: ADDRESSES.troveManager,
+    selector: selectorOf(troveManagerAbi, 'liquidate'),
+    risky: true, // it acts on a stranger's trove and moves the liquidated debt and collateral through the pools
+    amounts: (data) => {
+      const [borrower] = argsOf(troveManagerAbi, data)
+      if (isAddressEqual(borrower, zeroAddress)) throw new Error('a liquidation needs a borrower')
+      return NO_FUNDS
+    },
+  },
+  { name: 'approve_revoke_btc', contract: ADDRESSES.btc, selector: selectorOf(erc20Abi, 'approve'), amounts: revoke },
+  { name: 'approve_revoke_musd', contract: ADDRESSES.musd, selector: selectorOf(erc20Abi, 'approve'), amounts: revoke },
+]
+
+/** Every contract function the write path may call: the LIVE ve system, the trove calls, the Stability Pool and the allowance clean-up (see docs/THREAT-MODEL.md). Nothing else is allowed, and the operator's caps still apply to each call. */
+export const ALLOW: readonly AllowEntry[] = [...VE, ...TROVE, ...STABILITY]
 
 /** Gas cap of one write; a policy file can only lower it. */
 export const DEFAULT_MAX_GAS = 3_000_000n
@@ -198,7 +241,9 @@ export function policyFromEnv(env: Env, allow: readonly AllowEntry[] = ALLOW): P
  */
 export function checkWrite(p: Policy, tx: { to: Address; data: Hex; value: bigint }, used: Amounts, fee = 0n): Check {
   const selector = tx.data.slice(0, 10).toLowerCase()
-  const entry = p.allow.find((e) => isAddressEqual(e.contract, tx.to) && e.selector.toLowerCase() === selector)
+  const matches = p.allow.filter((e) => isAddressEqual(e.contract, tx.to) && e.selector.toLowerCase() === selector)
+  // Entries can share a function (approve: an exact approval for one spender, or a revoke to 0): the first whose amounts() accepts this calldata decides; if none does, the first one names the refusal.
+  const entry = matches.find((e) => { try { e.amounts(tx.data); return true } catch { return false } }) ?? matches[0]
   if (!entry) return { ok: false, reason: `no allow-list entry for selector ${selector} on ${tx.to}` }
   if (entry.risky && !p.risky) return { ok: false, reason: `${entry.name} is a risky action, refused unless the operator sets MEZO_WRITE_RISKY=1` }
   let moved: Amounts

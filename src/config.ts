@@ -29,6 +29,7 @@ export const ADDRESSES = {
   hintHelpers: '0x4e4cBA3779d56386ED43631b4dCD6d8EacEcBCF6',
   priceFeed: '0x86bCF0841622a5dAC14A313a15f96A95421b9366',
   borrowerOperations: '0xCdF7028ceAB81fA0C6971208e83fa7872994beE5',
+  stabilityPool: '0x1CCA7E410eE41739792eA0A24e00349Dd247680e', // the proxy; the verified implementation is 0x8f0cA419bB1D54AF4Bf6A644f605cC247d6d3E19
   poolRouter: '0x9a1ff7FE3a0F69959A3fBa1F1e5ee18e1A9CD7E9',
   // The LIVE vote-escrow system (the one testnet.mezo.org uses; it distributes every epoch).
   veBTC: '0x38E35d92E6Bfc6787272A62345856B13eA12130a',

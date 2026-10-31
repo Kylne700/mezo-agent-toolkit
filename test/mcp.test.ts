@@ -13,6 +13,7 @@ import { InputError } from '../src/inputs.ts'
 import { buyerFromEnv, DEFAULT_PAY_HOSTS, LIVE_HOSTS, payHosts, veFromEnv } from '../src/mcp-env.ts'
 import { createMcpServer, type McpOptions } from '../src/mcp-server.ts'
 import { checkUrl } from '../src/pay.ts'
+import type { Sp } from '../src/sp-actions.ts'
 import type { Trove } from '../src/trove-actions.ts'
 import type { Outcome, Ve } from '../src/ve-actions.ts'
 import { pool, veWorld } from './helpers/ve.ts'
@@ -487,6 +488,130 @@ describe('the trove tools', () => {
   })
 })
 
+const SP_READS = ['sp_status', 'allowance_status']
+const SP_WRITES = ['sp_approve_musd', 'sp_deposit', 'sp_withdraw', 'trove_liquidate', 'approve_revoke']
+/** An Sp whose two readers answer with the call they got and whose five writers record their input and answer with `next()`. */
+function stubSp(next: () => Promise<Outcome> = async () => mined, seen: [string, unknown][] = [], answer: () => Promise<object> = async () => ({ blockNumber: 9 })): Sp {
+  const reads = (name: string) => (input: unknown) => (seen.push([name, input]), answer()) as never
+  const via = (name: string) => (input: unknown) => (seen.push([name, input]), next())
+  return { status: reads('status'), allowances: reads('allowances'), write: { approveMusd: via('write.approveMusd'), deposit: via('write.deposit'), withdraw: via('write.withdraw'), liquidate: via('write.liquidate'), revoke: via('write.revoke') } }
+}
+
+describe('the Stability Pool tools', () => {
+  const listTools = async (sp?: Sp, trove?: Trove, ve?: Ve) => (await (await connect({ lens: fakeLens(), sp, trove, ve })).listTools()).tools
+
+  it('the two reads come with sp; the five sending tools only when sp.write exists, and none takes a key, cap, gas or a wallet to send from', async () => {
+    expect((await listTools()).map((t) => t.name).sort()).toEqual([...READS].sort())
+    const readsOnly = await listTools({ ...stubSp(), write: undefined })
+    expect(readsOnly.map((t) => t.name).sort()).toEqual([...READS, ...SP_READS].sort())
+    for (const t of readsOnly.filter((x) => x.name !== 'pay_and_fetch')) expect(t.annotations?.readOnlyHint, t.name).toBe(true)
+
+    const all = await listTools(stubSp(), stubTrove(), stubVe())
+    expect(all.map((t) => t.name).sort()).toEqual([...READS, ...VE_READS, ...VE_WRITES, ...TROVE_READS, ...TROVE_WRITES, ...SP_READS, ...SP_WRITES].sort())
+    for (const n of SP_WRITES) expect(all.find((t) => t.name === n)!.annotations, n).toMatchObject({ readOnlyHint: false, destructiveHint: true, idempotentHint: false })
+    const tool = (n: string) => all.find((t) => t.name === n)!
+    const props = (n: string) => Object.keys(tool(n).inputSchema.properties ?? {})
+    expect(props('sp_status')).toEqual(['address'])
+    expect(props('allowance_status')).toEqual(['address', 'spender'])
+    expect(tool('allowance_status').inputSchema.required).toEqual(['address'])
+    expect(props('sp_approve_musd')).toEqual(['amount']) // the writers act for the operator's wallet only
+    expect(props('sp_deposit')).toEqual(['amount'])
+    expect(props('sp_withdraw')).toEqual(['amount'])
+    expect(props('trove_liquidate')).toEqual(['borrower'])
+    expect(props('approve_revoke')).toEqual(['token', 'spender'])
+    expect((tool('approve_revoke').inputSchema.properties as Record<string, { enum?: string[] }>).token!.enum).toEqual(['BTC', 'MUSD']) // no other token, no amount: it only sets 0
+    expect(tool('trove_liquidate').description).toMatch(/Risky:.*MEZO_WRITE_RISKY=1/)
+
+    const readsText = (await connect({ lens: fakeLens(), sp: { ...stubSp(), write: undefined } })).getInstructions()
+    expect(readsText).toMatch(/^Mezo testnet only\. 6 free read tools .*the Stability Pool and token allowances/)
+    expect(readsText).not.toMatch(/sp_deposit/)
+    const full = (await connect({ lens: fakeLens(), ve: stubVe(), trove: stubTrove(), sp: stubSp() })).getInstructions()
+    expect(full).toMatch(/^Mezo testnet only\. 12 free read tools/)
+    expect(full).toMatch(/Five more \(sp_approve_musd, sp_deposit, sp_withdraw, trove_liquidate, approve_revoke\) approve and deposit MUSD to the Stability Pool/)
+  })
+
+  it('the readers answer as text and as structured content with their arguments passed on, and leave out a spender nobody named', async () => {
+    const seen: [string, unknown][] = []
+    const client = await connect({ lens: fakeLens(), sp: stubSp(undefined, seen) })
+    for (const [name, args] of [['sp_status', { address: WALLET }], ['allowance_status', { address: WALLET }], ['allowance_status', { address: WALLET, spender: WALLET }]] as const) {
+      const r = await call(client, name, args)
+      expect(r.isError, name).toBeFalsy()
+      expect(r.structuredContent).toEqual({ blockNumber: 9 })
+      expect(JSON.parse(r.content[0]!.text)).toEqual(r.structuredContent)
+    }
+    expect(seen).toEqual([['status', { address: WALLET }], ['allowances', { address: WALLET }], ['allowances', { address: WALLET, spender: WALLET }]])
+  })
+
+  it('turns bad input and a chain failure of a reader into tool errors and keeps serving', async () => {
+    let answer: () => Promise<object> = () => Promise.reject(new InputError('address must be a 0x address with 40 hex characters'))
+    const client = await connect({ lens: fakeLens(), sp: stubSp(undefined, [], () => answer()) })
+    expect(await call(client, 'sp_status', { address: 'x' })).toMatchObject({ isError: true, content: [{ type: 'text', text: 'address must be a 0x address with 40 hex characters' }] })
+    answer = () => Promise.reject(Object.assign(new Error('a very long message'), { shortMessage: 'boom' }))
+    expect(await call(client, 'allowance_status', { address: WALLET })).toMatchObject({ isError: true, content: [{ type: 'text', text: 'chain read failed, try again: boom' }] })
+    answer = async () => ({ ok: true })
+    expect((await call(client, 'sp_status', { address: WALLET })).isError).toBeFalsy()
+  })
+
+  it('maps every outcome the same way for each sending tool: success, refusal, reverted, no receipt, bad input, crash', async () => {
+    const seen: [string, unknown][] = []
+    let next: () => Promise<Outcome> = async () => mined
+    const client = await connect({ lens: fakeLens(), sp: stubSp(() => next(), seen) })
+    const args: Record<string, Record<string, unknown>> = {
+      sp_approve_musd: { amount: '10' },
+      sp_deposit: { amount: '10' },
+      sp_withdraw: { amount: '1' },
+      trove_liquidate: { borrower: WALLET },
+      approve_revoke: { token: 'MUSD', spender: WALLET },
+    }
+    for (const [name, a] of Object.entries(args)) {
+      next = async () => mined
+      const good = await call(client, name, a)
+      expect(good.isError, name).toBeFalsy()
+      expect(good.structuredContent, name).toMatchObject({ sent: true, status: 'success', hash: HASH })
+      expect(JSON.parse(good.content[0]!.text)).toEqual(good.structuredContent)
+
+      next = async () => ({ sent: false, reason: 'the pool refuses every non-zero withdrawal' })
+      const refused = await call(client, name, a)
+      expect(refused.isError, name).toBe(true)
+      expect(refused.content[0]!.text).toBe('Refused, nothing was sent: the pool refuses every non-zero withdrawal')
+      expect(refused.structuredContent).toEqual({ sent: false, reason: 'the pool refuses every non-zero withdrawal' })
+
+      next = async () => ({ ...mined, status: 'reverted' }) as Outcome
+      const reverted = await call(client, name, a)
+      expect(reverted.isError, name).toBe(true)
+      expect(reverted.structuredContent).toMatchObject({ sent: true, status: 'reverted', hash: HASH, warning: expect.stringMatching(/mined and reverted/) })
+
+      next = async () => ({ ...mined, status: 'unknown', blockNumber: null, gasUsed: null }) as Outcome
+      const unknown = await call(client, name, a)
+      expect(unknown.isError, name).toBe(true)
+      expect(unknown.structuredContent.warning).toMatch(/No receipt arrived in time.*Check the hash/)
+
+      next = async () => Promise.reject(new InputError('amount must be a plain positive decimal number'))
+      expect(await call(client, name, a), name).toMatchObject({ isError: true, content: [{ type: 'text', text: 'amount must be a plain positive decimal number' }] })
+
+      next = async () => Promise.reject(Object.assign(new Error('a very long message'), { shortMessage: 'boom' }))
+      const crash = await call(client, name, a)
+      expect(crash.isError, name).toBe(true)
+      expect(crash.content[0]!.text).toMatch(/^The tool failed \(boom\)\. If a transaction may have been sent, check the receipts file and the chain before trying again\.$/)
+    }
+    // Each tool handed the writer exactly its own arguments.
+    expect(new Set(seen.map((s) => JSON.stringify(s)))).toEqual(
+      new Set([['write.approveMusd', args.sp_approve_musd], ['write.deposit', args.sp_deposit], ['write.withdraw', args.sp_withdraw], ['write.liquidate', args.trove_liquidate], ['write.revoke', args.approve_revoke]].map((x) => JSON.stringify(x))),
+    )
+  })
+
+  it('drops arguments the schema does not list (a wallet, a key file, a gas) and rejects a token other than BTC or MUSD before the writer sees anything', async () => {
+    const seen: [string, unknown][] = []
+    const client = await connect({ lens: fakeLens(), sp: stubSp(undefined, seen) })
+    await call(client, 'sp_deposit', { amount: '10', address: WALLET, keyFile: '/tmp/other.key', gas: 1 })
+    await call(client, 'approve_revoke', { token: 'MUSD', spender: WALLET, amount: '5' })
+    expect(seen).toEqual([['write.deposit', { amount: '10' }], ['write.revoke', { token: 'MUSD', spender: WALLET }]])
+    const bad = await call(client, 'approve_revoke', { token: 'MEZO', spender: WALLET }).then((r) => r.isError, () => true)
+    expect(bad).toBe(true)
+    expect(seen).toHaveLength(2)
+  })
+})
+
 describe('veFromEnv', () => {
   const dir = mkdtempSync(join(tmpdir(), 'mezo-mcp-ve-'))
   afterAll(() => rmSync(dir, { recursive: true, force: true }))
@@ -553,8 +678,8 @@ describe('the real stdio entry', () => {
     transport.stderr?.on('data', (d: Buffer) => (stderr += d.toString()))
     await client.connect(transport)
     const { tools } = await client.listTools()
-    // The two ve reads and the four trove reads are always on; the nine sending tools need MEZO_WRITE_ENABLE=testnet, which this clean environment lacks.
-    expect(tools.map((t) => t.name).sort()).toEqual(['gauge_rewards', 'pay_and_fetch', 'plan_open', 'plan_repay', 'plan_top_up', 'pool_quote', 'redemption_risk', 'trove_health', 'trove_status', 've_locks', 've_status'])
+    // The two ve reads, the four trove reads and the two Stability Pool reads are always on; the fourteen sending tools need MEZO_WRITE_ENABLE=testnet, which this clean environment lacks.
+    expect(tools.map((t) => t.name).sort()).toEqual(['allowance_status', 'gauge_rewards', 'pay_and_fetch', 'plan_open', 'plan_repay', 'plan_top_up', 'pool_quote', 'redemption_risk', 'sp_status', 'trove_health', 'trove_status', 've_locks', 've_status'])
     const r = await call(client, 'pay_and_fetch', { url })
     expect(r.isError).toBe(true)
     expect(r.content[0]!.text).toMatch(/switched off.*MEZO_KEY_FILE/)

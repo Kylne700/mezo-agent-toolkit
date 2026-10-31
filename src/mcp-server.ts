@@ -1,7 +1,8 @@
 // The MCP server: four free chain reads through the MezoLens contract, one tool that pays for data over x402 under hard spend limits,
-// two free reads of the LIVE vote-escrow system (ve_status, gauge_rewards), four free trove planners (plan_open, plan_top_up, plan_repay, trove_status) and,
-// only when the operator turns writes on, nine guarded write tools (six vote-escrow, three trove).
-// The factory takes the lens, the buyer, the ve tools and the trove tools as arguments (no files, no environment), so tests run it in memory and the stdio entry (mcp.ts) wires the real ones.
+// two free reads of the LIVE vote-escrow system (ve_status, gauge_rewards), four free trove planners (plan_open, plan_top_up, plan_repay, trove_status),
+// two free reads of the Stability Pool and of token allowances (sp_status, allowance_status) and, only when the operator turns writes on, fourteen guarded write tools
+// (six vote-escrow, three trove, five Stability Pool / liquidation / allowance).
+// The factory takes the lens, the buyer, the ve, trove and Stability Pool tools as arguments (no files, no environment), so tests run it in memory and the stdio entry (mcp.ts) wires the real ones.
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
@@ -9,6 +10,7 @@ import pkg from '../package.json' with { type: 'json' }
 import { InputError, addressShape, parseAddress, parseAmountText, parseBool, parseToken, poolShape } from './inputs.ts'
 import type { Lens } from './lens.ts'
 import { PaymentRefused, type Buyer } from './pay.ts'
+import type { Sp } from './sp-actions.ts'
 import type { Trove } from './trove-actions.ts'
 import type { Outcome, Ve } from './ve-actions.ts'
 
@@ -21,6 +23,8 @@ export interface McpOptions {
   ve?: Ve
   /** The trove planners and trove_status. Without it they are not offered; its `write` part exists only when the operator enabled writes. */
   trove?: Trove
+  /** sp_status and allowance_status. Without it they are not offered; its `write` part exists only when the operator enabled writes. */
+  sp?: Sp
 }
 
 const text = (s: string) => [{ type: 'text' as const, text: s }]
@@ -56,16 +60,18 @@ const READ_NOTE = 'Reads Mezo testnet through the MezoLens contract, free and wi
 const PLAN_NOTE = 'Reads Mezo testnet (the trove contracts, the sorted list and the MezoLens redemption walk), free and with no key; nothing is sent. Amounts are decimal strings; `raw` holds the exact integers (18 decimals). A plan that breaks a rule comes back as data with `refused: true` and the reason. Every answer names the block it was read at.'
 // Every write is a real testnet transaction through the guarded writer; hosts that honour these hints should ask the user first.
 const sends = { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true }
+const SP_NOTE = 'Reads Mezo testnet (the Stability Pool, the sorted trove list, the price feed and token allowances), free and with no key; nothing is sent. Amounts are decimal strings; `raw` holds the exact integers (18 decimals). Every answer names the block it was read at.'
 const WRITE_NOTE = 'Sends a real Mezo testnet transaction through the guarded writer: the operator\'s allow-list, spend caps and kill file apply, and every send is recorded. A refusal means nothing was sent.'
 
-export function createMcpServer({ lens, buyer, payOffReason, ve, trove }: McpOptions): McpServer {
+export function createMcpServer({ lens, buyer, payOffReason, ve, trove, sp }: McpOptions): McpServer {
   const server = new McpServer(
     { name: 'mezo-agent-toolkit', version: pkg.version },
     {
       instructions:
-        `Mezo testnet only. ${4 + (ve ? 2 : 0) + (trove ? 4 : 0)} free read tools (MUSD troves, the redemption queue, DEX quotes, veBTC and veMEZO locks${ve ? ', the LIVE vote-escrow status, gauge rewards' : ''}${trove ? ', trove plans and status' : ''}) and pay_and_fetch, which buys data from x402 endpoints in MUSD under spend limits set by the operator.` +
+        `Mezo testnet only. ${4 + (ve ? 2 : 0) + (trove ? 4 : 0) + (sp ? 2 : 0)} free read tools (MUSD troves, the redemption queue, DEX quotes, veBTC and veMEZO locks${ve ? ', the LIVE vote-escrow status, gauge rewards' : ''}${trove ? ', trove plans and status' : ''}${sp ? ', the Stability Pool and token allowances' : ''}) and pay_and_fetch, which buys data from x402 endpoints in MUSD under spend limits set by the operator.` +
         (ve?.write ? ' Six more tools (ve_approve_btc, ve_lock, ve_vote, ve_poke, ve_claim_rewards, ve_claim_rebase) send real testnet transactions through a guarded writer, under allow-list and caps the operator set.' : '') +
-        (trove?.write ? ' Three more (trove_open, trove_add_coll, trove_repay) open a MUSD trove, add collateral and repay on the same guarded writer; they plan first and refuse what plan_open, plan_top_up or plan_repay would refuse, so read those first.' : ''),
+        (trove?.write ? ' Three more (trove_open, trove_add_coll, trove_repay) open a MUSD trove, add collateral and repay on the same guarded writer; they plan first and refuse what plan_open, plan_top_up or plan_repay would refuse, so read those first.' : '') +
+        (sp?.write ? ' Five more (sp_approve_musd, sp_deposit, sp_withdraw, trove_liquidate, approve_revoke) approve and deposit MUSD to the Stability Pool, take it out, liquidate a trove under the 110% minimum and revoke an allowance on the same guarded writer; they read first and refuse what would revert, with the reason (sp_status says whether a withdrawal is blocked).' : ''),
     },
   )
   const readOnly = { readOnlyHint: true, openWorldHint: true }
@@ -284,6 +290,83 @@ export function createMcpServer({ lens, buyer, payOffReason, ve, trove }: McpOpt
           annotations: sends,
         },
         (a) => write(() => w.repay({ amountMusd: a.amountMusd })),
+      )
+    }
+  }
+
+  if (sp) {
+    const w = sp.write
+    const musd = (what: string) => z.string().describe(`${what} as a plain decimal in MUSD, for example "10"`)
+    server.registerTool(
+      'sp_status',
+      {
+        title: 'Stability Pool status and withdraw check',
+        description: `One depositor's position in the Stability Pool (the MUSD pool that absorbs liquidations and earns the liquidated BTC): the deposit after liquidation losses, the MUSD lost, the pending BTC gain and the pool totals. It also says whether a withdrawal is blocked right now: the pool refuses every non-zero withdrawal while a trove is under the 110% minimum ratio. The answer gives the lowest ratio found, which trove it is, how it was found, and the troves under 110% (the ones trove_liquidate can liquidate). ${SP_NOTE}`,
+        inputSchema: addressShape('Depositor'),
+        annotations: readOnly,
+      },
+      (a) => read(() => sp.status({ address: a.address })),
+    )
+    server.registerTool(
+      'allowance_status',
+      {
+        title: 'Token allowances a wallet has given',
+        description: `The BTC and MUSD allowances one wallet has given to the Stability Pool, BorrowerOperations, veBTC, veMEZO, permit2, the x402 proxy, the pool router, the old veBTC and one more spender you name. Only non-zero allowances are listed, with the exact amount, and the answer says what was checked. Use it before approve_revoke. ${SP_NOTE}`,
+        inputSchema: { ...addressShape('Wallet that gave the allowances'), spender: z.string().optional().describe('One more spender to check (0x address)') },
+        annotations: readOnly,
+      },
+      (a) => read(() => sp.allowances({ address: a.address, ...(a.spender === undefined ? {} : { spender: a.spender }) })),
+    )
+    if (w) {
+      server.registerTool(
+        'sp_approve_musd',
+        {
+          title: 'Approve MUSD for the Stability Pool',
+          description: `Let the Stability Pool pull exactly this much MUSD from the operator's wallet; the deposit uses it up. Never unlimited. Refused when the allowance already equals the amount. Call it before sp_deposit. ${WRITE_NOTE}`,
+          inputSchema: { amount: musd('MUSD to allow') },
+          annotations: sends,
+        },
+        (a) => write(() => w.approveMusd({ amount: a.amount })),
+      )
+      server.registerTool(
+        'sp_deposit',
+        {
+          title: 'Deposit MUSD into the Stability Pool',
+          description: `Deposit MUSD from the operator's wallet into the Stability Pool; it also pays out any pending BTC gain. It reads first and refuses when the allowance (see sp_approve_musd) or the balance is too small. The deposit can lose value when it absorbs a liquidation, and a withdrawal can be blocked (see sp_status). ${WRITE_NOTE}`,
+          inputSchema: { amount: musd('MUSD to deposit') },
+          annotations: sends,
+        },
+        (a) => write(() => w.deposit({ amount: a.amount })),
+      )
+      server.registerTool(
+        'sp_withdraw',
+        {
+          title: 'Withdraw MUSD from the Stability Pool',
+          description: `Withdraw MUSD from the operator's Stability Pool deposit. It refuses, with the lowest ratio found and the simulation's own revert text, while the pool is blocked by a trove under the 110% minimum (check sp_status), and when the amount is above the deposit. ${WRITE_NOTE}`,
+          inputSchema: { amount: musd('MUSD to withdraw') },
+          annotations: sends,
+        },
+        (a) => write(() => w.withdraw({ amount: a.amount })),
+      )
+      server.registerTool(
+        'trove_liquidate',
+        {
+          title: 'Liquidate a trove under 110% (risky)',
+          description: `Liquidate one other wallet's trove with the protocol's own liquidate call: the trove's debt is paid from the Stability Pool and the caller gets the gas compensation (200 MUSD and 0.5% of the collateral). It refuses unless the trove is active and under the 110% minimum ratio at the block it reads (sp_status lists candidates). Risky: it acts on someone else's position, so the operator must have set MEZO_WRITE_RISKY=1. ${WRITE_NOTE}`,
+          inputSchema: { borrower: z.string().describe('Owner of the trove to liquidate (0x address)') },
+          annotations: sends,
+        },
+        (a) => write(() => w.liquidate({ borrower: a.borrower })),
+      )
+      server.registerTool(
+        'approve_revoke',
+        {
+          title: 'Revoke a token allowance',
+          description: `Set an allowance the operator's wallet gave on BTC or MUSD back to 0 (check allowance_status first). Refused when the allowance is already 0. ${WRITE_NOTE}`,
+          inputSchema: { token: z.enum(['BTC', 'MUSD']).describe('BTC or MUSD'), spender: z.string().describe('Spender whose allowance to remove (0x address)') },
+          annotations: sends,
+        },
+        (a) => write(() => w.revoke({ token: a.token, spender: a.spender })),
       )
     }
   }

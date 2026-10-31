@@ -7,6 +7,7 @@ import { CHAIN_ID, RPC_URL } from './config.ts'
 import { createLens } from './lens.ts'
 import { buyerFromEnv, veFromEnv } from './mcp-env.ts'
 import { createMcpServer } from './mcp-server.ts'
+import { createSp } from './sp-actions.ts'
 import { createTrove } from './trove-actions.ts'
 
 const HELP = `mezo-agent-toolkit ${pkg.version}: an MCP server for Mezo testnet (free chain reads, and optional MUSD payments over x402)
@@ -18,7 +19,7 @@ const HELP = `mezo-agent-toolkit ${pkg.version}: an MCP server for Mezo testnet 
 
 Claude Code: claude mcp add mezo -- npx -y mezo-agent-toolkit
 Environment (all optional): MEZO_RPC_URL, MEZO_KEY_FILE (switches pay_and_fetch on), MEZO_MAX_PER_CALL_MUSD, MEZO_MAX_PER_SESSION_MUSD, MEZO_PAY_ALLOWED_HOSTS
-Testnet writes (the ve_* and trove_* tools; off unless MEZO_WRITE_ENABLE=testnet): MEZO_KEY_FILE, MEZO_WRITE_RECEIPTS_FILE, MEZO_WRITE_MAX_{MUSD,BTC}_PER_{CALL,DAY} (unset = 0), MEZO_WRITE_RISKY=1 (needed for ve_lock and trove_open), MEZO_POLICY_FILE, MEZO_WRITE_KILL_FILE
+Testnet writes (the ve_*, trove_*, sp_* tools and approve_revoke; off unless MEZO_WRITE_ENABLE=testnet): MEZO_KEY_FILE, MEZO_WRITE_RECEIPTS_FILE, MEZO_WRITE_MAX_{MUSD,BTC}_PER_{CALL,DAY} (unset = 0), MEZO_WRITE_RISKY=1 (needed for ve_lock, trove_open and trove_liquidate), MEZO_POLICY_FILE, MEZO_WRITE_KILL_FILE
 More: https://github.com/Kylne700/mezo-agent-toolkit/blob/main/docs/INSTALL.md`
 
 // A viem error's shortMessage leaves out the request URL and body, which can carry an RPC key.
@@ -48,14 +49,14 @@ async function doctor(): Promise<number> {
     const { buyer, offReason } = buyerFromEnv(process.env, chain)
     const { ve, writer } = veFromEnv(process.env, chain)
     const lens = createLens(chain)
-    const server = createMcpServer({ lens, buyer, payOffReason: offReason, ve, trove: createTrove(chain, lens, writer) })
+    const server = createMcpServer({ lens, buyer, payOffReason: offReason, ve, trove: createTrove(chain, lens, writer), sp: createSp(chain, writer) })
     const client = new Client({ name: 'doctor', version: pkg.version })
     const [a, b] = InMemoryTransport.createLinkedPair()
     await Promise.all([server.connect(a), client.connect(b)])
     const { tools } = await client.listTools()
     row('tools', tools.length > 0, `${tools.length}: ${tools.map((t) => t.name).join(', ')}`)
-    // The tools that spend or send: pay_and_fetch (MUSD) and the ve and trove write tools (testnet transactions). Widen this when more tools can write.
-    const on = [buyer && 'pay_and_fetch can spend MUSD within the operator limits', writer && !writer.offReason && 'the ve and trove write tools can send testnet transactions within the write caps'].filter(Boolean)
+    // The tools that spend or send: pay_and_fetch (MUSD) and the ve, trove and Stability Pool write tools (testnet transactions). Widen this when more tools can write.
+    const on = [buyer && 'pay_and_fetch can spend MUSD within the operator limits', writer && !writer.offReason && 'the ve, trove and Stability Pool write tools can send testnet transactions within the write caps'].filter(Boolean)
     console.log(`     writes    enabled: ${on.length > 0 ? `yes, ${on.join('; ')}` : `no, ${offReason}`}`)
     if (writer?.offReason) console.log(`     writes asked for but off: ${writer.offReason}`)
   } catch (e) {
