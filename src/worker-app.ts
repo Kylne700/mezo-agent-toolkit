@@ -7,12 +7,14 @@ import { ExactEvmScheme } from '@x402/evm/exact/server'
 import type { Hono } from 'hono'
 import { createPublicClient, formatUnits, getAddress, http, isAddress, isAddressEqual, type Address } from 'viem'
 import deployment from '../deployments/testnet.json' with { type: 'json' }
-import { createApp, DEFAULT_PRICE } from './app.ts'
+import { createApp, DEFAULT_PRICE, PLAN_PRICE, type AppOptions } from './app.ts'
 import { ADDRESSES, CHAIN_ID, DEFAULT_PAYEE, FACILITATOR_URL, NETWORK, RPC_URL, mezoTestnet } from './config.ts'
 import { consoleResponse, PAID_ROUTES } from './console.ts'
 import { createLens, type Lens } from './lens.ts'
+import { createPlanner } from './plan.ts'
 import { recentPayments, type PaymentsChain, type PaymentsResult } from './payments.ts'
 import type { LogReader, RecoveryOptions } from './recover.ts'
+import { createSp } from './sp-actions.ts'
 
 export interface Env {
   PAYEE_ADDRESS?: string
@@ -61,6 +63,8 @@ export interface WorkerDeps {
   facilitator?: FacilitatorClient
   recovery?: RecoveryOptions
   now?: () => number
+  /** The planners behind POST /plan/*. Without it they read the same chain as the lens (read-only: the Worker holds no key). */
+  plans?: AppOptions['plans']
 }
 
 export interface WorkerApp {
@@ -91,6 +95,7 @@ export function createWorker(s: Settings, deps: WorkerDeps = {}): WorkerApp {
       facilitatorUrl: s.facilitatorUrl,
       chain,
       recovery: deps.recovery,
+      plans: deps.plans ?? { planner: createPlanner(client, lens), sp: createSp(client) },
       facilitator: { verify: (p, r) => facilitator.verify(p, r), settle: (p, r) => facilitator.settle(p, r), getSupported: async () => supported },
     }))
   }
@@ -124,13 +129,16 @@ export function createWorker(s: Settings, deps: WorkerDeps = {}): WorkerApp {
 
   /** What the page says about the price comes from the same parser that builds the 402 challenge. */
   async function page(request: Request): Promise<Response> {
-    const { amount, asset } = await new ExactEvmScheme().parsePrice(s.price, NETWORK)
-    if (!isAddressEqual(asset as Address, ADDRESSES.musd)) throw new Error('the price would not be paid in MUSD')
+    const scheme = new ExactEvmScheme()
+    const { amount, asset } = await scheme.parsePrice(s.price, NETWORK)
+    const plan = await scheme.parsePrice(PLAN_PRICE, NETWORK)
+    if (!isAddressEqual(asset as Address, ADDRESSES.musd) || !isAddressEqual(plan.asset as Address, ADDRESSES.musd)) throw new Error('the price would not be paid in MUSD')
     return consoleResponse({
       origin: new URL(request.url).origin,
       network: NETWORK,
       chainId: CHAIN_ID,
       priceMusd: formatUnits(BigInt(amount), 18),
+      planPriceMusd: formatUnits(BigInt(plan.amount), 18),
       payee: s.payTo,
       lens: lens.address,
       facilitatorHost: new URL(s.facilitatorUrl).host,

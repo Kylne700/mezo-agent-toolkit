@@ -488,19 +488,19 @@ describe('the trove tools', () => {
   })
 })
 
-const SP_READS = ['sp_status', 'allowance_status']
+const SP_READS = ['sp_status', 'allowance_status', 'plan_sp_deposit']
 const SP_WRITES = ['sp_approve_musd', 'sp_deposit', 'sp_withdraw', 'trove_liquidate', 'approve_revoke']
-/** An Sp whose two readers answer with the call they got and whose five writers record their input and answer with `next()`. */
+/** An Sp whose three readers answer with the call they got and whose five writers record their input and answer with `next()`. */
 function stubSp(next: () => Promise<Outcome> = async () => mined, seen: [string, unknown][] = [], answer: () => Promise<object> = async () => ({ blockNumber: 9 })): Sp {
   const reads = (name: string) => (input: unknown) => (seen.push([name, input]), answer()) as never
   const via = (name: string) => (input: unknown) => (seen.push([name, input]), next())
-  return { status: reads('status'), allowances: reads('allowances'), write: { approveMusd: via('write.approveMusd'), deposit: via('write.deposit'), withdraw: via('write.withdraw'), liquidate: via('write.liquidate'), revoke: via('write.revoke') } }
+  return { status: reads('status'), allowances: reads('allowances'), planDeposit: reads('planDeposit'), write: { approveMusd: via('write.approveMusd'), deposit: via('write.deposit'), withdraw: via('write.withdraw'), liquidate: via('write.liquidate'), revoke: via('write.revoke') } }
 }
 
 describe('the Stability Pool tools', () => {
   const listTools = async (sp?: Sp, trove?: Trove, ve?: Ve) => (await (await connect({ lens: fakeLens(), sp, trove, ve })).listTools()).tools
 
-  it('the two reads come with sp; the five sending tools only when sp.write exists, and none takes a key, cap, gas or a wallet to send from', async () => {
+  it('the three reads come with sp; the five sending tools only when sp.write exists, and none takes a key, cap, gas or a wallet to send from', async () => {
     expect((await listTools()).map((t) => t.name).sort()).toEqual([...READS].sort())
     const readsOnly = await listTools({ ...stubSp(), write: undefined })
     expect(readsOnly.map((t) => t.name).sort()).toEqual([...READS, ...SP_READS].sort())
@@ -514,6 +514,8 @@ describe('the Stability Pool tools', () => {
     expect(props('sp_status')).toEqual(['address'])
     expect(props('allowance_status')).toEqual(['address', 'spender'])
     expect(tool('allowance_status').inputSchema.required).toEqual(['address'])
+    expect(props('plan_sp_deposit')).toEqual(['address', 'amount'])
+    expect(tool('plan_sp_deposit').inputSchema.required).toEqual(['address', 'amount'])
     expect(props('sp_approve_musd')).toEqual(['amount']) // the writers act for the operator's wallet only
     expect(props('sp_deposit')).toEqual(['amount'])
     expect(props('sp_withdraw')).toEqual(['amount'])
@@ -523,23 +525,23 @@ describe('the Stability Pool tools', () => {
     expect(tool('trove_liquidate').description).toMatch(/Risky:.*MEZO_WRITE_RISKY=1/)
 
     const readsText = (await connect({ lens: fakeLens(), sp: { ...stubSp(), write: undefined } })).getInstructions()
-    expect(readsText).toMatch(/^Mezo testnet only\. 6 free read tools .*the Stability Pool and token allowances/)
+    expect(readsText).toMatch(/^Mezo testnet only\. 7 free read tools .*the Stability Pool, a deposit plan and token allowances/)
     expect(readsText).not.toMatch(/sp_deposit/)
     const full = (await connect({ lens: fakeLens(), ve: stubVe(), trove: stubTrove(), sp: stubSp() })).getInstructions()
-    expect(full).toMatch(/^Mezo testnet only\. 12 free read tools/)
+    expect(full).toMatch(/^Mezo testnet only\. 13 free read tools/)
     expect(full).toMatch(/Five more \(sp_approve_musd, sp_deposit, sp_withdraw, trove_liquidate, approve_revoke\) approve and deposit MUSD to the Stability Pool/)
   })
 
   it('the readers answer as text and as structured content with their arguments passed on, and leave out a spender nobody named', async () => {
     const seen: [string, unknown][] = []
     const client = await connect({ lens: fakeLens(), sp: stubSp(undefined, seen) })
-    for (const [name, args] of [['sp_status', { address: WALLET }], ['allowance_status', { address: WALLET }], ['allowance_status', { address: WALLET, spender: WALLET }]] as const) {
+    for (const [name, args] of [['sp_status', { address: WALLET }], ['allowance_status', { address: WALLET }], ['allowance_status', { address: WALLET, spender: WALLET }], ['plan_sp_deposit', { address: WALLET, amount: '5' }]] as const) {
       const r = await call(client, name, args)
       expect(r.isError, name).toBeFalsy()
       expect(r.structuredContent).toEqual({ blockNumber: 9 })
       expect(JSON.parse(r.content[0]!.text)).toEqual(r.structuredContent)
     }
-    expect(seen).toEqual([['status', { address: WALLET }], ['allowances', { address: WALLET }], ['allowances', { address: WALLET, spender: WALLET }]])
+    expect(seen).toEqual([['status', { address: WALLET }], ['allowances', { address: WALLET }], ['allowances', { address: WALLET, spender: WALLET }], ['planDeposit', { address: WALLET, amount: '5' }]])
   })
 
   it('turns bad input and a chain failure of a reader into tool errors and keeps serving', async () => {
@@ -678,8 +680,8 @@ describe('the real stdio entry', () => {
     transport.stderr?.on('data', (d: Buffer) => (stderr += d.toString()))
     await client.connect(transport)
     const { tools } = await client.listTools()
-    // The two ve reads, the four trove reads and the two Stability Pool reads are always on; the fourteen sending tools need MEZO_WRITE_ENABLE=testnet, which this clean environment lacks.
-    expect(tools.map((t) => t.name).sort()).toEqual(['allowance_status', 'gauge_rewards', 'pay_and_fetch', 'plan_open', 'plan_repay', 'plan_top_up', 'pool_quote', 'redemption_risk', 'sp_status', 'trove_health', 'trove_status', 've_locks', 've_status'])
+    // The two ve reads, the four trove reads and the three Stability Pool reads are always on; the fourteen sending tools need MEZO_WRITE_ENABLE=testnet, which this clean environment lacks.
+    expect(tools.map((t) => t.name).sort()).toEqual(['allowance_status', 'gauge_rewards', 'pay_and_fetch', 'plan_open', 'plan_repay', 'plan_sp_deposit', 'plan_top_up', 'pool_quote', 'redemption_risk', 'sp_status', 'trove_health', 'trove_status', 've_locks', 've_status'])
     const r = await call(client, 'pay_and_fetch', { url })
     expect(r.isError).toBe(true)
     expect(r.content[0]!.text).toMatch(/switched off.*MEZO_KEY_FILE/)

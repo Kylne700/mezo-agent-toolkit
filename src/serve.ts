@@ -7,6 +7,8 @@ import { createApp } from './app.ts'
 import { publicClient } from './clients.ts'
 import { DEFAULT_PAYEE } from './config.ts'
 import { createLens, type Lens } from './lens.ts'
+import { createPlanner } from './plan.ts'
+import { createSp } from './sp-actions.ts'
 
 export interface StartOptions {
   /** 0 picks a free port. */
@@ -31,7 +33,7 @@ export async function startServer(o: StartOptions = {}): Promise<RunningServer> 
   const client = publicClient()
   const lens = o.lens ?? createLens(client)
   const payTo = o.payTo ?? getAddress(process.env.PAYEE_ADDRESS ?? DEFAULT_PAYEE)
-  const app = createApp({ lens, payTo, price: o.price, facilitator: o.facilitator, chain: client })
+  const app = createApp({ lens, payTo, price: o.price, facilitator: o.facilitator, chain: client, plans: { planner: createPlanner(client, lens), sp: createSp(client) } })
   const host = o.host ?? '127.0.0.1'
   const server = serve({ fetch: app.fetch, port: o.port ?? 0, hostname: host })
   await new Promise<void>((resolve, reject) => {

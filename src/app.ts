@@ -1,20 +1,28 @@
 // The paid HTTP endpoint: lens reads behind an x402 paywall priced in MUSD. Unpaid GET -> 402 with the payment challenge,
-// paid GET -> 200 with live chain data. The factory takes everything it needs as arguments (no files, no environment),
-// so the same code can run under Node today and under a Worker later.
+// paid GET -> 200 with live chain data. The same paywall sits in front of POST /plan/* (a ready-to-sign transaction, or the reason there is none).
+// The factory takes everything it needs as arguments (no files, no environment, no key), so the same code runs under Node and under a Worker.
 import { decodePaymentResponseHeader } from '@x402/core/http'
-import { HTTPFacilitatorClient, type FacilitatorClient, type RoutesConfig } from '@x402/core/server'
+import { HTTPFacilitatorClient, type FacilitatorClient } from '@x402/core/server'
 import { ExactEvmScheme } from '@x402/evm/exact/server'
 import { declareEip2612GasSponsoringExtension } from '@x402/extensions'
 import { paymentMiddleware, x402ResourceServer } from '@x402/hono'
 import { Hono, type Context, type Next } from 'hono'
+import { bodyLimit } from 'hono/body-limit'
 import type { Address } from 'viem'
 import pkg from '../package.json' with { type: 'json' }
 import { ADDRESSES, CHAIN_ID, FACILITATOR_URL, NETWORK, addressUrl, txUrl } from './config.ts'
-import { InputError, parseAddress, parseAmountText, parseBool, parseToken } from './inputs.ts'
+import { InputError, parseAddress, parseAmountText, parseBool, parseToken, parseTokenAmount } from './inputs.ts'
 import type { Lens } from './lens.ts'
+import type { Planner } from './plan.ts'
 import { settlementRecovery, type LogReader, type RecoveryOptions } from './recover.ts'
+import type { Sp } from './sp-actions.ts'
 
 export const DEFAULT_PRICE = '$0.001'
+/** A /plan answer is a dozen chain reads, a simulation and a transaction ready to sign: five times a raw read. */
+export const PLAN_PRICE = '$0.005'
+const MAX_BODY = 4096 // bytes; a plan request is a few short strings
+/** The amount fields of each POST /plan/* body besides `address`: the planners' own field names, parsed with the planners' own calls. */
+const PLAN_AMOUNTS = { '/plan/open': ['collateralBtc', 'debtMusd'], '/plan/top-up': ['amountBtc'], '/plan/repay': ['amountMusd'], '/plan/sp-deposit': ['amount'] } as const
 
 export interface AppOptions {
   lens: Lens
@@ -29,6 +37,8 @@ export interface AppOptions {
   chain?: LogReader
   recovery?: RecoveryOptions
   now?: () => Date
+  /** The planners behind POST /plan/*; they only read the chain (no signer). Without them those routes do not exist. */
+  plans?: { planner: Pick<Planner, 'open' | 'topUp' | 'repay'>; sp: Pick<Sp, 'planDeposit'> }
 }
 
 interface Settlement {
@@ -50,27 +60,37 @@ export function createApp(opts: AppOptions): Hono {
   const resourceServer = new x402ResourceServer(recovery ? recovery.confirming(facilitator) : facilitator).register(NETWORK, new ExactEvmScheme())
   if (recovery) resourceServer.onAfterSettle(recovery.afterSettle).onSettleFailure(recovery.onSettleFailure)
 
-  const paid = (description: string) => ({
-    accepts: { scheme: 'exact', price, network: NETWORK, payTo: opts.payTo },
+  const paid = (description: string, cost = price) => ({
+    accepts: { scheme: 'exact', price: cost, network: NETWORK, payTo: opts.payTo },
     description,
     mimeType: 'application/json',
     // Tells buyers the facilitator pays the BTC gas, so a wallet that holds only MUSD can pay.
     extensions: { ...declareEip2612GasSponsoringExtension() },
   })
-  const routes = {
+  const plans = opts.plans
+  const planRoutes: Record<string, ReturnType<typeof paid>> = plans
+    ? {
+        'POST /plan/open': paid('Plan opening a trove (JSON body: address, collateralBtc, debtMusd): the transaction to sign, hints and ratios, or why it would be refused', PLAN_PRICE),
+        'POST /plan/top-up': paid('Plan adding BTC to an open trove (JSON body: address, amountBtc): the transaction to sign and the ratio after, or why it would be refused', PLAN_PRICE),
+        'POST /plan/repay': paid('Plan repaying MUSD debt of an open trove (JSON body: address, amountMusd): the transaction to sign and the ratio after, or why it would be refused', PLAN_PRICE),
+        'POST /plan/sp-deposit': paid('Plan a MUSD deposit into the Stability Pool (JSON body: address, amount): the transaction, the exact approve it needs and the withdraw lock', PLAN_PRICE),
+      }
+    : {}
+  const routes: Record<string, ReturnType<typeof paid>> = {
     'GET /v1/trove/:address': paid('Health of one MUSD trove: collateral ratio, debt, liquidation price'),
     'GET /v1/redemption/:address': paid('Where one trove stands in the MUSD redemption queue, with system context'),
     'GET /v1/pool/quote': paid('Quote a swap on the Mezo DEX: output, reserves and price impact'),
     'GET /v1/ve/:address': paid('veBTC and veMEZO locks held by one address'),
-  } satisfies RoutesConfig
+    ...planRoutes,
+  }
 
   let last: Settlement | null = null
   const app = new Hono()
 
   // Bad input is answered with 400 before any payment challenge, so nobody is asked to pay for a request that cannot succeed.
-  const check = (fn: (c: Context) => void) => async (c: Context, next: Next) => {
+  const check = (fn: (c: Context) => void | Promise<void>) => async (c: Context, next: Next) => {
     try {
-      fn(c)
+      await fn(c)
     } catch (e) {
       if (e instanceof InputError) return c.json({ error: e.message }, 400)
       throw e
@@ -91,8 +111,27 @@ export function createApp(opts: AppOptions): Hono {
     }),
   )
 
+  // The same for a plan request: its JSON body must parse with the planner's own calls before anyone is asked to pay. A refusal by the planner is an answer, not bad input.
+  // Hono keeps the parsed body, so the payment middleware and the handler read it again for free.
+  const bodyOf = async (c: Context): Promise<Record<string, unknown>> => {
+    const b: unknown = await c.req.json().catch(() => undefined)
+    if (typeof b !== 'object' || b === null || Array.isArray(b)) throw new InputError('the body must be a JSON object')
+    return b as Record<string, unknown>
+  }
+  const take = <K extends string>(b: Record<string, unknown>, ...keys: K[]) => Object.fromEntries(keys.map((k) => [k, b[k]])) as Record<K, string>
+  if (plans) {
+    const tooBig = bodyLimit({ maxSize: MAX_BODY, onError: (c) => c.json({ error: `the body is larger than ${MAX_BODY} bytes` }, 413) })
+    for (const [path, amounts] of Object.entries(PLAN_AMOUNTS)) {
+      app.post(path, tooBig, check(async (c) => {
+        const b = await bodyOf(c)
+        parseAddress(b.address, 'address')
+        for (const field of amounts) parseTokenAmount(b[field] as string, 18, field)
+      }))
+    }
+  }
+
   // Remember the most recent settlement for the status page. It runs around the payment middleware and only reads the response.
-  app.use('/v1/*', async (c, next) => {
+  const remember = async (c: Context, next: Next) => {
     await next()
     const header = c.res.headers.get('payment-response')
     if (!header) return
@@ -102,7 +141,9 @@ export function createApp(opts: AppOptions): Hono {
     } catch {
       // A header we cannot read is simply not recorded.
     }
-  })
+  }
+  app.use('/v1/*', remember)
+  app.use('/plan/*', remember)
 
   app.use(paymentMiddleware(routes, resourceServer))
 
@@ -120,6 +161,15 @@ export function createApp(opts: AppOptions): Hono {
     ),
   )
 
+  // A refusal (minimum debt, ratio, Recovery Mode, capacity, pool rules) is a normal 200 answer with refused: true, and it is paid for: the answer is the work.
+  if (plans) {
+    const { planner, sp } = plans
+    app.post('/plan/open', async (c) => c.json(await planner.open(take(await bodyOf(c), 'address', 'collateralBtc', 'debtMusd'))))
+    app.post('/plan/top-up', async (c) => c.json(await planner.topUp(take(await bodyOf(c), 'address', 'amountBtc'))))
+    app.post('/plan/repay', async (c) => c.json(await planner.repay(take(await bodyOf(c), 'address', 'amountMusd'))))
+    app.post('/plan/sp-deposit', async (c) => c.json(await sp.planDeposit(take(await bodyOf(c), 'address', 'amount'))))
+  }
+
   const status = (c: Context) =>
     c.json({
       name: pkg.name,
@@ -130,6 +180,7 @@ export function createApp(opts: AppOptions): Hono {
       payTo: opts.payTo,
       asset: { symbol: 'MUSD', address: ADDRESSES.musd, decimals: 18 },
       price,
+      ...(plans ? { planPrice: PLAN_PRICE } : {}),
       facilitator: opts.facilitatorUrl ?? FACILITATOR_URL,
       endpoints: Object.fromEntries(Object.entries(routes).map(([k, v]) => [k, v.description])),
       lastSettlement: last,

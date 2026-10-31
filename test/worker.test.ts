@@ -23,9 +23,15 @@ afterEach(() => vi.restoreAllMocks())
 /** The recovery side of fakeChain plus the one read the payments route adds (the time of a block). */
 const quietChain = (transfers: Parameters<typeof fakeChain>[0] = []): NonNullable<WorkerDeps['chain']> => ({ ...fakeChain(transfers), getBlock: async () => ({ timestamp: 1_792_000_000n }) })
 
-function world(o: { facilitator?: FakeFacilitator; chain?: WorkerDeps['chain']; now?: () => number; settings?: Partial<Settings> } = {}) {
+/** Stand-ins for the planners that answer with what they were asked, so a test sees exactly what crossed the paywall. */
+const stubPlans: NonNullable<WorkerDeps['plans']> = {
+  planner: { open: async (i) => ({ via: 'open', ...i }) as never, topUp: async (i) => ({ via: 'topUp', ...i }) as never, repay: async (i) => ({ via: 'repay', ...i }) as never },
+  sp: { planDeposit: async (i) => ({ via: 'planDeposit', ...i }) as never },
+}
+
+function world(o: { facilitator?: FakeFacilitator; chain?: WorkerDeps['chain']; now?: () => number; settings?: Partial<Settings>; plans?: WorkerDeps['plans'] } = {}) {
   const facilitator = o.facilitator ?? fakeFacilitator()
-  const worker = createWorker({ ...SETTINGS, ...o.settings }, { lens: fakeLens(), facilitator, chain: o.chain ?? quietChain(), recovery: { waitMs: 0 }, now: o.now })
+  const worker = createWorker({ ...SETTINGS, ...o.settings }, { lens: fakeLens(), facilitator, chain: o.chain ?? quietChain(), recovery: { waitMs: 0 }, now: o.now, plans: o.plans })
   const get = (path: string, init?: RequestInit) => worker.fetch(new Request(`https://${HOST}${path}`, init))
   const buyer = createBuyer({ account: testAccount(), chainReader: zeroReader, guard: SpendGuard.fromEnv({}), fetchImpl: (input, init) => worker.fetch(new Request(input as Request | string, init)) })
   return { worker, facilitator, get, buyer }
@@ -118,7 +124,7 @@ describe('the console page', () => {
   it('shows the price from the same parser that builds the challenge, so the page and the 402 cannot differ', async () => {
     for (const [price, shown, amount] of [['$0.001', '0.001', PRICE_BASE_UNITS], ['$0.0025', '0.0025', '2500000000000000']] as const) {
       const { get } = world({ settings: { price } })
-      expect(await (await get('/')).text()).toContain(`<dt>Price per call</dt><dd>${shown} MUSD</dd>`)
+      expect(await (await get('/')).text()).toContain(`<dt>Price per read call</dt><dd>${shown} MUSD</dd>`)
       const offer = decodePaymentRequiredHeader((await get(`/v1/trove/${TROVE}`)).headers.get('payment-required')!).accepts[0]!
       expect(offer.amount).toBe(amount)
       expect(formatUnits(BigInt(offer.amount), 18)).toBe(shown)
@@ -166,12 +172,12 @@ describe('the console page', () => {
   })
 
   it('lists the paid routes exactly as /status does', async () => {
-    const status = (await (await createApp({ lens: fakeLens(), payTo: PAYEE, facilitator: fakeFacilitator() }).request('/status')).json()) as { endpoints: Record<string, string> }
+    const status = (await (await createApp({ lens: fakeLens(), payTo: PAYEE, facilitator: fakeFacilitator(), plans: stubPlans }).request('/status')).json()) as { endpoints: Record<string, string> }
     expect(PAID_ROUTES).toEqual(status.endpoints)
   })
 
   it('escapes what it prints', async () => {
-    const res = await consoleResponse({ origin: `https://${HOST}`, network: 'eip155:31611', chainId: 31611, priceMusd: '0.001', payee: PAYEE, lens: LENS_ADDRESS, facilitatorHost: '<b>f</b>', endpoints: { '<i>route</i>': '<script>alert(1)</script>' } })
+    const res = await consoleResponse({ origin: `https://${HOST}`, network: 'eip155:31611', chainId: 31611, priceMusd: '0.001', planPriceMusd: '0.005', payee: PAYEE, lens: LENS_ADDRESS, facilitatorHost: '<b>f</b>', endpoints: { '<i>route</i>': '<script>alert(1)</script>' } })
     const html = await res.text()
     expect(html).not.toContain('<script>alert')
     expect(html).not.toContain('<b>f</b>')
@@ -277,6 +283,53 @@ describe('the paid endpoint inside the Worker', () => {
     expect(bad.status).toBe(400)
     expect(bad.headers.get('payment-required')).toBeNull()
     expect((await get('/nope')).status).toBe(404)
+  })
+})
+
+describe('the plan routes inside the Worker', () => {
+  const PLAN_UNITS = '5000000000000000' // $0.005 as MUSD base units
+  const BODIES = {
+    '/plan/open': { address: TROVE, collateralBtc: '0.045', debtMusd: '1900' },
+    '/plan/top-up': { address: TROVE, amountBtc: '0.001' },
+    '/plan/repay': { address: TROVE, amountMusd: '10' },
+    '/plan/sp-deposit': { address: TROVE, amount: '5' },
+  } as const
+  const post = (get: (path: string, init?: RequestInit) => Promise<Response>, path: string, body: unknown) =>
+    get(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: typeof body === 'string' ? body : JSON.stringify(body) })
+
+  it.each(Object.entries(BODIES))('%s: an unpaid call gets the 402 with the plan price, whatever the read price is set to', async (path, body) => {
+    const { get } = world({ settings: { price: '$0.0025' }, plans: stubPlans })
+    const res = await post(get, path, body)
+    expect(res.status).toBe(402)
+    const offer = decodePaymentRequiredHeader(res.headers.get('payment-required')!).accepts[0]!
+    expect(offer).toMatchObject({ amount: PLAN_UNITS, payTo: PAYEE })
+    expect(offer.asset.toLowerCase()).toBe(ADDRESSES.musd.toLowerCase())
+    const read = decodePaymentRequiredHeader((await get(`/v1/trove/${TROVE}`)).headers.get('payment-required')!).accepts[0]!
+    expect(read.amount).toBe('2500000000000000')
+  })
+
+  it.each(Object.keys(BODIES))('%s: bad input is a 400 before any challenge, even while the facilitator has to be asked first', async (path) => {
+    const { get, facilitator } = world({ plans: stubPlans })
+    for (const body of ['not json', '[]', '{}', JSON.stringify({ ...BODIES[path as keyof typeof BODIES], address: '0x123' })]) {
+      const res = await post(get, path, body)
+      expect(res.status, body).toBe(400)
+      expect(res.headers.get('payment-required'), body).toBeNull()
+    }
+    expect(facilitator.verifies).toBe(0)
+  })
+
+  it('a paid call is charged the plan price once and answered by the planner with the fields it was sent; the page and /status show both prices', async () => {
+    const f = fakeFacilitator()
+    const { get, buyer } = world({ facilitator: f, plans: stubPlans, chain: quietChain([{ hash: txHash(0xabc), value: BigInt(PLAN_UNITS), input: () => `0xfa340378${signatureOf(f.payloads.at(-1)!).slice(2)}` }]) })
+    const r = await buyer.fetchPaid(`https://${HOST}/plan/open`, { ...BODIES['/plan/open'], extra: 'ignored' })
+    expect(r).toMatchObject({ status: 200, paid: true, authorizedMusd: '0.005', json: { via: 'open', ...BODIES['/plan/open'] } })
+    expect(r.json).not.toHaveProperty('extra')
+    expect([f.verifies, f.settles]).toEqual([1, 1])
+    expect(await (await get('/')).text()).toContain('<dt>Price per plan call</dt><dd>0.005 MUSD</dd>')
+    const status = (await (await get('/status')).json()) as { planPrice: string; endpoints: Record<string, string>; lastSettlement: { path: string } }
+    expect(status.planPrice).toBe('$0.005')
+    expect(Object.keys(status.endpoints)).toEqual(expect.arrayContaining(Object.keys(BODIES).map((p) => `POST ${p}`)))
+    expect(status.lastSettlement.path).toBe('/plan/open')
   })
 })
 

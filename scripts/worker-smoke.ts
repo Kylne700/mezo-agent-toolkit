@@ -41,7 +41,7 @@ const INSPECTOR = 9330
 const PRICE = 1_000_000_000_000_000n // $0.001 in MUSD base units (18 decimals)
 const PER_CALL = '0.01'
 const PER_SESSION = '0.1'
-const TOOLS = ['allowance_status', 'gauge_rewards', 'pay_and_fetch', 'plan_open', 'plan_repay', 'plan_top_up', 'pool_quote', 'redemption_risk', 'sp_status', 'trove_health', 'trove_status', 've_locks', 've_status'] // the ve, trove and Stability Pool write tools exist only with MEZO_WRITE_ENABLE=testnet, which these scripts never set
+const TOOLS = ['allowance_status', 'gauge_rewards', 'pay_and_fetch', 'plan_open', 'plan_repay', 'plan_sp_deposit', 'plan_top_up', 'pool_quote', 'redemption_risk', 'sp_status', 'trove_health', 'trove_status', 've_locks', 've_status'] // the ve, trove and Stability Pool write tools exist only with MEZO_WRITE_ENABLE=testnet, which these scripts never set
 
 const { log, check, verdict, failures, save } = createReport()
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -220,7 +220,7 @@ try {
     ...(offer?.payTo === status.payTo ? [] : [`payTo ${offer?.payTo}`]),
     ...(JSON.stringify(challenge?.extensions ?? {}).includes('eip2612GasSponsoring') ? [] : ['no eip2612GasSponsoring extension']),
   ])
-  check(html.includes(`<dt>Price per call</dt><dd>${formatUnits(BigInt(offer?.amount ?? 0), 18)} MUSD</dd>`), `the price on the page (${formatUnits(BigInt(offer?.amount ?? 0), 18)} MUSD) is the amount in the challenge`)
+  check(html.includes(`<dt>Price per read call</dt><dd>${formatUnits(BigInt(offer?.amount ?? 0), 18)} MUSD</dd>`), `the price on the page (${formatUnits(BigInt(offer?.amount ?? 0), 18)} MUSD) is the amount in the challenge`)
   const curlLine = /^curl -si .*/.exec(blocks[0] ?? '')?.[0]
   const curled = curlLine ? spawnSync('bash', ['-c', curlLine], { encoding: 'utf8', timeout: 30_000 }) : undefined
   const curledChallenge = (() => {
@@ -267,7 +267,7 @@ try {
     for (let i = 0; i < 100 && !stderr.includes('"mcp-ready"'); i++) await sleep(100)
     const { tools } = await client.listTools()
     said += JSON.stringify(tools)
-    check(same(tools.map((t) => t.name).sort(), TOOLS), `tools/list returns the thirteen tools: ${tools.map((t) => t.name).sort().join(', ')}`)
+    check(same(tools.map((t) => t.name).sort(), TOOLS), `tools/list returns the fourteen tools: ${tools.map((t) => t.name).sort().join(', ')}`)
 
     // The refusal first: it must cost nothing and never reach the Worker. `localhost` is the same machine but not the listed host.
     const walletBefore = await snapshot(payee)

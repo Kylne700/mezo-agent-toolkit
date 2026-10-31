@@ -1,4 +1,4 @@
-// The Stability Pool, liquidation and allowance tools: two free reads (sp_status, allowance_status) and, only when the operator turned writes on, five guarded writers
+// The Stability Pool, liquidation and allowance tools: three free reads (sp_status, allowance_status, plan_sp_deposit) and, only when the operator turned writes on, five guarded writers
 // (approve MUSD for the pool, deposit, withdraw, liquidate a trove under its minimum ratio, revoke an allowance). A writer reads the chain first, refuses what would revert
 // or what the rules forbid and says why, and otherwise hands the exact calldata to the guarded write core (write.ts: allow-list, caps, kill file, simulation).
 // What it reads back after a send is best effort: it never turns a mined tx into an error.
@@ -25,11 +25,14 @@ export interface Sp {
   status(input: { address: string }, at?: { blockNumber?: bigint }): Promise<Record<string, unknown>>
   /** The non-zero BTC and MUSD allowances one wallet has given to the contracts this toolkit knows, plus one spender the caller names. */
   allowances(input: { address: string; spender?: string }, at?: { blockNumber?: bigint }): Promise<Record<string, unknown>>
+  /** What depositing `amount` MUSD would do, worked out before anything is sent: the calldata, the exact approve it needs, the position after and the withdraw lock. Reads only, no signer. A deposit that cannot work comes back as `refused: true`. */
+  planDeposit(input: { address: string; amount: string }, at?: { blockNumber?: bigint }): Promise<Record<string, unknown>>
   write?: SpWrite
 }
 
 const { stabilityPool: pool, troveManager, priceFeed, musd, btc } = ADDRESSES
 const MAX_WALK = 8 // troves read from the tail of the sorted list
+const GAS_MARGIN = 12n // the suggested gas limit is the estimate times 12/10, as in plan.ts
 const UNLIMITED = 2n ** 128n // an allowance this big is "unlimited" for every practical purpose
 const TOKENS = { BTC: btc, MUSD: musd } as const
 const SPENDERS: readonly (readonly [string, Address])[] = [
@@ -184,6 +187,55 @@ export function createSp(client: PublicClient, writer?: Writer, options: VeOptio
         summary: rows.length ? `${rows.length} non-zero allowance${rows.length === 1 ? '' : 's'} found` : 'no non-zero allowance found',
         allowances: rows.map((r) => ({ token: r.token, spender: r.spender, spenderName: r.name, amount: r.amount >= UNLIMITED ? 'unlimited' : f18(r.amount), raw: r.amount.toString() })),
         checked: { tokens: Object.keys(TOKENS), spenders: spenders.map(([name]) => name) },
+      }
+    },
+    async planDeposit({ address, amount }, at) {
+      const who = parseAddress(address, 'address')
+      const value = parseTokenAmount(amount, 18, 'amount')
+      const p = await pin(at?.blockNumber)
+      const [s, allowance, balance] = await Promise.all([poolState(p, who), p.read<bigint>(musd, erc20Abi, 'allowance', [who, pool]), p.read<bigint>(musd, erc20Abi, 'balanceOf', [who])])
+      const d = describe(p, s, who) as { pool: unknown; withdraw: { blocked: boolean; reason?: string }; raw: Record<string, string | null> }
+      const head = { ...p.meta, action: 'sp_deposit', depositor: who }
+      const raw = { ...d.raw, amount: value.toString(), allowance: allowance.toString(), balance: balance.toString() }
+      if (balance < value) {
+        const reason = `this wallet holds only ${f18(balance)} MUSD, less than the ${f18(value)} MUSD to deposit`
+        return { refused: true, ...head, reason, warnings: [], summary: `Refused at block ${p.block}, nothing to send: ${reason}`, raw }
+      }
+      const warnings: string[] = []
+      const needsApproval = allowance < value
+      const data = encodeFunctionData({ abi: stabilityPoolAbi, functionName: 'provideToSP', args: [value] })
+      let gas: string | null = null
+      if (needsApproval) warnings.push(`the Stability Pool may pull only ${f18(allowance)} MUSD from this wallet: send the exact approve below first, then plan again for a gas estimate`)
+      else {
+        try {
+          // At the latest block, as in plan.ts: a node a block behind would refuse a pinned estimate, and gas hardly depends on the block.
+          gas = (((await withRetry(() => client.estimateGas({ account: who, to: pool, data }))) * GAS_MARGIN) / 10n).toString()
+        } catch (e) {
+          warnings.push(`the gas estimate failed (${messageOf(e)}): the chain may still refuse this call, so do not send it until you know why`)
+        }
+      }
+      if (d.withdraw.blocked) warnings.push(`the deposit is accepted, but MUSD put in now cannot be taken out until the pool allows withdrawals again: ${d.withdraw.reason}`)
+      if (s.gain > 0n) warnings.push(`the deposit also sends the pending ${f18(s.gain)} BTC gain to this wallet (the pool does this on every deposit)`)
+      const after = s.compounded + value
+      return {
+        refused: false,
+        ...head,
+        to: pool,
+        data,
+        value: '0',
+        gas,
+        approval: {
+          needed: needsApproval,
+          spender: pool,
+          allowanceMusd: f18(allowance),
+          ...(needsApproval ? { to: musd, data: encodeFunctionData({ abi: erc20Abi, functionName: 'approve', args: [pool, value] }), note: 'an exact approve for this deposit; the deposit uses it up' } : {}),
+        },
+        deposit: { amountMusd: f18(value), musdBefore: f18(s.compounded), musdAfter: f18(after), btcGainPaidOut: f18(s.gain) },
+        pool: d.pool,
+        withdraw: d.withdraw,
+        warnings,
+        summary: `Deposit ${f18(value)} MUSD into the Stability Pool at block ${p.block}: the wallet's deposit goes ${f18(s.compounded)} -> ${f18(after)} MUSD${needsApproval ? ', after an exact approve (allowance now ' + f18(allowance) + ')' : ''}. ${d.withdraw.blocked ? 'Withdrawals are blocked right now.' : 'Withdrawals are open right now.'}${warnings.length ? ` ${warnings.length} warning(s).` : ''}`,
+        raw,
       }
     },
   }

@@ -9,8 +9,10 @@ export interface ConsoleInfo {
   origin: string
   network: string
   chainId: number
-  /** Price of one call in MUSD, derived from the same price string that builds the 402 challenge. */
+  /** Price of one read call (GET /v1/*) in MUSD, derived from the same price string that builds the 402 challenge. */
   priceMusd: string
+  /** Price of one plan call (POST /plan/*) in MUSD, derived the same way. */
+  planPriceMusd: string
   payee: Address
   lens: Address
   facilitatorHost: string
@@ -24,6 +26,10 @@ export const PAID_ROUTES: Record<string, string> = {
   'GET /v1/redemption/:address': 'Where one trove stands in the MUSD redemption queue, with system context',
   'GET /v1/pool/quote': 'Quote a swap on the Mezo DEX: output, reserves and price impact',
   'GET /v1/ve/:address': 'veBTC and veMEZO locks held by one address',
+  'POST /plan/open': 'Plan opening a trove (JSON body: address, collateralBtc, debtMusd): the transaction to sign, hints and ratios, or why it would be refused',
+  'POST /plan/top-up': 'Plan adding BTC to an open trove (JSON body: address, amountBtc): the transaction to sign and the ratio after, or why it would be refused',
+  'POST /plan/repay': 'Plan repaying MUSD debt of an open trove (JSON body: address, amountMusd): the transaction to sign and the ratio after, or why it would be refused',
+  'POST /plan/sp-deposit': 'Plan a MUSD deposit into the Stability Pool (JSON body: address, amount): the transaction, the exact approve it needs and the withdraw lock',
 }
 
 /** Any valid address works for the demo challenge: the 402 does not depend on whether the address holds a trove. */
@@ -166,7 +172,8 @@ export function consoleHtml(i: ConsoleInfo): string {
 <p class="muted">Read from this Worker's settings.</p>
 <dl>
 <dt>Network</dt><dd>Mezo testnet (${esc(i.network)})</dd>
-<dt>Price per call</dt><dd>${esc(i.priceMusd)} MUSD</dd>
+<dt>Price per read call</dt><dd>${esc(i.priceMusd)} MUSD</dd>
+<dt>Price per plan call</dt><dd>${esc(i.planPriceMusd)} MUSD</dd>
 <dt>Payee</dt><dd><code class="addr">${esc(i.payee)}</code><br><a class="touch" href="${esc(addressUrl(i.payee))}">Payee on the explorer</a></dd>
 <dt>Lens contract</dt><dd><code class="addr">${esc(i.lens)}</code><br><a class="touch" href="${esc(addressUrl(i.lens))}">Lens on the explorer</a></dd>
 <dt>Facilitator</dt><dd>${esc(i.facilitatorHost)}, a third party that sends the settlement transaction and pays the BTC gas</dd>

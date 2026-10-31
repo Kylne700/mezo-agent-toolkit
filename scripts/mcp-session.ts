@@ -28,7 +28,7 @@ const OUT = fileURLToPath(new URL('../evidence/mcp-session.log', import.meta.url
 const PER_CALL = '0.002'
 const PER_SESSION = '0.002'
 const PRICE = 1_000_000_000_000_000n // $0.001 in MUSD base units (18 decimals)
-const TOOLS = ['allowance_status', 'gauge_rewards', 'pay_and_fetch', 'plan_open', 'plan_repay', 'plan_top_up', 'pool_quote', 'redemption_risk', 'sp_status', 'trove_health', 'trove_status', 've_locks', 've_status'] // the ve, trove and Stability Pool write tools exist only with MEZO_WRITE_ENABLE=testnet, which these scripts never set
+const TOOLS = ['allowance_status', 'gauge_rewards', 'pay_and_fetch', 'plan_open', 'plan_repay', 'plan_sp_deposit', 'plan_top_up', 'pool_quote', 'redemption_risk', 'sp_status', 'trove_health', 'trove_status', 've_locks', 've_status'] // the ve, trove and Stability Pool write tools exist only with MEZO_WRITE_ENABLE=testnet, which these scripts never set
 
 const { log, check, verdict, failures, save } = createReport()
 const note = process.argv.includes('--note') ? process.argv[process.argv.indexOf('--note') + 1] : undefined
@@ -127,7 +127,7 @@ try {
   check(ready.payments?.buyer?.toLowerCase() === account.address.toLowerCase() && ready.payments?.limits?.perCallMusd === PER_CALL && ready.payments?.limits?.perSessionMusd === PER_SESSION, 'the server started with payments on: its buyer is the funded wallet and its limits are the ones set')
   const { tools } = await client.listTools()
   said += JSON.stringify(tools)
-  check(same(tools.map((t) => t.name).sort(), TOOLS), `tools/list returns exactly the thirteen tools: ${tools.map((t) => t.name).sort().join(', ')}`)
+  check(same(tools.map((t) => t.name).sort(), TOOLS), `tools/list returns exactly the fourteen tools: ${tools.map((t) => t.name).sort().join(', ')}`)
   for (const t of tools) log(`    ${t.name.padEnd(16)} readOnlyHint=${t.annotations?.readOnlyHint}  destructiveHint=${t.annotations?.destructiveHint}  openWorldHint=${t.annotations?.openWorldHint}`)
   const payTool = tools.find((t) => t.name === 'pay_and_fetch')
   const props = Object.keys((payTool?.inputSchema as { properties?: object } | undefined)?.properties ?? {})

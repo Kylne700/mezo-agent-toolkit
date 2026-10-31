@@ -59,7 +59,8 @@ export interface BuyerOptions {
 export interface Buyer {
   address: Address
   guard: SpendGuard
-  fetchPaid(url: string): Promise<PaidResult>
+  /** GET by default. With `json` it POSTs that JSON body instead (the /plan routes); the spend limits are the same. */
+  fetchPaid(url: string, json?: unknown): Promise<PaidResult>
 }
 
 const REFUSAL = /Payment creation aborted: ([^]*)|rejected by spendControls/
@@ -127,13 +128,15 @@ export function createBuyer(opts: BuyerOptions): Buyer {
     unconfirmed.delete(url) // past its deadline and unused: it can never land
   }
 
-  async function run(rawUrl: string): Promise<PaidResult> {
+  async function run(rawUrl: string, json?: unknown): Promise<PaidResult> {
     const url = checkUrl(rawUrl, hosts)
     await notPaidBefore(url)
     ticket = {}
     let res: Response
     try {
-      res = await payFetch(url, { method: 'GET', headers: { accept: 'application/json, text/plain;q=0.9, */*;q=0.1' }, signal: AbortSignal.timeout(timeoutMs) })
+      const accept = 'application/json, text/plain;q=0.9, */*;q=0.1'
+      const request: RequestInit = json === undefined ? { method: 'GET', headers: { accept } } : { method: 'POST', headers: { accept, 'content-type': 'application/json' }, body: JSON.stringify(json) }
+      res = await payFetch(url, { ...request, signal: AbortSignal.timeout(timeoutMs) })
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e)
       const m = REFUSAL.exec(message)
@@ -200,8 +203,8 @@ export function createBuyer(opts: BuyerOptions): Buyer {
   return {
     address: account.address,
     guard,
-    fetchPaid(url) {
-      const next = queue.then(() => run(url), () => run(url))
+    fetchPaid(url, json) {
+      const next = queue.then(() => run(url, json), () => run(url, json))
       queue = next.catch(() => undefined)
       return next
     },

@@ -171,6 +171,94 @@ describe('allowance_status', () => {
   })
 })
 
+describe('planDeposit (the plan_sp_deposit tool and the /plan/sp-deposit route: reads only, no signer)', () => {
+  const provide = (amount: bigint) => encodeFunctionData({ abi: stabilityPoolAbi, functionName: 'provideToSP', args: [amount] })
+  const noSend = (c: ReturnType<typeof chain>) => {
+    expect(c.rpc.methods()).not.toContain('eth_sendRawTransaction')
+    expect(c.rpc.calls.filter((x) => x.method === 'eth_call' && x.params[0]?.from)).toEqual([])
+  }
+
+  it('a covered deposit: the exact provideToSP call, a gas estimate, the position before and after, and the withdraw lock as a warning, not a refusal', async () => {
+    const c = chain(all(holds('10'), approved('5')))
+    const r: Json = await c.sp.planDeposit({ address: ME, amount: '5' })
+    expect(r).toMatchObject({ refused: false, action: 'sp_deposit', depositor: ME, to: SP, data: provide(e18(5)), value: '0', gas: '300000', blockNumber: 16_500_000 })
+    expect(r.approval).toEqual({ needed: false, spender: SP, allowanceMusd: '5' })
+    expect(r.deposit).toEqual({ amountMusd: '5', musdBefore: '10', musdAfter: '15', btcGainPaidOut: '0' })
+    expect(r.withdraw).toMatchObject({ blocked: true, underMcr: [expect.objectContaining({ trove: TAIL })] })
+    expect(r.warnings).toHaveLength(1)
+    expect(r.warnings[0]).toMatch(/cannot be taken out/)
+    expect(r.raw).toMatchObject({ amount: e18(5).toString(), allowance: e18(5).toString(), compounded: e18(10).toString() })
+    noSend(c)
+  })
+
+  it('an allowance that is too small: the exact approve to send first, no gas estimate, a warning', async () => {
+    const c = chain(approved('2'))
+    const r: Json = await c.sp.planDeposit({ address: ME, amount: '5' })
+    expect(r).toMatchObject({ refused: false, to: SP, data: provide(e18(5)), gas: null })
+    expect(r.approval).toEqual({
+      needed: true,
+      spender: SP,
+      allowanceMusd: '2',
+      to: ADDRESSES.musd,
+      data: encodeFunctionData({ abi: erc20Abi, functionName: 'approve', args: [SP, e18(5)] }),
+      note: expect.stringMatching(/exact approve/),
+    })
+    expect(r.warnings[0]).toMatch(/may pull only 2 MUSD.*approve below first/)
+    expect(c.rpc.methods()).not.toContain('eth_estimateGas')
+    noSend(c)
+  })
+
+  it('a free pool and a pending BTC gain: no lock warning, the gain is named, and it is what the pool pays out with the deposit', async () => {
+    const c = chain(all(noTail, holds('10'), approved('5'), (x) => void x.s.gain.set(ME.toLowerCase(), 3_000_000_000n)))
+    const r: Json = await c.sp.planDeposit({ address: ME, amount: '5' })
+    expect(r.withdraw).toMatchObject({ blocked: false, underMcr: [] })
+    expect(r.deposit.btcGainPaidOut).toBe('0.000000003')
+    expect(r.warnings).toEqual([expect.stringMatching(/pending 0\.000000003 BTC gain/)])
+    expect(r.summary).toMatch(/Withdrawals are open/)
+  })
+
+  it('more MUSD than the wallet holds is a refusal with the reason and nothing to send', async () => {
+    const c = chain()
+    const r: Json = await c.sp.planDeposit({ address: ME, amount: '1000' })
+    expect(r).toMatchObject({ refused: true, action: 'sp_deposit', blockNumber: 16_500_000 })
+    expect(r.reason).toMatch(/holds only 15\.7 MUSD, less than the 1000 MUSD/)
+    expect(r).not.toHaveProperty('data')
+    expect(r).not.toHaveProperty('to')
+    expect(c.rpc.methods()).not.toContain('eth_estimateGas')
+  })
+
+  it('a failing gas estimate is a warning and a null gas, not an exception', async () => {
+    const c = chain(all(approved('5'), (x) => void (x.w.estimateFails = true)))
+    const r: Json = await c.sp.planDeposit({ address: ME, amount: '5' })
+    expect(r).toMatchObject({ refused: false, gas: null, data: provide(e18(5)) })
+    expect(r.warnings.join(' ')).toMatch(/the gas estimate failed .*fake estimate failure/)
+  })
+
+  it('a pinned plan asks that block for every state read', async () => {
+    const c = chain(approved('5'))
+    const r: Json = await c.sp.planDeposit({ address: ME, amount: '5' }, { blockNumber: 16_499_000n })
+    expect(r.blockNumber).toBe(16_499_000)
+    const calls = c.rpc.calls.filter((x) => x.method === 'eth_call')
+    expect(calls.length).toBeGreaterThan(10)
+    expect([...new Set(calls.map((x) => x.params[1]))]).toEqual([toHex(16_499_000n)])
+  })
+
+  it('bad input is an input error and costs no chain read', async () => {
+    const c = chain()
+    for (const bad of [
+      { address: 'nobody', amount: '5' },
+      { address: ME, amount: '0' },
+      { address: ME, amount: '-1' },
+      { address: ME, amount: '1e3' },
+      { address: ME, amount: 'abc' },
+      { address: ME, amount: '1.0000000000000000001' },
+      { address: ME, amount: 5 as unknown as string },
+    ])
+      await expect(c.sp.planDeposit(bad)).rejects.toThrow(InputError)
+    expect(c.rpc.calls).toEqual([])
+  })
+})
+
 // ---- the writers -----------------------------------------------------------------------------------------------------------------------------
 
 /** Caps for the cases: a bit above 10 MUSD per call, and a little BTC for gas. */
@@ -214,9 +302,9 @@ const poolRaw = ({ deposit, compounded, collateralGain, totalDeposits, collatera
 const call = (c: Case, i: number) => c.w.sent[i]!
 
 describe('without a writer, or with writes off', () => {
-  it('no writer: the two reads only', () => {
+  it('no writer: the three reads only', () => {
     const { rpc } = chain()
-    expect(Object.keys(createSp(rpc.client)).sort()).toEqual(['allowances', 'status'])
+    expect(Object.keys(createSp(rpc.client)).sort()).toEqual(['allowances', 'planDeposit', 'status'])
   })
 
   it('writes off: every writer refuses with the writer\'s reason and reads nothing', async () => {

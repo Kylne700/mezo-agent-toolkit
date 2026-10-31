@@ -1,6 +1,6 @@
 // The MCP server: four free chain reads through the MezoLens contract, one tool that pays for data over x402 under hard spend limits,
 // two free reads of the LIVE vote-escrow system (ve_status, gauge_rewards), four free trove planners (plan_open, plan_top_up, plan_repay, trove_status),
-// two free reads of the Stability Pool and of token allowances (sp_status, allowance_status) and, only when the operator turns writes on, fourteen guarded write tools
+// three free tools for the Stability Pool: its status, the token allowances and a deposit plan (sp_status, allowance_status, plan_sp_deposit) and, only when the operator turns writes on, fourteen guarded write tools
 // (six vote-escrow, three trove, five Stability Pool / liquidation / allowance).
 // The factory takes the lens, the buyer, the ve, trove and Stability Pool tools as arguments (no files, no environment), so tests run it in memory and the stdio entry (mcp.ts) wires the real ones.
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
@@ -23,7 +23,7 @@ export interface McpOptions {
   ve?: Ve
   /** The trove planners and trove_status. Without it they are not offered; its `write` part exists only when the operator enabled writes. */
   trove?: Trove
-  /** sp_status and allowance_status. Without it they are not offered; its `write` part exists only when the operator enabled writes. */
+  /** sp_status, allowance_status and plan_sp_deposit. Without it they are not offered; its `write` part exists only when the operator enabled writes. */
   sp?: Sp
 }
 
@@ -68,7 +68,7 @@ export function createMcpServer({ lens, buyer, payOffReason, ve, trove, sp }: Mc
     { name: 'mezo-agent-toolkit', version: pkg.version },
     {
       instructions:
-        `Mezo testnet only. ${4 + (ve ? 2 : 0) + (trove ? 4 : 0) + (sp ? 2 : 0)} free read tools (MUSD troves, the redemption queue, DEX quotes, veBTC and veMEZO locks${ve ? ', the LIVE vote-escrow status, gauge rewards' : ''}${trove ? ', trove plans and status' : ''}${sp ? ', the Stability Pool and token allowances' : ''}) and pay_and_fetch, which buys data from x402 endpoints in MUSD under spend limits set by the operator.` +
+        `Mezo testnet only. ${4 + (ve ? 2 : 0) + (trove ? 4 : 0) + (sp ? 3 : 0)} free read tools (MUSD troves, the redemption queue, DEX quotes, veBTC and veMEZO locks${ve ? ', the LIVE vote-escrow status, gauge rewards' : ''}${trove ? ', trove plans and status' : ''}${sp ? ', the Stability Pool, a deposit plan and token allowances' : ''}) and pay_and_fetch, which buys data from x402 endpoints in MUSD under spend limits set by the operator.` +
         (ve?.write ? ' Six more tools (ve_approve_btc, ve_lock, ve_vote, ve_poke, ve_claim_rewards, ve_claim_rebase) send real testnet transactions through a guarded writer, under allow-list and caps the operator set.' : '') +
         (trove?.write ? ' Three more (trove_open, trove_add_coll, trove_repay) open a MUSD trove, add collateral and repay on the same guarded writer; they plan first and refuse what plan_open, plan_top_up or plan_repay would refuse, so read those first.' : '') +
         (sp?.write ? ' Five more (sp_approve_musd, sp_deposit, sp_withdraw, trove_liquidate, approve_revoke) approve and deposit MUSD to the Stability Pool, take it out, liquidate a trove under the 110% minimum and revoke an allowance on the same guarded writer; they read first and refuse what would revert, with the reason (sp_status says whether a withdrawal is blocked).' : ''),
@@ -316,6 +316,16 @@ export function createMcpServer({ lens, buyer, payOffReason, ve, trove, sp }: Mc
         annotations: readOnly,
       },
       (a) => read(() => sp.allowances({ address: a.address, ...(a.spender === undefined ? {} : { spender: a.spender }) })),
+    )
+    server.registerTool(
+      'plan_sp_deposit',
+      {
+        title: 'Plan a Stability Pool deposit',
+        description: `Plans depositing MUSD into the Stability Pool before anything is sent: the exact provideToSP call (to, data, value 0) and a gas estimate, whether the pool first needs an exact MUSD approve (with its calldata), the deposit before and after, and whether a withdrawal is blocked right now (the pool refuses every non-zero withdrawal while a trove is under the 110% minimum, so MUSD put in now can stay locked). A deposit also pays out the wallet's pending BTC gain. A plan is refused only when the wallet holds less MUSD than the amount. Nothing is signed or sent; the paid hosted route POST /plan/sp-deposit gives the same answer. ${SP_NOTE}`,
+        inputSchema: { ...addressShape('Wallet that would deposit'), amount: musd('MUSD to deposit') },
+        annotations: readOnly,
+      },
+      (a) => read(() => sp.planDeposit({ address: a.address, amount: a.amount })),
     )
     if (w) {
       server.registerTool(
