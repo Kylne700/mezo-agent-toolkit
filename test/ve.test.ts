@@ -9,7 +9,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { erc20Abi, poolsVoterAbi, rewardsDistributorAbi, veBtcAbi } from '../src/abis.ts'
 import { ADDRESSES, LEGACY_VE } from '../src/config.ts'
 import { InputError } from '../src/inputs.ts'
-import { createVe, epochAt, phaseAt, type Outcome } from '../src/ve-actions.ts'
+import { createVe, epochAt, phaseAt, type Outcome, type VeOptions } from '../src/ve-actions.ts'
 import { createWriter } from '../src/write.ts'
 import { SAT, STRANGER, TOKEN_T, addr, bribeOf, btcTransferLog, earnKey, feeOf, gaugeOf, mintLog, nft, pool, veWorld, type FakeNft, type World } from './helpers/ve.ts'
 import { u } from './helpers/write.ts'
@@ -28,14 +28,14 @@ const e = epochAt(SAT)
 const CAPS = { MEZO_WRITE_MAX_BTC_PER_CALL: '0.01', MEZO_WRITE_MAX_BTC_PER_DAY: '0.02', MEZO_WRITE_RISKY: '1' }
 
 /** A fake chain, a writer on the SHIPPED allow-list (a fresh receipts ledger and kill file per case) and the tools on top. */
-function setup(env: Record<string, string | undefined> = {}, tweak: (w: World) => void = () => {}) {
+function setup(env: Record<string, string | undefined> = {}, tweak: (w: World) => void = () => {}, patience: VeOptions = { patienceMs: 0 }) {
   const world = veWorld(me)
   tweak(world.w)
   const rpc = world.rpc()
   const dir = mkdtempSync(join(root, 'case-'))
   const receipts = join(dir, 'receipts.jsonl')
   const writer = createWriter({ env: { MEZO_WRITE_ENABLE: 'testnet', MEZO_KEY_FILE: keyFile, MEZO_WRITE_RECEIPTS_FILE: receipts, ...CAPS, ...env }, client: rpc.client, now: () => NOW, receiptTimeoutMs: 200 })
-  const ve = createVe(rpc.client, writer)
+  const ve = createVe(rpc.client, writer, patience)
   const lines = (): Json[] => (existsSync(receipts) ? readFileSync(receipts, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l)) : [])
   return { w: world.w, rpc, dir, ve, write: ve.write!, lines }
 }
@@ -385,6 +385,31 @@ describe('ve_vote', () => {
     ]
     for (const [input, why] of bad) await expect(write.vote(input), JSON.stringify(input).slice(0, 80)).rejects.toThrow(why)
     expect(rpc.calls).toEqual([])
+  })
+})
+
+describe('an RPC node that is behind (the live RPC is several nodes behind one URL)', () => {
+  const split = [{ pool: pool(0), weight: 100 }]
+  /** From the moment the vote is sent, the next answers come from a node that has neither the receipt nor the block yet. */
+  const behind = (lag: Partial<World['lag']>) => (w: World) => {
+    mine({ power: 3_600_000_000_000_000n })(w)
+    w.onTx = () => void Object.assign(w.lag, lag)
+  }
+
+  it('asks again for the receipt and the block, then reads the vote back at that block', async () => {
+    const { write, w } = setup({}, behind({ receipts: 2, blocks: 2, calls: 2 }), { patienceMs: 5_000, retryMs: 1 })
+    const r = await write.vote({ tokenId: '1900', pools: split })
+    expect(r).toMatchObject({ sent: true, status: 'success', blockNumber: '16482100', gasUsed: '123456', voted: true, usedWeights: '0.0036' })
+    expect(w.lag).toEqual({ receipts: 0, blocks: 0, calls: 0 }) // every answer from the lagging node was met with another ask
+  })
+
+  it('a receipt that does not arrive in time is said so; the state from before the vote is not shown as the result', async () => {
+    const { write, w } = setup({}, behind({ receipts: 1_000 }), { patienceMs: 20, retryMs: 5 })
+    const r = await write.vote({ tokenId: '1900', pools: split })
+    expect(r).toMatchObject({ sent: true, status: 'success', blockNumber: null, gasUsed: null, readBack: expect.stringMatching(/did not return its receipt in time.*ve_status/) })
+    expect(r).not.toHaveProperty('voted')
+    expect(r).not.toHaveProperty('pools')
+    expect(w.sent).toHaveLength(1)
   })
 })
 

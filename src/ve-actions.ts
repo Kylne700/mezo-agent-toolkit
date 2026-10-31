@@ -124,15 +124,39 @@ function mintedTokenId(logs: Receipt['logs'], to: Address): bigint | undefined {
 
 // ---- the tools -----------------------------------------------------------------------------------------------------------------------------
 
-export function createVe(client: PublicClient, writer?: Writer): Ve {
+export interface VeOptions {
+  /** How long a read-back after a send keeps asking when the node that answers has not got the receipt or the block yet (default 15000). */
+  patienceMs?: number
+  /** The pause between those asks (default 500). */
+  retryMs?: number
+}
+
+export function createVe(client: PublicClient, writer?: Writer, options: VeOptions = {}): Ve {
   const rc: ReadClient = client
+  const patienceMs = options.patienceMs ?? 15_000
+  const retryMs = options.retryMs ?? 500
+
+  /** The RPC is several nodes behind one URL and the one that answers can be a block behind: after our own send, ask again until it has the receipt and the block, or the patience is spent. */
+  async function patiently<T>(fn: () => Promise<T>): Promise<T> {
+    const until = Date.now() + patienceMs
+    for (;;) {
+      try {
+        return await fn()
+      } catch (e) {
+        if (Date.now() >= until) throw e
+        await new Promise((r) => setTimeout(r, retryMs))
+      }
+    }
+  }
 
   /** Pin every read of one call to one block, so the numbers in an answer agree with each other. */
   async function pin(at?: bigint): Promise<Pinned> {
+    // `at` is the block of our own receipt: the node that answers may not have it yet, so a read-back waits for it instead of showing the state before the send.
+    const ask: <T>(fn: () => Promise<T>) => Promise<T> = at === undefined ? (fn) => withRetry(fn) : patiently
     const block = at ?? (await withRetry(() => rc.getBlockNumber()))
-    const ts = (await withRetry(() => rc.getBlock({ blockNumber: block }))).timestamp
+    const ts = (await ask(() => rc.getBlock({ blockNumber: block }))).timestamp
     const read = <T>(address: Address, abi: Abi, fn: string, args: readonly unknown[] = []) =>
-      withRetry(() => rc.readContract({ address, abi, functionName: fn, args, blockNumber: block }) as Promise<T>)
+      ask(() => rc.readContract({ address, abi, functionName: fn, args, blockNumber: block }) as Promise<T>)
     return {
       block,
       ts,
@@ -328,14 +352,13 @@ export function createVe(client: PublicClient, writer?: Writer): Ve {
       return no(`the write core failed (${messageOf(e)}); check the receipts file before trying again`)
     }
     if (!r.sent) return r
-    let receipt: Receipt | undefined
-    try {
-      receipt = await withRetry(() => client.getTransactionReceipt({ hash: r.hash }))
-    } catch {
-      receipt = undefined
-    }
+    // An unknown status means the write core already waited for a receipt in vain: ask once more, do not wait again.
+    const getReceipt = () => client.getTransactionReceipt({ hash: r.hash })
+    const receipt: Receipt | undefined = await (r.status === 'unknown' ? getReceipt() : patiently(getReceipt)).catch(() => undefined)
     const base: Sent = { sent: true, hash: r.hash, status: r.status, explorer: txUrl(r.hash), blockNumber: receipt ? receipt.blockNumber.toString() : null, gasUsed: receipt ? receipt.gasUsed.toString() : null, ...(r.note ? { note: r.note } : {}) }
     if (!plan.after || r.status !== 'success') return base
+    // Without the receipt there is no block to pin the read-back to, and a read at "latest" can still be the state before the send (voted: false after a vote): show nothing instead.
+    if (!receipt) return { ...base, readBack: 'the transaction succeeded, but the RPC did not return its receipt in time, so the new state is not shown; read it with ve_status in a few seconds' }
     try {
       return { ...base, ...(await plan.after(receipt)) }
     } catch (e) {

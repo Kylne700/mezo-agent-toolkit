@@ -73,6 +73,10 @@ export function veWorld(me: Address) {
     silent: false, // no receipt ever arrives
     logs: [] as unknown[], // logs of the next receipt (the fake chain sets them for a createLock)
     onTx: undefined as ((tx: Tx) => void) | undefined, // an extra hook, called after the fake chain applied the tx
+    // The live RPC is several nodes behind one URL and the one that answers can be a block behind: the next N such answers fail, then they work.
+    // `receipts` counts only the asks after the first receipt (the write core's own wait gets that one); `calls` only the reads pinned to a block.
+    lag: { receipts: 0, blocks: 0, calls: 0 },
+    receiptAsks: 0,
     sent: [] as Tx[],
   }
   const epoch = () => epochAt(w.ts)
@@ -186,9 +190,13 @@ export function veWorld(me: Address) {
   const header = () => ({ number: toHex(w.block), hash: `0x${'11'.repeat(32)}`, timestamp: toHex(w.ts), baseFeePerGas: toHex(130n), transactions: [] })
   const over = {
     eth_blockNumber: () => toHex(w.block),
-    eth_getBlockByNumber: () => header(),
+    eth_getBlockByNumber: () => (w.lag.blocks > 0 ? (w.lag.blocks--, null) : header()),
     eth_getTransactionCount: () => toHex(7 + w.sent.length),
-    eth_call: ([tx]: any[]) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+    eth_call: ([tx, block]: any[]) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      if (!tx.from && block !== 'latest' && w.lag.calls > 0) {
+        w.lag.calls--
+        throw new Error('header not found')
+      }
       const h = table().get(`${String(tx.to).toLowerCase()}:${String(tx.data).slice(0, 10)}`)
       if (tx.from) {
         // The write core simulates from the signer's address; reads never send `from`.
@@ -213,7 +221,7 @@ export function veWorld(me: Address) {
       throw new Error('the mock RPC has no eth_getTransactionByHash')
     },
     eth_getTransactionReceipt: ([hash]: Hex[]) =>
-      w.silent
+      w.silent || (w.receiptAsks++ > 0 && w.lag.receipts > 0 && (w.lag.receipts--, true))
         ? null
         : { transactionHash: hash, transactionIndex: '0x0', blockHash: `0x${'33'.repeat(32)}`, blockNumber: toHex(w.block), cumulativeGasUsed: '0x5208', gasUsed: '0x1e240', effectiveGasPrice: '0x92', logs: w.logs, logsBloom: `0x${'00'.repeat(256)}`, status: w.txStatus, type: '0x2', contractAddress: null },
   }
