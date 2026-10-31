@@ -57,7 +57,7 @@ Set them in the environment of the server. Claude Code takes them with `-e` (wri
 claude mcp add mezo -e MEZO_KEY_FILE=/path/to/testnet.key -- npx -y mezo-agent-toolkit
 ```
 
-In a JSON configuration, add `"env": { "MEZO_KEY_FILE": "/path/to/testnet.key" }` next to `command` and `args`. `--doctor` reads the same environment, so you can check a setting before the client uses it.
+In a JSON configuration, add `"env": { "MEZO_KEY_FILE": "/path/to/testnet.key" }` next to `command` and `args`. `--doctor` reads these variables from your shell, not from the client's configuration, so export them in the terminal to check a setting before the client uses it (for example `MEZO_KEY_FILE=/path/to/testnet.key npx -y mezo-agent-toolkit --doctor`).
 
 | Variable | Meaning | Default |
 | --- | --- | --- |
