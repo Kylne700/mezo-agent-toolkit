@@ -34,11 +34,17 @@ export function parseAmountText(v: unknown, name = 'amountIn'): string {
 }
 
 /** Parse a plain decimal amount into base units. Rejects signs, exponents, separators, zero and too many decimals. */
-export function parseTokenAmount(text: string, decimals: number): bigint {
-  const t = parseAmountText(text)
+export function parseTokenAmount(text: string, decimals: number, name = 'amountIn'): bigint {
+  const t = parseAmountText(text, name)
   const [whole, frac = ''] = t.split('.')
-  if (frac.length > decimals) throw new InputError(`amountIn has more than ${decimals} decimal places`)
+  if (frac.length > decimals) throw new InputError(`${name} has more than ${decimals} decimal places`)
   return BigInt(whole! + frac.padEnd(decimals, '0'))
+}
+
+/** A veNFT id: a plain positive whole number (at most 18 digits). */
+export function parseTokenId(v: unknown, name = 'tokenId'): bigint {
+  if (typeof v !== 'string' || !/^[1-9]\d{0,17}$/.test(v.trim())) throw new InputError(`${name} must be a positive whole number such as 1727`)
+  return BigInt(v.trim())
 }
 
 /** "true", "false", "1", "0" (as in a query string) or a real boolean. Anything else is an error. */

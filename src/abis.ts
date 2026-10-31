@@ -49,12 +49,17 @@ export const hintHelpersAbi = parseAbi([
 ])
 
 // veBTC and veMEZO are Solidly-style vote escrows. The LIVE veBTC has no balanceOfNFT and returns a fourth lock field (boost), which this ABI does not decode.
+// The last four entries are what the write tools use (createLock pulls BTC through the ERC-20 interface, so it needs an exact approve first).
 export const veBtcAbi = parseAbi([
   'function balanceOf(address owner) view returns (uint256)',
   'function ownerToNFTokenIdList(address owner, uint256 index) view returns (uint256)',
   'function locked(uint256 tokenId) view returns ((int128 amount, uint256 end, bool isPermanent))',
   'function votingPowerOfNFT(uint256 tokenId) view returns (uint256)',
   'function voted(uint256 tokenId) view returns (bool)',
+  'function ownerOf(uint256 tokenId) view returns (address)',
+  'function isApprovedOrOwner(address spender, uint256 tokenId) view returns (bool)',
+  'function createLock(uint256 value, uint256 lockDuration) returns (uint256)',
+  'event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)',
 ])
 
 export const veMezoAbi = parseAbi([
@@ -64,3 +69,41 @@ export const veMezoAbi = parseAbi([
   'function votingPowerOfNFT(uint256 tokenId) view returns (uint256)',
   'function voted(uint256 tokenId) view returns (bool)',
 ])
+
+// The LIVE poolsVoter (read from its verified source). A vote stays in force until the NFT votes again or is reset; rewards pay completed epochs.
+export const poolsVoterAbi = parseAbi([
+  'function length() view returns (uint256)',
+  'function pools(uint256 index) view returns (address)',
+  'function gauges(address pool) view returns (address)',
+  'function gaugeToFees(address gauge) view returns (address)',
+  'function gaugeToBribe(address gauge) view returns (address)',
+  'function isAlive(address gauge) view returns (bool)',
+  'function weights(address pool) view returns (uint256)',
+  'function totalWeight() view returns (uint256)',
+  'function votes(uint256 tokenId, address pool) view returns (uint256)',
+  'function lastVoted(uint256 tokenId) view returns (uint256)',
+  'function usedWeights(uint256 tokenId) view returns (uint256)',
+  'function maxVotingNum() view returns (uint256)',
+  'function isWhitelistedNFT(uint256 tokenId) view returns (bool)',
+  'function vote(uint256 tokenId, address[] poolVote, uint256[] weights)',
+  'function poke(uint256 tokenId)',
+  'function claimFeesAndBribes(address[] rewards, address[][] tokens, uint256 tokenId)',
+])
+
+// RewardsDistributor (the veBTC rebase). activePeriod() lives on its depositor, which tells whether a ve system still distributes.
+export const rewardsDistributorAbi = parseAbi([
+  'function depositor() view returns (address)',
+  'function claimable(uint256 tokenId) view returns (uint256)',
+  'function claim(uint256 tokenId) returns (uint256)',
+])
+export const depositorAbi = parseAbi(['function activePeriod() view returns (uint256)'])
+
+// A gauge's fee reward and bribe reward contracts (gaugeToFees, gaugeToBribe). They are not verified on the explorer; these calls were checked against the live contracts.
+export const rewardAbi = parseAbi([
+  'function rewardsListLength() view returns (uint256)',
+  'function rewards(uint256 index) view returns (address)',
+  'function tokenRewardsPerEpoch(address token, uint256 epochStart) view returns (uint256)',
+  'function earned(address token, uint256 tokenId) view returns (uint256)',
+])
+
+export const poolNameAbi = parseAbi(['function name() view returns (string)'])

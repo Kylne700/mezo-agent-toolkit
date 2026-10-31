@@ -1,5 +1,6 @@
-// The MCP server: four free chain reads through the MezoLens contract, and one tool that pays for data over x402 under hard spend limits.
-// The factory takes the lens and the buyer as arguments (no files, no environment), so tests run it in memory and the stdio entry (mcp.ts) wires the real ones.
+// The MCP server: four free chain reads through the MezoLens contract, one tool that pays for data over x402 under hard spend limits,
+// two free reads of the LIVE vote-escrow system (ve_status, gauge_rewards) and, only when the operator turns writes on, six guarded write tools.
+// The factory takes the lens, the buyer and the ve tools as arguments (no files, no environment), so tests run it in memory and the stdio entry (mcp.ts) wires the real ones.
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
@@ -7,12 +8,15 @@ import pkg from '../package.json' with { type: 'json' }
 import { InputError, addressShape, parseAddress, parseAmountText, parseBool, parseToken, poolShape } from './inputs.ts'
 import type { Lens } from './lens.ts'
 import { PaymentRefused, type Buyer } from './pay.ts'
+import type { Outcome, Ve } from './ve-actions.ts'
 
 export interface McpOptions {
   lens: Lens
   /** Present only when the operator configured a wallet and valid limits. Without it, pay_and_fetch explains why it is off. */
   buyer?: Buyer
   payOffReason?: string
+  /** The LIVE vote-escrow tools. Without it, ve_status and gauge_rewards are not offered; its `write` part exists only when the operator enabled writes. */
+  ve?: Ve
 }
 
 const text = (s: string) => [{ type: 'text' as const, text: s }]
@@ -30,12 +34,30 @@ async function read(fn: () => Promise<object>): Promise<CallToolResult> {
   }
 }
 
+/** Run a write tool. A refusal means nothing was sent; a sent tx that did not succeed is an error result that still carries the hash. */
+async function write(fn: () => Promise<Outcome>): Promise<CallToolResult> {
+  try {
+    const r = await fn()
+    if (!r.sent) return fail(`Refused, nothing was sent: ${r.reason}`, { sent: false, reason: r.reason })
+    if (r.status === 'success') return ok(r)
+    const warning = r.status === 'reverted' ? 'The transaction was mined and reverted: it changed nothing and cost gas.' : 'No receipt arrived in time: the transaction may still be mined. Check the hash on the explorer before sending anything again.'
+    return { ...ok({ ...r, warning }), isError: true }
+  } catch (e) {
+    if (e instanceof InputError) return fail(e.message)
+    return fail(`The tool failed (${messageOf(e)}). If a transaction may have been sent, check the receipts file and the chain before trying again.`)
+  }
+}
+
 const READ_NOTE = 'Reads Mezo testnet through the MezoLens contract, free and with no key. Amounts are decimal strings; `raw` holds the exact integers (18 decimals). Every answer names the block it was read at.'
 
-export function createMcpServer({ lens, buyer, payOffReason }: McpOptions): McpServer {
+export function createMcpServer({ lens, buyer, payOffReason, ve }: McpOptions): McpServer {
   const server = new McpServer(
     { name: 'mezo-agent-toolkit', version: pkg.version },
-    { instructions: 'Mezo testnet only. Four free read tools (MUSD troves, the redemption queue, DEX quotes, veBTC and veMEZO locks) and pay_and_fetch, which buys data from x402 endpoints in MUSD under spend limits set by the operator.' },
+    {
+      instructions:
+        `Mezo testnet only. ${ve ? 'Six' : 'Four'} free read tools (MUSD troves, the redemption queue, DEX quotes, veBTC and veMEZO locks${ve ? ', the LIVE vote-escrow status, gauge rewards' : ''}) and pay_and_fetch, which buys data from x402 endpoints in MUSD under spend limits set by the operator.` +
+        (ve?.write ? ' Six more tools (ve_approve_btc, ve_lock, ve_vote, ve_poke, ve_claim_rewards, ve_claim_rebase) send real testnet transactions through a guarded writer, under allow-list and caps the operator set.' : ''),
+    },
   )
   const readOnly = { readOnlyHint: true, openWorldHint: true }
 
@@ -91,6 +113,97 @@ export function createMcpServer({ lens, buyer, payOffReason }: McpOptions): McpS
     ({ address }) => read(() => lens.veLocks(parseAddress(address))),
   )
 
+  if (ve) {
+    const w = ve.write
+    const tokenId = z.string().optional().describe('A veBTC NFT id on the LIVE system, for example "1727" (optional)')
+    server.registerTool(
+      've_status',
+      {
+        title: 'Vote-escrow status (LIVE vs LEGACY)',
+        description: `The LIVE vote-escrow system (veBTC, poolsVoter, RewardsDistributor) next to the LEGACY one, and which of them still distributes (from each distributor's activePeriod); the current epoch with its voting window and phase; and, with a tokenId, one NFT's lock, voting power, voted flag, last vote time and why it can or cannot vote now. ${READ_NOTE}`,
+        inputSchema: { tokenId },
+        annotations: readOnly,
+      },
+      (a) => read(() => ve.status({ tokenId: a.tokenId })),
+    )
+    server.registerTool(
+      'gauge_rewards',
+      {
+        title: 'Gauge rewards and pool ranking',
+        description: `Every pool of the LIVE voter ranked by MUSD fees booked this epoch per unit of vote weight and, with a tokenId, what that NFT can claim now (fee and bribe rewards per gauge and token) and its vote on each pool. ${READ_NOTE}`,
+        inputSchema: { tokenId },
+        annotations: readOnly,
+      },
+      (a) => read(() => ve.rewards({ tokenId: a.tokenId })),
+    )
+    if (w) {
+      // Every write is a real testnet transaction through the guarded writer; hosts that honour these hints should ask the user first.
+      const sends = { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true }
+      const WRITE_NOTE = 'Sends a real Mezo testnet transaction through the guarded writer: the operator\'s allow-list, spend caps and kill file apply, and every send is recorded. A refusal means nothing was sent.'
+      const id = { tokenId: z.string().describe('A veBTC NFT id on the LIVE system that the wallet owns, for example "1727"') }
+      server.registerTool(
+        've_approve_btc',
+        {
+          title: 'Approve BTC for veBTC (exact amount)',
+          description: `Let the LIVE veBTC pull exactly this much BTC from the operator's wallet, so ve_lock can create a lock. The amount is exact (an unlimited approval is refused) and the next lock uses it up. ${WRITE_NOTE}`,
+          inputSchema: { amount: z.string().describe('BTC to approve as a plain decimal, for example "0.004"') },
+          annotations: sends,
+        },
+        (a) => write(() => w.approveBtc({ amount: a.amount })),
+      )
+      server.registerTool(
+        've_lock',
+        {
+          title: 'Lock BTC in veBTC',
+          description: `Lock BTC in the LIVE veBTC for up to 28 days (the end is rounded down to a Thursday 00:00Z) and receive a veBTC NFT. Needs a ve_approve_btc for the same amount first. The BTC stays locked until the end. Voting power is 0 in the block the NFT arrives, so vote in a later block. ${WRITE_NOTE}`,
+          inputSchema: { amount: z.string().describe('BTC to lock as a plain decimal, for example "0.004"'), days: z.number().describe('Lock length in whole days, 1 to 28') },
+          annotations: sends,
+        },
+        (a) => write(() => w.lock({ amount: a.amount, days: a.days })),
+      )
+      server.registerTool(
+        've_vote',
+        {
+          title: 'Vote with a veBTC NFT',
+          description: `Vote with one NFT for pools on the LIVE voter (see gauge_rewards for the pools). Weights are relative whole numbers: one pool with weight 100 is a 100% vote. One vote per NFT per epoch; votes are refused in the first and last hour of an epoch and when the NFT's voting power is 0. The vote stays in force until the NFT votes again. ${WRITE_NOTE}`,
+          inputSchema: { ...id, pools: z.array(z.object({ pool: z.string().describe('Pool address (0x)'), weight: z.number().describe('Relative weight, a whole number from 1 to 10000') })).describe('Pools to vote for, at most 30, no pool twice') },
+          annotations: sends,
+        },
+        (a) => write(() => w.vote({ tokenId: a.tokenId, pools: a.pools })),
+      )
+      server.registerTool(
+        've_poke',
+        {
+          title: 'Refresh a vote at the current power',
+          description: `Re-apply an NFT's stored vote at its current voting power. Only useful after the lock grew; it is refused when it would not raise the weights. ${WRITE_NOTE}`,
+          inputSchema: id,
+          annotations: sends,
+        },
+        (a) => write(() => w.poke({ tokenId: a.tokenId })),
+      )
+      server.registerTool(
+        've_claim_rewards',
+        {
+          title: 'Claim gauge fees and bribes',
+          description: `Claim every fee and bribe reward an NFT has earned on the LIVE voter. The reward contracts and tokens are read from the chain (see gauge_rewards). Rewards booked in an epoch can be claimed once it ends. ${WRITE_NOTE}`,
+          inputSchema: id,
+          annotations: sends,
+        },
+        (a) => write(() => w.claimRewards({ tokenId: a.tokenId })),
+      )
+      server.registerTool(
+        've_claim_rebase',
+        {
+          title: 'Claim the veBTC rebase',
+          description: `Claim the rebase the LIVE RewardsDistributor holds for an NFT. Refused when there is nothing to claim. ${WRITE_NOTE}`,
+          inputSchema: id,
+          annotations: sends,
+        },
+        (a) => write(() => w.claimRebase({ tokenId: a.tokenId })),
+      )
+    }
+  }
+
   const limits = buyer
     ? `Hard limits set by the operator, which you cannot change: at most ${buyer.guard.snapshot().perCallMusd} MUSD per call and ${buyer.guard.snapshot().perSessionMusd} MUSD in total for this session. Anything over is refused before it is signed.`
     : `Currently switched off: ${payOffReason ?? 'no wallet is configured'}.`
@@ -109,7 +222,7 @@ export function createMcpServer({ lens, buyer, payOffReason }: McpOptions): McpS
     async ({ url }) => {
       if (!buyer) {
         const reason = payOffReason ?? 'no wallet is configured'
-        return fail(`pay_and_fetch is switched off: ${reason}. The four read tools still work.`, { refused: true, reason })
+        return fail(`pay_and_fetch is switched off: ${reason}. The read tools still work.`, { refused: true, reason })
       }
       try {
         const r = await buyer.fetchPaid(url)

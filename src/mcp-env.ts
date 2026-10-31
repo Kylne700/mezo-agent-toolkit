@@ -1,9 +1,12 @@
 // Turns the operator's environment into a buyer for pay_and_fetch, or into a plain reason why payments stay off.
 // Payments are opt-in and fail closed: no key file, a key that cannot be read, or limits that do not parse all switch pay_and_fetch off. The read tools never need any of this.
+import type { PublicClient } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { readKeyFile } from './keys.ts'
 import { createBuyer, type Buyer } from './pay.ts'
 import { SpendGuard } from './spend.ts'
+import { createVe, type Ve } from './ve-actions.ts'
+import { createWriter } from './write.ts'
 
 export type Env = Record<string, string | undefined>
 
@@ -36,4 +39,13 @@ export function buyerFromEnv(env: Env, chainReader: unknown): { buyer?: Buyer; o
   // Never "any host": a prompt-injected agent could pay any seller up to the session limit and read any local service.
   const allowedHosts = listed.length > 0 ? listed : DEFAULT_PAY_HOSTS
   return { buyer: createBuyer({ account, chainReader, guard, allowedHosts }) }
+}
+
+/**
+ * The LIVE vote-escrow tools. The two reads are always there. The write tools exist only when the operator sets MEZO_WRITE_ENABLE=testnet;
+ * with a bad setup (no key file, no receipts file, invalid limits) they stay listed and each refuses with the reason (`writer.offReason`).
+ */
+export function veFromEnv(env: Env, client: PublicClient): { ve: Ve; writer?: ReturnType<typeof createWriter> } {
+  const writer = env.MEZO_WRITE_ENABLE === 'testnet' ? createWriter({ env, client }) : undefined
+  return { ve: createVe(client, writer), writer }
 }

@@ -6,7 +6,9 @@
 // calldata that will be signed, and the transaction value always counts as BTC, so a caller cannot under-declare an amount.
 // Unset caps are 0 (fail closed): a call that moves MUSD or BTC (gas fees included) is refused until the operator sets a cap.
 import { readFileSync } from 'node:fs'
-import { formatUnits, isAddressEqual, parseUnits, type Address, type Hex } from 'viem'
+import { decodeFunctionData, formatUnits, getAbiItem, isAddressEqual, parseUnits, toFunctionSelector, type Abi, type AbiFunction, type Address, type Hex } from 'viem'
+import { erc20Abi, poolsVoterAbi, rewardsDistributorAbi, veBtcAbi } from './abis.ts'
+import { ADDRESSES } from './config.ts'
 
 export type Env = Record<string, string | undefined>
 
@@ -22,8 +24,72 @@ export interface AllowEntry {
   amounts: (data: Hex) => { musd: bigint; btc: bigint }
 }
 
-/** Every contract function the write path may call. Empty until the protocol tools add their entries. */
-export const ALLOW: readonly AllowEntry[] = []
+const selectorOf = (abi: Abi, name: string): Hex => toFunctionSelector(getAbiItem({ abi, name }) as AbiFunction)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const argsOf = (abi: Abi, data: Hex): any[] => [...(decodeFunctionData({ abi, data }).args ?? [])]
+const NO_FUNDS = { musd: 0n, btc: 0n }
+
+/** A lock lasts at most 28 days (the veBTC contract also rounds the unlock time down to a Thursday 00:00 UTC). */
+export const MAX_LOCK_SECONDS = 28n * 86_400n
+/** More BTC than will ever exist: an approval above it is an unlimited approval. */
+const UNLIMITED_BTC = 21_000_000n * 10n ** 18n
+/** The poolsVoter allows at most 30 pools per vote (maxVotingNum) and the claim tool stays under the same bound. */
+export const MAX_POOLS_PER_CALL = 30
+
+// Every veBTC action moves BTC only through the exact approve and the lock; votes, pokes and claims move none of the wallet's funds.
+// An amounts() that throws makes checkWrite refuse, so each entry also rejects the calldata shapes the tools never send.
+const VE: readonly AllowEntry[] = [
+  {
+    name: 've_approve_btc',
+    contract: ADDRESSES.btc,
+    selector: selectorOf(erc20Abi, 'approve'),
+    amounts: (data) => {
+      const [spender, amount] = argsOf(erc20Abi, data)
+      if (!isAddressEqual(spender, ADDRESSES.veBTC)) throw new Error('the spender must be the veBTC contract')
+      if (amount === 0n || amount > UNLIMITED_BTC) throw new Error('an approval must be an exact, non-zero amount')
+      return { musd: 0n, btc: amount } // counted like the lock it pays for, so the caps also bound the approval
+    },
+  },
+  {
+    name: 've_lock',
+    contract: ADDRESSES.veBTC,
+    selector: selectorOf(veBtcAbi, 'createLock'),
+    risky: true, // the BTC stays locked until the unlock time
+    amounts: (data) => {
+      const [value, duration] = argsOf(veBtcAbi, data)
+      if (value === 0n) throw new Error('a lock needs a non-zero amount')
+      if (duration === 0n || duration > MAX_LOCK_SECONDS) throw new Error('a lock lasts at most 28 days')
+      return { musd: 0n, btc: value }
+    },
+  },
+  {
+    name: 've_vote',
+    contract: ADDRESSES.poolsVoter,
+    selector: selectorOf(poolsVoterAbi, 'vote'),
+    amounts: (data) => {
+      const [, pools, weights] = argsOf(poolsVoterAbi, data)
+      if (pools.length === 0 || pools.length > MAX_POOLS_PER_CALL || pools.length !== weights.length || weights.some((w: bigint) => w === 0n)) {
+        throw new Error('a vote needs 1 to 30 pools with a non-zero weight each')
+      }
+      return NO_FUNDS
+    },
+  },
+  { name: 've_poke', contract: ADDRESSES.poolsVoter, selector: selectorOf(poolsVoterAbi, 'poke'), amounts: () => NO_FUNDS },
+  {
+    name: 've_claim_rewards',
+    contract: ADDRESSES.poolsVoter,
+    selector: selectorOf(poolsVoterAbi, 'claimFeesAndBribes'),
+    amounts: (data) => {
+      const [rewards, tokens] = argsOf(poolsVoterAbi, data)
+      if (rewards.length === 0 || rewards.length > MAX_POOLS_PER_CALL * 2 || rewards.length !== tokens.length) throw new Error('a claim needs matching lists of reward contracts and tokens')
+      return NO_FUNDS
+    },
+  },
+  { name: 've_claim_rebase', contract: ADDRESSES.rewardsDistributor, selector: selectorOf(rewardsDistributorAbi, 'claim'), amounts: () => NO_FUNDS },
+]
+
+/** Every contract function the write path may call: the LIVE ve system (see docs/THREAT-MODEL.md). Nothing else is allowed, and the operator's caps still apply to each call. */
+export const ALLOW: readonly AllowEntry[] = VE
 
 /** Gas cap of one write; a policy file can only lower it. */
 export const DEFAULT_MAX_GAS = 3_000_000n

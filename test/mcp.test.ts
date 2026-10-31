@@ -9,9 +9,12 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { afterAll, afterEach, describe, expect, it } from 'vitest'
-import { buyerFromEnv, DEFAULT_PAY_HOSTS, LIVE_HOSTS, payHosts } from '../src/mcp-env.ts'
+import { InputError } from '../src/inputs.ts'
+import { buyerFromEnv, DEFAULT_PAY_HOSTS, LIVE_HOSTS, payHosts, veFromEnv } from '../src/mcp-env.ts'
 import { createMcpServer, type McpOptions } from '../src/mcp-server.ts'
 import { checkUrl } from '../src/pay.ts'
+import type { Outcome, Ve } from '../src/ve-actions.ts'
+import { pool, veWorld } from './helpers/ve.ts'
 import { TROVE, fakeLens, payWorld, zeroReader } from './helpers/x402.ts'
 
 interface ToolReply {
@@ -241,6 +244,172 @@ describe('buyerFromEnv', () => {
   })
 })
 
+const READS = ['trove_health', 'redemption_risk', 'pool_quote', 've_locks', 'pay_and_fetch']
+const VE_READS = ['ve_status', 'gauge_rewards']
+const VE_WRITES = ['ve_approve_btc', 've_lock', 've_vote', 've_poke', 've_claim_rewards', 've_claim_rebase']
+const HASH = `0x${'ab'.repeat(32)}` as const
+const mined: Outcome = { sent: true, hash: HASH, status: 'success', explorer: `https://explorer.test.mezo.org/tx/${HASH}`, blockNumber: '5', gasUsed: '21000', tokenId: '1900' }
+/** A Ve whose six writers record what they were given and answer with `next()`. */
+function stubVe(next: () => Promise<Outcome> = async () => mined, seen: [string, unknown][] = []): Ve {
+  const via = (name: string) => (input: unknown) => (seen.push([name, input]), next())
+  return {
+    status: async (i) => ({ blockNumber: 7, tokenId: i?.tokenId ?? null }),
+    rewards: async (i) => ({ blockNumber: 7, tokenId: i?.tokenId ?? null, pools: [] }),
+    write: { approveBtc: via('approveBtc'), lock: via('lock'), vote: via('vote'), poke: via('poke'), claimRewards: via('claimRewards'), claimRebase: via('claimRebase') },
+  }
+}
+
+describe('the ve tools', () => {
+  const listTools = async (ve?: Ve) => (await (await connect({ lens: fakeLens(), ve })).listTools()).tools
+
+  it('ve_status and gauge_rewards come with ve; the six sending tools only when ve.write exists, and none takes a key, cap or gas argument', async () => {
+    expect((await listTools()).map((t) => t.name).sort()).toEqual([...READS].sort())
+    const readsOnly = await listTools({ ...stubVe(), write: undefined })
+    expect(readsOnly.map((t) => t.name).sort()).toEqual([...READS, ...VE_READS].sort())
+    for (const t of readsOnly.filter((x) => x.name !== 'pay_and_fetch')) expect(t.annotations?.readOnlyHint, t.name).toBe(true)
+
+    const all = await listTools(stubVe())
+    expect(all.map((t) => t.name).sort()).toEqual([...READS, ...VE_READS, ...VE_WRITES].sort())
+    for (const n of VE_WRITES) expect(all.find((t) => t.name === n)!.annotations, n).toMatchObject({ readOnlyHint: false, destructiveHint: true, idempotentHint: false })
+    const props = (n: string) => Object.keys(all.find((t) => t.name === n)!.inputSchema.properties ?? {})
+    expect(props('ve_approve_btc')).toEqual(['amount'])
+    expect(props('ve_lock')).toEqual(['amount', 'days'])
+    expect(props('ve_vote')).toEqual(['tokenId', 'pools'])
+    for (const n of ['ve_poke', 've_claim_rewards', 've_claim_rebase', 've_status', 'gauge_rewards']) expect(props(n), n).toEqual(['tokenId'])
+
+    const withWrites = (await connect({ lens: fakeLens(), ve: stubVe() })).getInstructions()
+    expect(withWrites).toMatch(/Six more tools \(ve_approve_btc, ve_lock, ve_vote, ve_poke, ve_claim_rewards, ve_claim_rebase\) send real testnet transactions/)
+    expect((await connect({ lens: fakeLens(), ve: { ...stubVe(), write: undefined } })).getInstructions()).not.toMatch(/ve_approve_btc/)
+  })
+
+  it('the two reads answer as text and as structured content, with the token id passed on', async () => {
+    const client = await connect({ lens: fakeLens(), ve: stubVe() })
+    for (const name of VE_READS) {
+      const r = await call(client, name, { tokenId: '1727' })
+      expect(r.isError, name).toBeFalsy()
+      expect(r.structuredContent).toMatchObject({ blockNumber: 7, tokenId: '1727' })
+      expect(JSON.parse(r.content[0]!.text)).toEqual(r.structuredContent)
+    }
+    expect((await call(client, 've_status')).structuredContent).toMatchObject({ tokenId: null })
+  })
+
+  it('maps every outcome the same way for each sending tool: success, refusal, reverted, no receipt, bad input, crash', async () => {
+    const seen: [string, unknown][] = []
+    let next: () => Promise<Outcome> = async () => mined
+    const client = await connect({ lens: fakeLens(), ve: stubVe(() => next(), seen) })
+    const args: Record<string, Record<string, unknown>> = {
+      ve_approve_btc: { amount: '0.004' },
+      ve_lock: { amount: '0.004', days: 28 },
+      ve_vote: { tokenId: '1900', pools: [{ pool: pool(0), weight: 100 }] },
+      ve_poke: { tokenId: '1900' },
+      ve_claim_rewards: { tokenId: '1900' },
+      ve_claim_rebase: { tokenId: '1900' },
+    }
+    for (const [name, a] of Object.entries(args)) {
+      next = async () => mined
+      const good = await call(client, name, a)
+      expect(good.isError, name).toBeFalsy()
+      expect(good.structuredContent, name).toMatchObject({ sent: true, status: 'success', hash: HASH, tokenId: '1900' })
+      expect(JSON.parse(good.content[0]!.text)).toEqual(good.structuredContent)
+
+      next = async () => ({ sent: false, reason: 'the kill file exists' })
+      const refused = await call(client, name, a)
+      expect(refused.isError, name).toBe(true)
+      expect(refused.content[0]!.text).toBe('Refused, nothing was sent: the kill file exists')
+      expect(refused.structuredContent).toEqual({ sent: false, reason: 'the kill file exists' })
+
+      next = async () => ({ ...mined, status: 'reverted' }) as Outcome
+      const reverted = await call(client, name, a)
+      expect(reverted.isError, name).toBe(true)
+      expect(reverted.structuredContent).toMatchObject({ sent: true, status: 'reverted', hash: HASH, warning: expect.stringMatching(/mined and reverted/) })
+
+      next = async () => ({ ...mined, status: 'unknown', blockNumber: null, gasUsed: null }) as Outcome
+      const unknown = await call(client, name, a)
+      expect(unknown.isError, name).toBe(true)
+      expect(unknown.structuredContent.warning).toMatch(/No receipt arrived in time.*Check the hash/)
+
+      next = async () => Promise.reject(new InputError('days must be a whole number from 1 to 28'))
+      expect(await call(client, name, a), name).toMatchObject({ isError: true, content: [{ type: 'text', text: 'days must be a whole number from 1 to 28' }] })
+
+      next = async () => Promise.reject(Object.assign(new Error('a very long message'), { shortMessage: 'boom' }))
+      const crash = await call(client, name, a)
+      expect(crash.isError, name).toBe(true)
+      expect(crash.content[0]!.text).toMatch(/^The tool failed \(boom\)\. If a transaction may have been sent, check the receipts file and the chain before trying again\.$/)
+    }
+    // Each tool handed the writer exactly its own arguments.
+    expect(new Set(seen.map((s) => JSON.stringify(s)))).toEqual(new Set([
+      JSON.stringify(['approveBtc', args.ve_approve_btc]), JSON.stringify(['lock', args.ve_lock]), JSON.stringify(['vote', args.ve_vote]),
+      JSON.stringify(['poke', args.ve_poke]), JSON.stringify(['claimRewards', args.ve_claim_rewards]), JSON.stringify(['claimRebase', args.ve_claim_rebase]),
+    ]))
+  })
+
+  it('drops arguments the schema does not list and rejects the wrong types before the writer sees anything', async () => {
+    const seen: [string, unknown][] = []
+    const client = await connect({ lens: fakeLens(), ve: stubVe(undefined, seen) })
+    await call(client, 've_lock', { amount: '0.004', days: 28, maxFeePerGas: '999', keyFile: '/tmp/other.key', gas: 1 })
+    expect(seen).toEqual([['lock', { amount: '0.004', days: 28 }]])
+    const bad = await call(client, 've_lock', { amount: '0.004', days: 'many' }).then((r) => r.isError, () => true)
+    expect(bad).toBe(true)
+    expect(seen).toHaveLength(1)
+  })
+})
+
+describe('veFromEnv', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'mezo-mcp-ve-'))
+  afterAll(() => rmSync(dir, { recursive: true, force: true }))
+  const key = generatePrivateKey()
+  const keyFile = join(dir, 'k.key')
+  writeFileSync(keyFile, key, { mode: 0o600 })
+  const me = privateKeyToAccount(key).address
+  const onEnv = { MEZO_WRITE_ENABLE: 'testnet', MEZO_KEY_FILE: keyFile, MEZO_WRITE_RECEIPTS_FILE: join(dir, 'receipts.jsonl'), MEZO_WRITE_MAX_BTC_PER_CALL: '0.01', MEZO_WRITE_MAX_BTC_PER_DAY: '0.02', MEZO_WRITE_RISKY: '1' }
+
+  it('has no write part unless MEZO_WRITE_ENABLE is exactly testnet', () => {
+    const { client } = veWorld(me).rpc()
+    for (const v of [undefined, '', '1', 'true', 'mainnet', 'TESTNET', ' testnet']) {
+      const r = veFromEnv({ ...onEnv, MEZO_WRITE_ENABLE: v }, client)
+      expect(r.writer, String(v)).toBeUndefined()
+      expect(r.ve.write, String(v)).toBeUndefined()
+    }
+    expect(veFromEnv(onEnv, client).ve.write).toBeDefined()
+  })
+
+  it('a bad setup keeps the sending tools listed and each one refuses with the reason, naming no path, and touches no chain', async () => {
+    for (const [env, why] of [
+      [{ MEZO_WRITE_ENABLE: 'testnet' }, /no wallet is configured \(the operator sets MEZO_KEY_FILE/],
+      [{ MEZO_WRITE_ENABLE: 'testnet', MEZO_KEY_FILE: join(dir, 'missing.key') }, /cannot read the key file/],
+      [{ ...onEnv, MEZO_WRITE_RECEIPTS_FILE: undefined }, /no receipts file is configured/],
+      [{ ...onEnv, MEZO_WRITE_MAX_BTC_PER_CALL: '0.5' }, /the write policy is not valid, so writes stay off/],
+    ] as const) {
+      const rpc = veWorld(me).rpc()
+      const client = await connect({ lens: fakeLens(), ve: veFromEnv(env, rpc.client).ve })
+      for (const [name, a] of [['ve_approve_btc', { amount: '0.004' }], ['ve_lock', { amount: '0.004', days: 28 }], ['ve_vote', { tokenId: '1', pools: [{ pool: pool(0), weight: 1 }] }], ['ve_poke', { tokenId: '1' }], ['ve_claim_rewards', { tokenId: '1' }], ['ve_claim_rebase', { tokenId: '1' }]] as const) {
+        const r = await call(client, name, a)
+        expect(r.isError, name).toBe(true)
+        expect(r.content[0]!.text, name).toMatch(why)
+        expect(r.content[0]!.text).not.toContain(dir)
+      }
+      expect(rpc.calls).toEqual([])
+    }
+  })
+
+  it('end to end on the fake chain: status, exact approve, lock, a vote in the lock\'s own block refused, then the vote', async () => {
+    const world = veWorld(me)
+    const rpc = world.rpc()
+    const client = await connect({ lens: fakeLens(), ve: veFromEnv(onEnv, rpc.client).ve })
+    expect((await call(client, 've_status')).structuredContent).toMatchObject({ chainId: 31611, systems: { live: { distributing: true }, legacy: { distributing: false } } })
+    expect((await call(client, 'gauge_rewards')).structuredContent.pools[0]).toMatchObject({ rank: 1, name: 'MUSD Savings Rate' })
+    expect((await call(client, 've_approve_btc', { amount: '0.004' })).structuredContent).toMatchObject({ sent: true, status: 'success', allowance: '0.004' })
+    expect((await call(client, 've_lock', { amount: '0.004', days: 28 })).structuredContent).toMatchObject({ sent: true, status: 'success', tokenId: '1900', unlocksAt: '2026-11-26T00:00:00.000Z' })
+    const early = await call(client, 've_vote', { tokenId: '1900', pools: [{ pool: pool(0), weight: 100 }] })
+    expect(early.isError).toBe(true)
+    expect(early.content[0]!.text).toMatch(/^Refused, nothing was sent: NFT 1900 has voting power 0 in this block/)
+    world.w.block += 1n
+    expect((await call(client, 've_vote', { tokenId: '1900', pools: [{ pool: pool(0), weight: 100 }] })).structuredContent).toMatchObject({ sent: true, status: 'success', voted: true })
+    expect((await call(client, 've_status', { tokenId: '1900' })).structuredContent.nft).toMatchObject({ exists: true, voted: true, votedThisEpoch: true, canVoteNow: false })
+    expect(world.w.sent).toHaveLength(3)
+  })
+})
+
 describe('the real stdio entry', () => {
   it('starts with a clean environment, lists the tools over stdio and keeps stdout for the protocol', async () => {
     const root = fileURLToPath(new URL('..', import.meta.url))
@@ -251,7 +420,8 @@ describe('the real stdio entry', () => {
     transport.stderr?.on('data', (d: Buffer) => (stderr += d.toString()))
     await client.connect(transport)
     const { tools } = await client.listTools()
-    expect(tools.map((t) => t.name).sort()).toEqual(['pay_and_fetch', 'pool_quote', 'redemption_risk', 'trove_health', 've_locks'])
+    // The two ve reads are always on; the six sending tools need MEZO_WRITE_ENABLE=testnet, which this clean environment lacks.
+    expect(tools.map((t) => t.name).sort()).toEqual(['gauge_rewards', 'pay_and_fetch', 'pool_quote', 'redemption_risk', 'trove_health', 've_locks', 've_status'])
     const r = await call(client, 'pay_and_fetch', { url })
     expect(r.isError).toBe(true)
     expect(r.content[0]!.text).toMatch(/switched off.*MEZO_KEY_FILE/)
