@@ -103,11 +103,14 @@ export function createSp(client: PublicClient, writer?: Writer, options: VeOptio
   /** Pin every read of one call to one block, so the numbers in an answer agree with each other. `at` is a block we already know exists (our own receipt's), so a read waits for it. */
   async function pin(at?: bigint): Promise<Pinned> {
     const ask: <T>(fn: () => Promise<T>) => Promise<T> = at === undefined ? (fn) => withRetry(fn) : patiently
-    const block = at ?? (await withRetry(() => rc.getBlockNumber()))
-    const ts = (await ask(() => rc.getBlock({ blockNumber: block }))).timestamp
+    // Without `at` the head block is asked for itself: its number and time come in one request, not two (a Worker pays for each).
+    const { block, timestamp } =
+      at === undefined
+        ? await ask(() => client.getBlock()).then((b) => ({ block: b.number, timestamp: b.timestamp }))
+        : { block: at, timestamp: (await ask(() => rc.getBlock({ blockNumber: at }))).timestamp }
     return {
       block,
-      meta: { blockNumber: Number(block), blockTime: isoTime(ts), chainId: CHAIN_ID },
+      meta: { blockNumber: Number(block), blockTime: isoTime(timestamp), chainId: CHAIN_ID },
       read: <T>(address: Address, abi: readonly unknown[], fn: string, args: readonly unknown[] = []) => ask(() => rc.readContract({ address, abi, functionName: fn, args, blockNumber: block }) as Promise<T>),
     }
   }

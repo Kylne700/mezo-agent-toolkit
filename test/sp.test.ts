@@ -137,6 +137,14 @@ describe('sp_status', () => {
     expect(c.rpc.methods()).not.toContain('eth_blockNumber')
   })
 
+  it('an unpinned read takes the head from one block request (a Worker pays per request): no separate block number, and every read is at that block', async () => {
+    const c = chain()
+    const r: Json = await c.sp.status({ address: ME })
+    expect(c.rpc.methods()).not.toContain('eth_blockNumber')
+    expect(c.rpc.calls.filter((x) => x.method === 'eth_getBlockByNumber')).toHaveLength(1)
+    expect([...new Set(c.rpc.calls.filter((x) => x.method === 'eth_call').map((x) => x.params[1]))]).toEqual([toHex(BigInt(r.blockNumber as number))])
+  })
+
   it('a bad address is an input error and costs no chain read', async () => {
     const c = chain()
     await expect(c.sp.status({ address: 'nobody' })).rejects.toThrow(InputError)
