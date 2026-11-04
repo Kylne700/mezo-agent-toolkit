@@ -1,32 +1,32 @@
-smoke test, Mezo testnet (chain 31611), read-only, no key   2026-10-18T18:06:26.724Z
+smoke test, Mezo testnet (chain 31611), read-only, no key   2026-11-04T08:24:12.075Z
 PASS  the RPC is chain 31611
-PASS  eth_getCode(0xBDfD1C0B544319E25b4b99ee1f355e55230f6130) is not empty
-PASS  the lens code is 10651 bytes, as recorded when it was deployed
+PASS  eth_getCode(0x659203438789Ce052a9148Ef5A807508ab5eE40c) is not empty
+PASS  the lens code is 10650 bytes, as recorded when it was deployed
 
-pinned block 16230355 (2026-10-18T18:06:12.000Z): each number is read once through the lens and once straight from the protocol contracts
-PASS  trove_health, tail trove 0xDA04759E54728B6636Fe48F7c9795c7B609bAaAa: 10 raw integers and 9 shown amounts equal the direct reads
-    Trove is below the 110% minimum ratio (109.78%) and can be liquidated.
-PASS  trove_health, fifth trove from the tail 0xbe65D538E887D09a73354172c4411335fC2cbDb6: 10 raw integers and 9 shown amounts equal the direct reads
-    Trove holds 115.29% collateral against a 110% minimum; BTC can fall 4.58% to about $77393.39 before liquidation.
-PASS  system_snapshot: 14 raw values equal the direct reads, and the first redeemable trove equals the HintHelpers answer (0x03ffb3720214bDB0DB5F5F71b6cE16B008f762d2)
-PASS  redemption_risk, one call, for 0xbe65D538E887D09a73354172c4411335fC2cbDb6: 3 redeemable troves and 5655.128642 MUSD ahead equal a node-by-node walk from the tail
+pinned block 16564358 (2026-11-04T08:23:55.000Z): each number is read once through the lens and once straight from the protocol contracts
+PASS  trove_health, tail trove 0x4C6165286739696849Fb3e77A16b0639D762c5B6: 10 raw integers and 9 shown amounts equal the direct reads
+    Trove holds 113.37% collateral against a 110% minimum; BTC can fall 2.97% to about $75930.85 before liquidation.
+PASS  trove_health, fifth trove from the tail 0x935349725aDd49A855669AD4a9f9D6dA54ffA5F6: 10 raw integers and 9 shown amounts equal the direct reads
+    Trove holds 117.14% collateral against a 110% minimum; BTC can fall 6.1% to about $73485.62 before liquidation.
+PASS  system_snapshot: 14 raw values equal the direct reads, and the first redeemable trove equals the HintHelpers answer (0x4C6165286739696849Fb3e77A16b0639D762c5B6)
+PASS  redemption_risk, one call, for 0x935349725aDd49A855669AD4a9f9D6dA54ffA5F6: 4 redeemable troves and 8610.934444 MUSD ahead equal a node-by-node walk from the tail
 PASS  redemption_risk, paged two nodes per call (3 calls): same result as the direct walk, and the same system part
 PASS  redemption_risk, stopped by the step cap: walkComplete is false and the counters equal a direct 2-node walk
-PASS  pool_quote 0.001 BTC -> 78.70721395 MUSD (impact 0%): equals the router's own getAmountsOut and reserves
-PASS  pool_quote 100 MUSD -> 0.00126951 BTC (impact 0%): equals the router's own getAmountsOut and reserves
-PASS  pool_quote 100 BTC -> 7309883.06764521 MUSD (impact 7.05%): equals the router's own getAmountsOut and reserves
-PASS  ve_locks for 0x86969a3C99dAEaC9572E579a453593AA9f78A10e: 1 of 1 veBTC + 0 veMEZO locks equal the direct reads (unlock time, seconds left, voting power, voted)
-PASS  ve_locks reports a running lock (veBTC #381, 2094828 seconds left at the pinned block)
+PASS  pool_quote 0.001 BTC -> 78.58290089 MUSD (impact 0%): equals the router's own getAmountsOut and reserves
+PASS  pool_quote 100 MUSD -> 0.00127152 BTC (impact 0%): equals the router's own getAmountsOut and reserves
+PASS  pool_quote 100 BTC -> 7298792.71299579 MUSD (impact 7.04%): equals the router's own getAmountsOut and reserves
+PASS  ve_locks for 0x41Cbf317fcF3d5128ECF46e1B9f96dDf2994850A: 1 of 1 veBTC + 0 veMEZO locks equal the direct reads (unlock time, seconds left, voting power, voted)
+PASS  ve_locks reports a running lock (veBTC #1730, 1870565 seconds left at the pinned block)
 
 PASS  GET /health answers 200 without payment (got 200)
 PASS  unpaid GET /v1/trove/:address answers 402 with a challenge for 0.001 MUSD to the payee on eip155:31611
 PASS  unpaid GET /v1/redemption/:address answers 402 with a challenge for 0.001 MUSD to the payee on eip155:31611
 PASS  unpaid GET /v1/pool/quote answers 402 with a challenge for 0.001 MUSD to the payee on eip155:31611
 
-PASS  the README integration table lists 10 addresses (at least 10 expected)
-PASS  every address in the README table is one the toolkit uses (src/config.ts or the lens)
-PASS  every address in the README table has code on chain (10 checked)
-PASS  the README links 11 transactions (at least 10 expected)
-PASS  every transaction the README links succeeded on chain (11 checked on the explorer)
+PASS  the README integration table lists 16 addresses (at least 10 expected)
+PASS  every address in the README table is one the toolkit uses (src/config.ts, LEGACY_VE or the lens)
+PASS  every address in the README table has code on chain (16 checked)
+PASS  the README links 30 transactions (at least 10 expected)
+PASS  every transaction the README links succeeded on chain (30 receipts read from the RPC, each status success, in blocks 16229223 to 16564313)
 
 SMOKE PASSED

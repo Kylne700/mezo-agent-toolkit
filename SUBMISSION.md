@@ -132,7 +132,7 @@ Two kinds of user. A developer who gives an AI agent a Mezo wallet gets five too
 
 ## What was run
 
-173 unit and contract tests in 10 files pass (a fresh run on 2026-10-19). Runs against Mezo testnet: the smoke test, a 402-then-200 run on all four paid routes, a real MCP session (29 checks), the Worker under wrangler dev (28 checks) and the Worker deployed on Cloudflare (25 checks, in each of two runs that paid). The video's two payments (to the deployed Worker, 2026-10-19) took 12.7 s and 8.4 s, because the data comes back only after the settlement. The console page passed 51 browser checks.
+469 unit and contract tests in 19 files pass (a fresh run on 2026-11-04). Runs against Mezo testnet: the smoke test, a 402-then-200 run on all four paid routes, a real MCP session (29 checks), the Worker under wrangler dev (28 checks) and the Worker deployed on Cloudflare (25 checks, in each of two runs that paid). The video's two payments (to the deployed Worker, 2026-10-19) took 12.7 s and 8.4 s, because the data comes back only after the settlement. The console page passed 51 browser checks.
 
 ## Limits, stated plainly
 
@@ -154,7 +154,7 @@ https://explorer.test.mezo.org/tx/0x74482a3e70490754642b63d5de1565d01a508eb4fb3f
 Our MezoLens contract is at 0xBDfD1C0B544319E25b4b99ee1f355e55230f6130 and reads TroveManager, SortedTroves, PriceFeed, the pool router, veBTC and veMEZO. The README tables each contract, its address, what the toolkit calls on it and why.
 
 Product (30). Two kinds of user. A developer who gives an AI agent a Mezo wallet gets five tools in one MCP config entry and an operator-set spend limit the agent cannot change. A team that sells Mezo reads over HTTP can deploy the Worker with its own payee and price: each paid call is a MUSD transfer to the payee, and this toolkit takes no cut. Next is distribution: an installable MCP package (Wave 2) and setup guides for two agent hosts (Wave 3). Not there yet: users, revenue, anything beyond testnet. Paid use so far is our own test and demo runs (up to 2026-10-19): 39 transfers, 0.039 MUSD in all.
-Technical (20). 173 tests in 10 files pass (a fresh run). Live checks on testnet: 23 (smoke), 29 (MCP session), 28 (Worker under wrangler dev), 25 (Worker deployed on Cloudflare). The server verifies every settlement on chain itself, because the public RPC sometimes answers null for a mined transaction and the facilitator then reports a failure for a payment that landed. In a session, the buyer does not pay a URL again while an earlier payment for it may still land.
+Technical (20). 469 tests in 19 files pass (a fresh run). Live checks on testnet: 23 (smoke), 29 (MCP session), 28 (Worker under wrangler dev), 25 (Worker deployed on Cloudflare). The server verifies every settlement on chain itself, because the public RPC sometimes answers null for a mined transaction and the facilitator then reports a failure for a payment that landed. In a session, the buyer does not pay a URL again while an earlier payment for it may still land.
 
 User experience (10). Every answer carries the block it was read at, with exact integers under raw. A refused payment says why and that nothing was paid. The console page passed 51 browser checks with 0 axe-core violations, light and dark at 1280 and 390 px, light at 320 px.
 

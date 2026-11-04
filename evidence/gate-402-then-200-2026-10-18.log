@@ -1,0 +1,68 @@
+x402 gate, real app + real facilitator   2026-10-18T17:22:01.552Z
+network eip155:31611   app http://127.0.0.1:33995   lens 0xBDfD1C0B544319E25b4b99ee1f355e55230f6130
+buyer 0xea2D4b92DDd760959BB1D8119430640885851A91   payee 0xa37a04189696C371f487ff8da414192D62f39A4f
+spend limits: 0.01 MUSD per call, 0.1 MUSD per session
+MUSD before   buyer 15.724457   payee 0.017
+
+== trove   GET /v1/trove/0xDA04759E54728B6636Fe48F7c9795c7B609bAaAa
+PASS  unpaid call answers 402 with a PAYMENT-REQUIRED challenge (got 402)
+  challenge: x402 v2, exact on eip155:31611, pay 1000000000000000 base units (0.001 MUSD) of 0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503 to 0xa37a04189696C371f487ff8da414192D62f39A4f
+  extensions offered: eip2612GasSponsoring
+PASS  paid call answers 200 and carries a settlement (got 200, paid true)
+  facilitator /settle answered: success, transaction 0xb2063d3a1c8c38ea19bdefd537938c528affc2fce3fcf4dc7218eeaa31752aa8
+  the server confirmed the payment from the facilitator's answer
+  SETTLE: 0xb2063d3a1c8c38ea19bdefd537938c528affc2fce3fcf4dc7218eeaa31752aa8   payer 0xea2D4b92DDd760959BB1D8119430640885851A91
+  explorer: https://explorer.test.mezo.org/tx/0xb2063d3a1c8c38ea19bdefd537938c528affc2fce3fcf4dc7218eeaa31752aa8
+  data: status active, debt 2211.914859 MUSD, icr 109.72%, block 16229800
+
+== redemption   GET /v1/redemption/0xDA04759E54728B6636Fe48F7c9795c7B609bAaAa
+PASS  unpaid call answers 402 with a PAYMENT-REQUIRED challenge (got 402)
+  challenge: x402 v2, exact on eip155:31611, pay 1000000000000000 base units (0.001 MUSD) of 0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503 to 0xa37a04189696C371f487ff8da414192D62f39A4f
+  extensions offered: eip2612GasSponsoring
+PASS  paid call answers 200 and carries a settlement (got 200, paid true)
+  facilitator /settle answered: success, transaction 0x2697a4f4189a5559b19815ebd7f7a7bea5e4e703a4400d703136e7c3929a6a9c
+  the server confirmed the payment from the facilitator's answer
+  SETTLE: 0x2697a4f4189a5559b19815ebd7f7a7bea5e4e703a4400d703136e7c3929a6a9c   payer 0xea2D4b92DDd760959BB1D8119430640885851A91
+  explorer: https://explorer.test.mezo.org/tx/0x2697a4f4189a5559b19815ebd7f7a7bea5e4e703a4400d703136e7c3929a6a9c
+  data: listed true, found true, 0 redeemable troves ahead, block 16229802
+
+== pool   GET /v1/pool/quote?tokenIn=BTC&tokenOut=MUSD&amountIn=0.001
+PASS  unpaid call answers 402 with a PAYMENT-REQUIRED challenge (got 402)
+  challenge: x402 v2, exact on eip155:31611, pay 1000000000000000 base units (0.001 MUSD) of 0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503 to 0xa37a04189696C371f487ff8da414192D62f39A4f
+  extensions offered: eip2612GasSponsoring
+PASS  paid call answers 200 and carries a settlement (got 200, paid true)
+  facilitator /settle answered: success, transaction 0x21e1ec30d4a3e78abac9ac74ceceef7e89f794da6c4ac4eb6d89d382941881ea
+  the server confirmed the payment from the facilitator's answer
+  SETTLE: 0x21e1ec30d4a3e78abac9ac74ceceef7e89f794da6c4ac4eb6d89d382941881ea   payer 0xea2D4b92DDd760959BB1D8119430640885851A91
+  explorer: https://explorer.test.mezo.org/tx/0x21e1ec30d4a3e78abac9ac74ceceef7e89f794da6c4ac4eb6d89d382941881ea
+  data: 0.001 BTC -> 78.70721395 MUSD, pool 0xd16A5Df82120ED8D626a1a15232bFcE2366d6AA9, block 16229805
+
+== ve   GET /v1/ve/0x960F8FCCeB25b934E5d022682d3357051Fcd4168
+PASS  unpaid call answers 402 with a PAYMENT-REQUIRED challenge (got 402)
+  challenge: x402 v2, exact on eip155:31611, pay 1000000000000000 base units (0.001 MUSD) of 0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503 to 0xa37a04189696C371f487ff8da414192D62f39A4f
+  extensions offered: eip2612GasSponsoring
+PASS  paid call answers 200 and carries a settlement (got 200, paid true)
+  facilitator /settle answered: success, transaction 0x591aa18114ded99f9f574addc25d283d703b6a6eafa36ec87302c8235faf6b18
+  the server confirmed the payment from the facilitator's answer
+  SETTLE: 0x591aa18114ded99f9f574addc25d283d703b6a6eafa36ec87302c8235faf6b18   payer 0xea2D4b92DDd760959BB1D8119430640885851A91
+  explorer: https://explorer.test.mezo.org/tx/0x591aa18114ded99f9f574addc25d283d703b6a6eafa36ec87302c8235faf6b18
+  data: 5 veBTC + 0 veMEZO locks for 0x960F8FCCeB25b934E5d022682d3357051Fcd4168, block 16229808
+
+PASS  trove numbers equal a direct TroveManager read at block 16229800
+
+PASS  the 4 settlement hashes are all different
+PASS  explorer: 0xb2063d3a1c8c38ea19bdefd537938c528affc2fce3fcf4dc7218eeaa31752aa8 status ok, block 16229802 (run began at 16229800), sent by 0x7B384430907f15d3b658a2393Fc98Ca1A9D6CEFA (not the buyer)
+PASS  explorer: 0xb2063d3a1c8c38ea19bdefd537938c528affc2fce3fcf4dc7218eeaa31752aa8 moved exactly 0.001 MUSD from the buyer to the payee
+PASS  explorer: 0x2697a4f4189a5559b19815ebd7f7a7bea5e4e703a4400d703136e7c3929a6a9c status ok, block 16229804 (run began at 16229800), sent by 0x23fe3046E7B61Ef83e037932082982B4FcA3f957 (not the buyer)
+PASS  explorer: 0x2697a4f4189a5559b19815ebd7f7a7bea5e4e703a4400d703136e7c3929a6a9c moved exactly 0.001 MUSD from the buyer to the payee
+PASS  explorer: 0x21e1ec30d4a3e78abac9ac74ceceef7e89f794da6c4ac4eb6d89d382941881ea status ok, block 16229807 (run began at 16229800), sent by 0x02AC5CfD5EB32476a0AEB6F038c674D4998d858C (not the buyer)
+PASS  explorer: 0x21e1ec30d4a3e78abac9ac74ceceef7e89f794da6c4ac4eb6d89d382941881ea moved exactly 0.001 MUSD from the buyer to the payee
+PASS  explorer: 0x591aa18114ded99f9f574addc25d283d703b6a6eafa36ec87302c8235faf6b18 status ok, block 16229810 (run began at 16229800), sent by 0x23fe3046E7B61Ef83e037932082982B4FcA3f957 (not the buyer)
+PASS  explorer: 0x591aa18114ded99f9f574addc25d283d703b6a6eafa36ec87302c8235faf6b18 moved exactly 0.001 MUSD from the buyer to the payee
+
+MUSD after    buyer 15.720457   payee 0.021
+PASS  buyer paid exactly 4 x 0.001 MUSD and the payee received it
+spend after: {"perCallMusd":"0.01","perSessionMusd":"0.1","spentMusd":"0.004","remainingMusd":"0.096","payments":4}
+settlements the server recovered after the facilitator reported a failure (transfer found on chain): 0
+explorer base https://explorer.test.mezo.org   first settlement https://explorer.test.mezo.org/tx/0xb2063d3a1c8c38ea19bdefd537938c528affc2fce3fcf4dc7218eeaa31752aa8
+GATE PASSED
