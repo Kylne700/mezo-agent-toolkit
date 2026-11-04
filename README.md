@@ -10,7 +10,7 @@ Built for the Mezo Buildathon on Akindo, Wave 1 (build period 16-26 October 2026
 
 Live demo: https://mezo-agent-toolkit.kylne700.workers.dev
 
-**Install the MCP server without cloning** (the v0.2.0 GitHub release tarball, Node 22.12 or newer; the six read tools need no key and no funds):
+**Install the MCP server without cloning** (the v0.2.0 GitHub release tarball, Node 22.12 or newer; the thirteen read tools need no key and no funds):
 
 ```
 claude mcp add mezo -- npx -y https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v0.2.0/mezo-agent-toolkit-0.2.0.tgz
