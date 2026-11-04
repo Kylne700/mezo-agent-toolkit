@@ -64,35 +64,53 @@ export function settlementRecovery(chain: LogReader, o: RecoveryOptions = {}): S
     if (!payer || !isAddress(payer) || !isAddress(requirements.payTo) || !isAddress(requirements.asset) || !/^\d{1,78}$/.test(requirements.amount)) return
     const needle = p.signature.slice(2).toLowerCase()
     const want = BigInt(requirements.amount)
+    // Every look is a few requests to a public RPC and a Worker gets 50 subrequests in all, so the search is cut to the fewest. The head is read once (the window
+    // starts there and always ends at "latest", so a later look also sees what was mined meanwhile). A transaction read in full and found not to carry this signature is
+    // never read again (calldata cannot change). Reads started in the same tick go out as one request on a batching client: a look's candidates are read together, and
+    // the ones that could not be read at the last look are asked again together with this look's logs. So a look costs one request, two when it shows a new candidate.
+    let from: bigint | undefined
+    const notThis = new Set<string>()
+    let unread: TransferLog[] = []
+    const look = async () => {
+      from ??= await chain.getBlockNumber().then((head) => (head > windowBlocks ? head - windowBlocks : 0n))
+      return (await chain.getLogs({ address: requirements.asset, event: TRANSFER, args: { from: payer, to: requirements.payTo }, fromBlock: from, toBlock: 'latest' })) as readonly TransferLog[]
+    }
+    const readTx = async (log: TransferLog) => {
+      try {
+        // By block and index, not by hash: Mezo's RPC was seen answering null by hash for every mined transaction for minutes while this still worked.
+        return (await chain.getTransaction({ blockNumber: log.blockNumber, index: log.transactionIndex })) as { hash?: string; input?: string } | null
+      } catch {
+        return null // this transaction could not be read just now
+      }
+    }
+    /** The transaction among these that carries this payment's signature, claimed so that no other answer can use it. The others are marked foreign, or kept to be read again. */
+    const carrying = (logs: TransferLog[], txs: Awaited<ReturnType<typeof readTx>>[]) => {
+      for (const [k, log] of logs.entries()) {
+        const hash = log.transactionHash!
+        const tx = txs[k]
+        if (tx?.hash?.toLowerCase() !== hash.toLowerCase() || typeof tx.input !== 'string') unread.push(log) // not the transaction the log names, or not read in full: the next look asks again
+        else if (!tx.input.toLowerCase().includes(needle)) notThis.add(hash.toLowerCase())
+        else if (!used.has(hash.toLowerCase())) { // else another recovery claimed it while this one waited for the read
+          remember(hash)
+          return { hash, payer }
+        }
+      }
+    }
     for (let i = 0; i < tries; i++) {
       if (i > 0) await new Promise((r) => setTimeout(r, waitMs))
-      let logs: readonly TransferLog[]
-      try {
-        const head = await chain.getBlockNumber()
-        logs = (await chain.getLogs({
-          address: requirements.asset,
-          event: TRANSFER,
-          args: { from: payer, to: requirements.payTo },
-          fromBlock: head > windowBlocks ? head - windowBlocks : 0n,
-          toBlock: head,
-        })) as readonly TransferLog[]
-      } catch {
-        continue // The chain read failed: look again. If every look fails, nothing is vouched for.
-      }
-      for (const log of [...logs].reverse()) {
-        const hash = log.transactionHash
-        if (!hash || log.blockNumber == null || log.transactionIndex == null || log.args.value !== want || used.has(hash.toLowerCase())) continue
-        try {
-          // By block and index, not by hash: Mezo's RPC was seen answering null by hash for every mined transaction for minutes while this still worked.
-          const tx = (await chain.getTransaction({ blockNumber: log.blockNumber, index: log.transactionIndex })) as { hash?: string; input?: string } | null
-          if (tx?.hash?.toLowerCase() !== hash.toLowerCase() || !tx.input?.toLowerCase().includes(needle)) continue
-        } catch {
-          continue // This transaction could not be read just now; the next look tries again.
-        }
-        if (used.has(hash.toLowerCase())) continue // another recovery claimed it while this one waited for the read
-        remember(hash)
-        return { hash, payer }
-      }
+      const again = unread
+      unread = []
+      const [logs, txs] = await Promise.all([look().catch(() => undefined), Promise.all(again.map(readTx))])
+      const found = carrying(again, txs)
+      if (found) return found
+      if (!logs) continue // The chain read failed: look again. If every look fails, nothing is vouched for.
+      const asked = new Set(again.map((log) => log.transactionHash!.toLowerCase()))
+      const fresh = [...logs].reverse().filter((log) => {
+        const hash = log.transactionHash?.toLowerCase()
+        return !!hash && log.blockNumber != null && log.transactionIndex != null && log.args.value === want && !used.has(hash) && !notThis.has(hash) && !asked.has(hash)
+      })
+      const hit = carrying(fresh, await Promise.all(fresh.map(readTx)))
+      if (hit) return hit
     }
   }
 

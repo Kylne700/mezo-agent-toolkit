@@ -177,11 +177,11 @@ describe('the plan routes together', () => {
     expect(read.amount).toBe(PRICE_BASE_UNITS)
   })
 
-  it('one answer costs about twenty RPC requests (measured here: open 20, top-up 19, repay 19, sp-deposit 21); a Worker pays one subrequest for each and gets 50 per request on the free plan', async () => {
+  it('one answer makes about twenty RPC calls (measured here: open 20, top-up 19, repay 19, sp-deposit 21); the Worker sends the calls started together as one batched request, and pays one subrequest for each request (50 per request on the free plan)', async () => {
     for (const { path, tweak, ok, plan } of ROUTES) {
       const s = setup(tweak)
       await plan(s, ok)
-      expect(s.rpc.calls.length, path).toBeLessThanOrEqual(30) // the payment itself adds about five more (supported, verify, settle, recovery reads)
+      expect(s.rpc.calls.length, path).toBeLessThanOrEqual(30) // calls, not requests; the payment itself adds the facilitator's three and the settlement check's reads
     }
   })
 })

@@ -73,10 +73,11 @@ export interface WorkerApp {
 
 export function createWorker(s: Settings, deps: WorkerDeps = {}): WorkerApp {
   const now = deps.now ?? Date.now
-  const client = createPublicClient({ chain: mezoTestnet, transport: http(s.rpcUrl) })
+  // Every fetch to the RPC is one Worker subrequest (50 per request on the free plan). With batching, the reads a planner starts in the same tick, the payments
+  // route's block times and recovery's transaction reads each go out as ONE request. Measured on the real chain: a plan answer 24-26 requests -> 8-11.
+  // viem keeps its batch queue per RPC URL for the whole isolate, so two requests at the same moment may share one fetch (fewer requests, shared failure).
+  const client = createPublicClient({ chain: mezoTestnet, transport: http(s.rpcUrl, { batch: true }) })
   const chain = deps.chain ?? client
-  // The payments route asks for the time of several blocks at once; batching turns those into one request to the public RPC.
-  const batching = deps.chain ?? createPublicClient({ chain: mezoTestnet, transport: http(s.rpcUrl, { batch: true }) })
   const lens = deps.lens ?? createLens(client, getAddress(deployment.MezoLens.address))
   const facilitator = deps.facilitator ?? new HTTPFacilitatorClient({ url: s.facilitatorUrl })
 
@@ -106,7 +107,7 @@ export function createWorker(s: Settings, deps: WorkerDeps = {}): WorkerApp {
   async function payments(): Promise<{ value: PaymentsResult; fetchedAt: string; stale: boolean }> {
     if (cache && now() - cache.at < PAYMENTS_TTL_MS) return { value: cache.value, fetchedAt: new Date(cache.at).toISOString(), stale: false }
     try {
-      cache = { at: now(), value: await recentPayments(batching, { asset: ADDRESSES.musd, payee: s.payTo }) }
+      cache = { at: now(), value: await recentPayments(chain, { asset: ADDRESSES.musd, payee: s.payTo }) }
       return { value: cache.value, fetchedAt: new Date(cache.at).toISOString(), stale: false }
     } catch (e) {
       if (!cache) throw e

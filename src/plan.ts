@@ -161,6 +161,8 @@ interface World extends PlanMeta {
   sysDebt: bigint
   tcr: bigint
   recoveryMode: boolean
+  /** The number of troves in the list, for the hint search. */
+  troveCount: bigint
   read<T>(address: Address, abi: Abi, fn: string, args?: readonly unknown[]): Promise<T>
 }
 interface Own {
@@ -183,7 +185,7 @@ export function createPlanner(client: PlanClient, lens: PlanLens): Planner {
     const block = at ?? (await withRetry(() => client.getBlockNumber()))
     const read = <T>(address: Address, abi: Abi, fn: string, args: readonly unknown[] = []) =>
       withRetry(() => client.readContract({ address, abi, functionName: fn, args, blockNumber: block }) as Promise<T>)
-    const [b, price, mcr, ccr, gasComp, sysColl, sysDebt, minNetDebt, rate] = await Promise.all([
+    const [b, price, mcr, ccr, gasComp, sysColl, sysDebt, minNetDebt, rate, troveCount] = await Promise.all([
       withRetry(() => client.getBlock({ blockNumber: block })),
       read<bigint>(priceFeed, priceFeedAbi, 'fetchPrice'),
       read<bigint>(troveManager, troveManagerAbi, 'MCR'),
@@ -193,9 +195,10 @@ export function createPlanner(client: PlanClient, lens: PlanLens): Planner {
       read<bigint>(troveManager, troveManagerAbi, 'getEntireSystemDebt'),
       read<bigint>(borrowerOperations, borrowerOperationsAbi, 'minNetDebt'),
       read<bigint>(borrowerOperations, borrowerOperationsAbi, 'borrowingRate'),
+      read<bigint>(troveManager, troveManagerAbi, 'getTroveOwnersCount'),
     ])
     const tcr = computeCR(sysColl, sysDebt, price)
-    return { block, blockNumber: Number(block), blockTime: isoTime(b.timestamp), chainId: CHAIN_ID, price, mcr, ccr, gasComp, minNetDebt, rate, sysColl, sysDebt, tcr, recoveryMode: tcr < ccr, read }
+    return { block, blockNumber: Number(block), blockTime: isoTime(b.timestamp), chainId: CHAIN_ID, price, mcr, ccr, gasComp, minNetDebt, rate, sysColl, sysDebt, tcr, recoveryMode: tcr < ccr, troveCount, read }
   }
 
   async function ownOf(w: World, who: Address): Promise<Own> {
@@ -243,7 +246,7 @@ export function createPlanner(client: PlanClient, lens: PlanLens): Planner {
 
   /** The SortedTroves neighbours for a trove with this nominal ratio. For a trove already in the list the lookup still sees its old node, so a neighbour that is the trove itself is replaced by the node beyond it. */
   async function hintsFor(w: World, nicr: bigint, own?: Address): Promise<Hints> {
-    const size = await w.read<bigint>(troveManager, troveManagerAbi, 'getTroveOwnersCount')
+    const size = w.troveCount
     if (size === 0n) return { upper: zeroAddress, lower: zeroAddress, nicr: nicr.toString(), approxHint: zeroAddress }
     const trials = BigInt(Math.ceil(HINT_TRIALS * Math.sqrt(Number(size))))
     const [approx] = await w.read<readonly [Address, bigint, bigint]>(hintHelpers, hintHelpersAbi, 'getApproxHint', [nicr, trials, w.block])

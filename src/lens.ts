@@ -348,21 +348,20 @@ export function createLens(client: ReadClient, address: Address = deployedLensAd
       const block = await pin(o)
       const pageSteps = Math.min(Math.max(1, o?.pageSteps ?? DEFAULT_PAGE_STEPS), 300)
       const maxSteps = Math.max(pageSteps, o?.maxSteps ?? DEFAULT_MAX_STEPS)
-      const [m, health, sys] = await Promise.all([
+      const [m, health, sys, first] = await Promise.all([
         meta(block),
         read<TroveHealthRaw>(block, 'troveHealth', [borrower]),
         read<SystemSnapshotRaw>(block, 'systemSnapshot', [BigInt(DEFAULT_PAGE_STEPS)]), // its own scan, as in systemSnapshot(): a small page size must not cut it short
+        read<RedemptionQueueRaw>(block, 'redemptionQueue', [borrower, zeroAddress, BigInt(pageSteps)]), // the first page needs none of the others: one request for all four
       ])
       // Page through the queue at this one block, adding up the per-page counters. Stop when the borrower is found, the list ends or the global cap hits.
-      let cursor: Address = zeroAddress
       let steps = 0
       let ahead = 0n
       let debtAhead = 0n
       let belowMcr = 0
-      let last!: RedemptionQueueRaw
+      let last = first
       let capped = false
       for (;;) {
-        last = await read<RedemptionQueueRaw>(block, 'redemptionQueue', [borrower, cursor, BigInt(pageSteps)])
         steps += Number(last.steps)
         ahead += last.ahead
         debtAhead += last.debtAhead
@@ -372,7 +371,7 @@ export function createLens(client: ReadClient, address: Address = deployedLensAd
           capped = true
           break
         }
-        cursor = last.next
+        last = await read<RedemptionQueueRaw>(block, 'redemptionQueue', [borrower, last.next, BigInt(pageSteps)])
       }
       const active = health.status === 1
       const walkComplete = !capped

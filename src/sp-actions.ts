@@ -126,13 +126,18 @@ export function createSp(client: PublicClient, writer?: Writer, options: VeOptio
       sp<Address>('priceFeed'),
       sp<Address>('troveManager'),
     ])
-    const price = await p.read<bigint>(feed, priceFeedAbi, 'fetchPrice')
+    const [price, last] = await Promise.all([p.read<bigint>(feed, priceFeedAbi, 'fetchPrice'), p.read<Address>(sorted, sortedTrovesAbi, 'getLast')])
     const rows: Row[] = []
-    for (let cur = await p.read<Address>(sorted, sortedTrovesAbi, 'getLast'); !isZero(cur) && rows.length < MAX_WALK; ) {
-      const [icr, e] = await Promise.all([p.read<bigint>(tm, troveManagerAbi, 'getCurrentICR', [cur, price]), p.read<readonly bigint[]>(tm, troveManagerAbi, 'getEntireDebtAndColl', [cur])])
+    for (let cur = last; !isZero(cur) && rows.length < MAX_WALK; ) {
+      // getPrev is only used when this trove is under the minimum, but asked in the same breath the three reads go out as one request (a Worker pays one subrequest for each).
+      const [icr, e, prev] = await Promise.all([
+        p.read<bigint>(tm, troveManagerAbi, 'getCurrentICR', [cur, price]),
+        p.read<readonly bigint[]>(tm, troveManagerAbi, 'getEntireDebtAndColl', [cur]),
+        p.read<Address>(sorted, sortedTrovesAbi, 'getPrev', [cur]),
+      ])
       rows.push({ trove: cur, icr, coll: e[0]!, debt: e[1]! + e[2]! })
       if (icr >= mcr) break
-      cur = await p.read<Address>(sorted, sortedTrovesAbi, 'getPrev', [cur])
+      cur = prev
     }
     const lowest = rows.reduce<Row | undefined>((a, b) => (!a || b.icr < a.icr ? b : a), undefined)
     return { initial, compounded, gain, total, collateral, mcr, price, rows, complete: rows.length < MAX_WALK || rows[rows.length - 1]!.icr >= mcr, blocked: rows.length > 0 && rows[0]!.icr < mcr, ...(lowest ? { lowest } : {}) }

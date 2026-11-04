@@ -12,6 +12,7 @@ import { createBuyer } from '../src/pay.ts'
 import { SpendGuard } from '../src/spend.ts'
 import * as entry from '../src/worker.ts'
 import { PAYMENTS_TTL_MS, createWorker, settingsFrom, workerFor, type Env, type Settings, type WorkerDeps } from '../src/worker-app.ts'
+import { stubRpc } from './helpers/rpc.ts'
 import { LENS_ADDRESS, PAYEE, PRICE_BASE_UNITS, TROVE, fakeChain, fakeFacilitator, fakeLens, signatureOf, testAccount, txHash, zeroReader, type FakeFacilitator } from './helpers/x402.ts'
 
 const HOST = 'worker.example.test'
@@ -406,5 +407,33 @@ describe('the payments route', () => {
     const text = await res.text()
     expect(text).toMatch(/could not be read/)
     expect(text).not.toMatch(/rpc\.example|secret-path/)
+  })
+})
+
+describe("the Worker's requests to the public RPC (each is one subrequest; the free plan allows 50 for a whole request)", () => {
+  it('sends the reads it starts together as one batch: the block times of the payments feed', async () => {
+    const sent = stubRpc({ payer: BUYER })
+    try {
+      const res = await createWorker({ ...SETTINGS }, { lens: fakeLens(), facilitator: fakeFacilitator() }).fetch(new Request(`https://${HOST}/api/payments`))
+      expect(res.status).toBe(200)
+      expect(((await res.json()) as { payments: unknown[] }).payments).toHaveLength(2)
+      expect(sent.shape()).toEqual([1, 1, 2]) // head, logs, then the times of the two blocks together: three requests for four calls
+    } finally {
+      sent.restore()
+    }
+  })
+
+  it("and the candidate transactions of a paid call's settlement search", async () => {
+    const account = testAccount()
+    const sent = stubRpc({ payer: account.address })
+    try {
+      const worker = createWorker({ ...SETTINGS }, { lens: fakeLens(), facilitator: fakeFacilitator(), recovery: { waitMs: 0, tries: 1 } })
+      const buyer = createBuyer({ account, chainReader: zeroReader, guard: SpendGuard.fromEnv({}), fetchImpl: (input, init) => worker.fetch(new Request(input as Request | string, init)) })
+      const r = await buyer.fetchPaid(`https://${HOST}/v1/trove/${TROVE}`)
+      expect(r.paid).toBe(false) // neither transfer carries this payment's signature, so the success is not believed
+      expect(sent.shape()).toEqual([1, 1, 2]) // head, logs, then the two transactions together
+    } finally {
+      sent.restore()
+    }
   })
 })
