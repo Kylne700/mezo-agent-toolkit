@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
-import { afterAll, afterEach, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { InputError } from '../src/inputs.ts'
 import { buyerFromEnv, DEFAULT_PAY_HOSTS, LIVE_HOSTS, payHosts, veFromEnv } from '../src/mcp-env.ts'
 import { createMcpServer, type McpOptions } from '../src/mcp-server.ts'
@@ -44,12 +44,13 @@ const call = (client: Client, name: string, args: Record<string, unknown> = {}) 
 const url = `http://app.test/v1/trove/${TROVE}`
 
 describe('tools', () => {
-  it('are exactly the five promised ones, and pay_and_fetch takes a url and nothing else', async () => {
+  it('are exactly the five promised ones, and pay_and_fetch takes a url, an optional method and a JSON body, and no amount or limit', async () => {
     const client = await connect({ lens: fakeLens(), buyer: payWorld().buyer })
     const { tools } = await client.listTools()
     expect(tools.map((t) => t.name).sort()).toEqual(['trove_health', 'redemption_risk', 'pool_quote', 've_locks', 'pay_and_fetch'].sort())
     const pay = tools.find((t) => t.name === 'pay_and_fetch')!
-    expect(Object.keys(pay.inputSchema.properties ?? {})).toEqual(['url']) // no amount, no limit, no method to talk the server into
+    expect(Object.keys(pay.inputSchema.properties ?? {})).toEqual(['url', 'method', 'body']) // no amount and no limit to talk the server into
+    expect(pay.inputSchema.properties!.method).toMatchObject({ enum: ['GET', 'POST'] })
     expect(pay.inputSchema.required).toEqual(['url'])
     expect(pay.description).toMatch(/at most 0\.01 MUSD per call and 0\.1 MUSD in total/)
     expect(pay.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true })
@@ -175,6 +176,66 @@ describe('pay_and_fetch', () => {
     expect(r.structuredContent).toMatchObject({ refused: true })
     expect(r.content[0]!.text).toMatch(/switched off.*MEZO_KEY_FILE/)
     expect((await call(client, 'trove_health', { address: TROVE })).isError).toBeFalsy()
+  })
+})
+
+describe('pay_and_fetch with POST (the paid /plan routes)', () => {
+  const planUrl = 'http://app.test/plan/top-up'
+  const body = { address: TROVE, amountBtc: '0.001' }
+  const planned: unknown[] = []
+  // The real app behind the paywall; only the planner is fake. It runs only for a payment that was verified.
+  const plans = {
+    planner: { open: async () => ({}), repay: async () => ({}), topUp: async (input: unknown) => (planned.push(input), { refused: false, action: 'top_up' }) },
+    sp: { planDeposit: async () => ({}) },
+  } as unknown as NonNullable<Parameters<typeof payWorld>[0]>['plans']
+  beforeEach(() => void (planned.length = 0))
+
+  it('buys a POST plan with the same checks as a GET: the body goes out, 0.005 MUSD is spent, one settlement', async () => {
+    const w = payWorld({ plans })
+    const r = await call(await connect({ lens: fakeLens(), buyer: w.buyer }), 'pay_and_fetch', { url: planUrl, method: 'POST', body })
+    expect(r.isError).toBeFalsy()
+    expect(r.structuredContent).toMatchObject({ status: 200, ok: true, paid: true, authorizedMusd: '0.005', json: { refused: false, action: 'top_up' }, spend: { spentMusd: '0.005', payments: 1 } })
+    expect(planned).toEqual([body])
+    expect(w.facilitator.verifies).toBe(1)
+    expect(w.facilitator.settles).toBe(1)
+  })
+
+  it('refuses a POST whose price is over the per-call limit: nothing verified, settled or planned', async () => {
+    const w = payWorld({ plans, perCall: '0.001' })
+    const r = await call(await connect({ lens: fakeLens(), buyer: w.buyer }), 'pay_and_fetch', { url: planUrl, method: 'POST', body })
+    expect(r.isError).toBe(true)
+    expect(r.structuredContent).toMatchObject({ refused: true, reason: 'the price is over the per-call limit of 0.001 MUSD', spend: { spentMusd: '0', payments: 0 } })
+    expect(r.content[0]!.text).toMatch(/^Refused, nothing was paid/)
+    expect(w.facilitator.verifies + w.facilitator.settles).toBe(0)
+    expect(planned).toEqual([])
+  })
+
+  it('stops at the session limit like a GET: the second plan is refused', async () => {
+    const w = payWorld({ plans, perCall: '0.005', perSession: '0.005' })
+    const client = await connect({ lens: fakeLens(), buyer: w.buyer })
+    expect((await call(client, 'pay_and_fetch', { url: planUrl, method: 'POST', body })).isError).toBeFalsy()
+    const second = await call(client, 'pay_and_fetch', { url: planUrl, method: 'POST', body })
+    expect(second.isError).toBe(true)
+    expect(second.structuredContent).toMatchObject({ refused: true, spend: { spentMusd: '0.005', payments: 1 } })
+    expect(w.facilitator.settles).toBe(1)
+  })
+
+  it('refuses a POST without a body and a GET with one, before any request is made', async () => {
+    const w = payWorld({ plans })
+    const client = await connect({ lens: fakeLens(), buyer: w.buyer })
+    for (const args of [{ url: planUrl, method: 'POST' }, { url: planUrl, body }, { url: planUrl, method: 'GET', body }]) {
+      const r = await call(client, 'pay_and_fetch', args)
+      expect(r.isError, JSON.stringify(args)).toBe(true)
+      expect(r.structuredContent).toMatchObject({ refused: true, spend: { spentMusd: '0', payments: 0 } })
+      expect(r.content[0]!.text).toMatch(/^Refused, nothing was paid: (method POST needs a body|a body is sent only with method POST)/)
+    }
+    expect(w.calls).toEqual([])
+  })
+
+  it('a GET with no method still works as before', async () => {
+    const w = payWorld({ plans })
+    const r = await call(await connect({ lens: fakeLens(), buyer: w.buyer }), 'pay_and_fetch', { url, method: 'GET' })
+    expect(r.structuredContent).toMatchObject({ status: 200, paid: true, authorizedMusd: '0.001' })
   })
 })
 

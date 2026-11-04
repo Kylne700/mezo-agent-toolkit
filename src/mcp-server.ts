@@ -1,4 +1,4 @@
-// The MCP server: four free chain reads through the MezoLens contract, one tool that pays for data over x402 under hard spend limits,
+// The MCP server: four free chain reads through the MezoLens contract, one tool that pays for data over x402 (GET or POST) under hard spend limits,
 // two free reads of the LIVE vote-escrow system (ve_status, gauge_rewards), four free trove planners (plan_open, plan_top_up, plan_repay, trove_status),
 // three free tools for the Stability Pool: its status, the token allowances and a deposit plan (sp_status, allowance_status, plan_sp_deposit) and, only when the operator turns writes on, fourteen guarded write tools
 // (six vote-escrow, three trove, five Stability Pool / liquidation / allowance).
@@ -389,20 +389,26 @@ export function createMcpServer({ lens, buyer, payOffReason, ve, trove, sp }: Mc
     {
       title: 'Pay with MUSD and fetch',
       description:
-        `HTTP GET a URL. If the server asks for payment with x402, pay it in MUSD on Mezo testnet and return the data; the buyer needs no BTC for gas. ${limits} ` +
-        'Only MUSD on Mezo testnet can be paid. A refusal means nothing was paid. If the answer says a payment may still have been charged, check the balance before paying again. ' +
-        'Paid Mezo reads of this toolkit: GET /v1/trove/{address}, /v1/redemption/{address}, /v1/ve/{address} and /v1/pool/quote?tokenIn=&tokenOut=&amountIn= on the server that runs `npm run serve`.',
-      inputSchema: { url: z.string().max(2000).describe('Full http:// or https:// address to GET') },
+        `HTTP GET (default) or POST a URL. If the server asks for payment with x402, pay it in MUSD on Mezo testnet and return the data; the buyer needs no BTC for gas. ${limits} ` +
+        'Only MUSD on Mezo testnet can be paid. A refusal means nothing was paid. If the answer says a payment may still have been charged, check the balance before paying again; that URL is not paid for again, with any body, until the chain shows the payment can no longer land. ' +
+        'Paid Mezo reads of this toolkit: GET /v1/trove/{address}, /v1/redemption/{address}, /v1/ve/{address} and /v1/pool/quote?tokenIn=&tokenOut=&amountIn= on the server that runs `npm run serve`. ' +
+        'Paid plans (unsigned calldata, nothing is sent): method POST with a JSON body to /plan/open, /plan/top-up, /plan/repay or /plan/sp-deposit on the Worker, for the plan price.',
+      inputSchema: {
+        url: z.string().max(2000).describe('Full http:// or https:// address'),
+        method: z.enum(['GET', 'POST']).optional().describe('GET (default) or POST. POST sends the body and needs it; GET refuses one'),
+        body: z.record(z.string(), z.unknown()).optional().describe('The JSON object to POST (for example {"address":"0x...","amountBtc":"0.001"}); only with method POST'),
+      },
       // Spending is a side effect that cannot be undone, so hosts that honour these hints should ask the user first.
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
-    async ({ url }) => {
+    async ({ url, method, body }) => {
       if (!buyer) {
         const reason = payOffReason ?? 'no wallet is configured'
         return fail(`pay_and_fetch is switched off: ${reason}. The read tools still work.`, { refused: true, reason })
       }
       try {
-        const r = await buyer.fetchPaid(url)
+        if ((method === 'POST') !== (body !== undefined)) throw new PaymentRefused(method === 'POST' ? 'method POST needs a body, the JSON object to send' : 'a body is sent only with method POST')
+        const r = await buyer.fetchPaid(url, body)
         const out = {
           url: r.url,
           status: r.status,

@@ -1,4 +1,4 @@
-// The paying side of x402: an HTTP GET that pays in MUSD when a server answers 402, under the hard limits of a SpendGuard.
+// The paying side of x402: an HTTP GET (or a POST with a JSON body) that pays in MUSD when a server answers 402, under the hard limits of a SpendGuard.
 // Layers, from the outside in: URL and host checks, a one-at-a-time queue, the x402 client's own per-payment cap (set to the same limit),
 // and the SpendGuard hook that runs right before anything is signed. Nothing is signed unless every layer agrees.
 import { x402Client } from '@x402/core/client'

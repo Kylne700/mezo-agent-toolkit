@@ -131,7 +131,7 @@ try {
   for (const t of tools) log(`    ${t.name.padEnd(16)} readOnlyHint=${t.annotations?.readOnlyHint}  destructiveHint=${t.annotations?.destructiveHint}  openWorldHint=${t.annotations?.openWorldHint}`)
   const payTool = tools.find((t) => t.name === 'pay_and_fetch')
   const props = Object.keys((payTool?.inputSchema as { properties?: object } | undefined)?.properties ?? {})
-  check(same(props, ['url']), `pay_and_fetch takes only a url, so no tool call can change a limit (arguments: ${props.join(', ')})`)
+  check(same(props, ['url', 'method', 'body']), `pay_and_fetch takes a url, a method and a JSON body, no amount or limit, so no tool call can change a limit (arguments: ${props.join(', ')})`)
   check(payTool?.description?.includes(`at most ${PER_CALL} MUSD per call and ${PER_SESSION} MUSD in total for this session`) === true, 'the pay_and_fetch description tells the agent the operator limits')
 
   // ---- the four read tools, against direct reads at the block each answer names -----------------------------------------------------------------
