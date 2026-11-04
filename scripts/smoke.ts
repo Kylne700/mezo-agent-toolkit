@@ -3,20 +3,21 @@
 //   2. at one pinned block, the lens (and its paged walk of the redemption queue) gives the same numbers as reading TroveManager, SortedTroves,
 //      PriceFeed, HintHelpers, the DEX router and veBTC/veMEZO directly, and the text shown to people is the exact value cut off, not rounded;
 //   3. the paid endpoint, started locally with the real facilitator client, answers an unpaid call with a proper x402 challenge for MUSD;
-//   4. the README matches the chain: every address in its integration table has code and is one the toolkit uses, and every transaction it links succeeded.
+//   4. the README matches the chain: every address in its integration table has code and is one the toolkit uses, and every transaction it links succeeded
+//      (its receipt, read from the RPC: no transaction is looked up on an explorer; the only explorer read left is the veBTC holder list in step 2, a fallback
+//      that runs when no running lock is found on chain).
 // Exit code is non-zero if any check fails. `--log` also writes evidence/smoke.log.
 import { decodePaymentRequiredHeader } from '@x402/core/http'
 import { HTTPFacilitatorClient } from '@x402/core/server'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { parseUnits, type Address } from 'viem'
+import { parseUnits, type Address, type Hex } from 'viem'
 import deployment from '../deployments/testnet.json' with { type: 'json' }
 import { publicClient } from '../src/clients.ts'
 import { ADDRESSES, CHAIN_ID, FACILITATOR_URL, LEGACY_VE, NETWORK } from '../src/config.ts'
 import { createLens } from '../src/lens.ts'
 import { startServer } from '../src/serve.ts'
 import { differences, directPool, directQueue, directSystem, directTrove, directVe, lockDifferences, systemDifferences, troveFromTail } from './lib/direct.ts'
-import { explorerGet } from './lib/explorer.ts'
 import { discoverLiveLock, discoverVeHolder } from './lib/holders.ts'
 import { createReport } from './lib/report.ts'
 
@@ -128,13 +129,24 @@ for (const a of listed) {
 }
 verdict(`every address in the README table has code on chain (${listed.length} checked)`, empty)
 const hashes = [...new Set([...readme.matchAll(/\/tx\/(0x[0-9a-fA-F]{64})/g)].map((m) => m[1]!))]
+// The public RPC sometimes answers null or "method handler crashed" for a mined transaction (README), so ask each up to 6 times, 3 seconds apart. All go out together:
+// one after another the waits add up (measured 34 to 49 s for 23 receipts, against 2 to 4 s together).
+const receipts = await Promise.all(hashes.map(async (h) => {
+  let receipt: Awaited<ReturnType<typeof pub.getTransactionReceipt>> | undefined
+  for (let i = 0; i < 6 && !receipt; i++) {
+    if (i) await new Promise((r) => setTimeout(r, 3000))
+    receipt = await pub.getTransactionReceipt({ hash: h as Hex }).catch(() => undefined)
+  }
+  return receipt
+}))
 const failed: string[] = []
-for (const h of hashes) {
-  const t = await explorerGet(`transactions/${h}`, (j) => !!j?.status, 3, 3000)
-  if (t?.status !== 'ok') failed.push(`${h}: explorer status is ${t?.status}`)
+const blocks: bigint[] = []
+for (const [k, receipt] of receipts.entries()) {
+  if (receipt?.status !== 'success' || receipt.blockNumber == null) failed.push(`${hashes[k]}: the RPC receipt says ${receipt ? `${receipt.status}, block ${receipt.blockNumber}` : 'nothing after 6 tries'}`)
+  else blocks.push(receipt.blockNumber)
 }
 check(hashes.length >= 10, `the README links ${hashes.length} transactions (at least 10 expected)`)
-verdict(`every transaction the README links succeeded on chain (${hashes.length} checked on the explorer)`, failed)
+verdict(`every transaction the README links succeeded on chain (${hashes.length} receipts read from the RPC, each status success${blocks.length ? `, in blocks ${blocks.reduce((a, b) => (b < a ? b : a))} to ${blocks.reduce((a, b) => (b > a ? b : a))}` : ''})`, failed)
 
 log('')
 log(failures() === 0 ? 'SMOKE PASSED' : `SMOKE FAILED (${failures()} failed check(s))`)
