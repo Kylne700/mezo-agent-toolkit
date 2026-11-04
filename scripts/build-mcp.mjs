@@ -1,4 +1,4 @@
-// Bundles the stdio MCP server and every library it uses into one file, dist/mcp.js, so `npx -y mezo-agent-toolkit` has nothing else to install.
+// Bundles the stdio MCP server and every library it uses into one file, dist/mcp.js, so `npx -y <release tarball URL>` has nothing else to install.
 // esbuild is already in node_modules as a dependency of tsx. Usage: npm run build:mcp
 // It also writes THIRD_PARTY_NOTICES: the licence text of every package that puts code into the bundle, taken from the esbuild metafile and node_modules.
 import { build } from 'esbuild'

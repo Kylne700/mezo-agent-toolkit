@@ -1,4 +1,4 @@
-// The npm bin (`npx -y mezo-agent-toolkit`, bundled into dist/mcp.js by scripts/build-mcp.mjs): three flags for people, and anything else starts the stdio MCP server of mcp.ts.
+// The bin of the release tarball (`npx -y <tarball URL>`, bundled into dist/mcp.js by scripts/build-mcp.mjs): three flags for people, and anything else starts the stdio MCP server of mcp.ts.
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import pkg from '../package.json' with { type: 'json' }
@@ -10,14 +10,18 @@ import { createMcpServer } from './mcp-server.ts'
 import { createSp } from './sp-actions.ts'
 import { createTrove } from './trove-actions.ts'
 
+// The package is not on the npm registry: the release asset of this version is the install source (the docs carry the same URL).
+const TARBALL = `https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v${pkg.version}/mezo-agent-toolkit-${pkg.version}.tgz`
+
 const HELP = `mezo-agent-toolkit ${pkg.version}: an MCP server for Mezo testnet (free chain reads, and optional MUSD payments over x402)
 
-  npx -y mezo-agent-toolkit             start the MCP server on stdio (an MCP client runs this for you)
-  npx -y mezo-agent-toolkit --doctor    check the RPC, the chain id, the tool list and whether payments or writes are on (needs no key)
-  npx -y mezo-agent-toolkit --version
-  npx -y mezo-agent-toolkit --help
+Usage: npx -y ${TARBALL} [flag]
+  (no flag)   start the MCP server on stdio (an MCP client runs this for you)
+  --doctor    check the RPC, the chain id, the tool list and whether payments or writes are on (needs no key)
+  --version
+  --help
 
-Claude Code: claude mcp add mezo -- npx -y mezo-agent-toolkit
+Claude Code: claude mcp add mezo -- npx -y ${TARBALL}
 Environment (all optional): MEZO_RPC_URL, MEZO_KEY_FILE (switches pay_and_fetch on), MEZO_MAX_PER_CALL_MUSD, MEZO_MAX_PER_SESSION_MUSD, MEZO_PAY_ALLOWED_HOSTS
 Testnet writes (the ve_*, trove_*, sp_* tools and approve_revoke; off unless MEZO_WRITE_ENABLE=testnet): MEZO_KEY_FILE, MEZO_WRITE_RECEIPTS_FILE, MEZO_WRITE_MAX_{MUSD,BTC}_PER_{CALL,DAY} (unset = 0), MEZO_WRITE_RISKY=1 (needed for ve_lock, trove_open and trove_liquidate), MEZO_POLICY_FILE, MEZO_WRITE_KILL_FILE
 More: https://github.com/Kylne700/mezo-agent-toolkit/blob/main/docs/INSTALL.md`
