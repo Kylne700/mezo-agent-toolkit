@@ -3,7 +3,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport, getDefaultEnvironment } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { execFile } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
@@ -60,13 +60,34 @@ afterAll(async () => {
 })
 
 describe('the npm package', () => {
-  it('packs the bundle, README, LICENSE and server.json and nothing else', async () => {
+  it('packs the bundle, README, LICENSE, THIRD_PARTY_NOTICES and server.json and nothing else', async () => {
     const { stdout } = await pexec('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], { cwd: root, env: { ...process.env, npm_config_update_notifier: 'false' } })
     const files = (JSON.parse(stdout) as { files: { path: string }[] }[])[0]!.files.map((f) => f.path).sort()
-    expect(files).toEqual(['LICENSE', 'README.md', 'dist/mcp.js', 'package.json', 'server.json'])
+    expect(files).toEqual(['LICENSE', 'README.md', 'THIRD_PARTY_NOTICES', 'dist/mcp.js', 'package.json', 'server.json'])
     expect(pkg.bin['mezo-agent-toolkit']).toBe('dist/mcp.js')
     expect(readFileSync(bundle, 'utf8').startsWith('#!/usr/bin/env node\n')).toBe(true)
   }, 60_000)
+
+  // The build writes THIRD_PARTY_NOTICES from esbuild's metafile; this asks the bundle itself (the "// node_modules/..." comment esbuild puts above each module) and node_modules.
+  it('THIRD_PARTY_NOTICES holds the licence text of every package the bundle carries, and of no other', () => {
+    const notices = readFileSync(join(root, 'THIRD_PARTY_NOTICES'), 'utf8')
+    const dirOf = (path: string) => {
+      const i = path.lastIndexOf('node_modules/') + 'node_modules/'.length
+      const [a, b] = path.slice(i).split('/')
+      return path.slice(0, i) + (a!.startsWith('@') ? `${a}/${b}` : a)
+    }
+    const dirs = [...new Set([...readFileSync(bundle, 'utf8').matchAll(/^\/\/ (node_modules\/\S+)$/gm)].map((m) => dirOf(m[1]!)))]
+    expect(dirs.length).toBeGreaterThan(10)
+    const ids = dirs.map((d) => { const p = JSON.parse(readFileSync(join(root, d, 'package.json'), 'utf8')) as { name: string; version: string }; return `${p.name}@${p.version}` })
+    const listed = [...notices.matchAll(/^(\S+@\S+)\nLicense: /gm)].map((m) => m[1]!)
+    expect([...new Set(listed)].sort()).toEqual([...new Set(ids)].sort())
+    for (const [k, d] of dirs.entries()) {
+      const file = readdirSync(join(root, d)).find((n) => /^licen[cs]e/i.test(n))
+      // The Apache-2.0 packages that ship no file (@x402/*) get the standard text instead.
+      const text = file ? readFileSync(join(root, d, file), 'utf8').replaceAll('\r\n', '\n').trimEnd() : 'Version 2.0, January 2004'
+      expect(notices.includes(text), `THIRD_PARTY_NOTICES lacks the licence text of ${ids[k]}`).toBe(true)
+    }
+  })
 
   it('server.json and package.json agree on name and version', () => {
     const s = JSON.parse(readFileSync(join(root, 'server.json'), 'utf8')) as { name: string; version: string; packages: unknown[] }
