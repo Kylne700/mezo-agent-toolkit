@@ -4,11 +4,11 @@
 //   - the unpaid challenge: HTTP 402, x402 version 2, exact scheme, MUSD, the payee, 0.001 MUSD; the curl line printed on the page really prints it;
 //   - bad input: an invalid address is 400 and never a challenge, a malformed payment header is 402 and serves no data;
 //   - the real stdio MCP server (src/mcp.ts) pays one call through the Worker on Mezo testnet under limits of 0.01 MUSD per call and 0.1 in total;
-//     the explorer, /status, /api/payments and the MUSD balances must all agree on that one payment, and the buyer must send no transaction of its own;
+//     the settlement's RPC receipt, /status, /api/payments and the MUSD balances must all agree on that one payment, and the buyer must send no transaction of its own;
 //   - one refusal: pay_and_fetch on a host that is not on the allow list pays nothing and never reaches the Worker.
 // Free routes run before the paid one on purpose: under workerd a request that ended used to leave every later paid request hanging (see src/worker-app.ts).
 // Costs 0.001 MUSD, one attempt, never retried. Writes evidence/worker-smoke.log; the exit code is non-zero if any check fails.
-// Usage: tsx scripts/worker-smoke.ts [--note "text"] [--no-pay] [--url http://127.0.0.1:8787]
+// Usage: tsx scripts/worker-smoke.ts [--note "text"] [--no-pay] [--url http://127.0.0.1:8787] [--inspector-port 9330]
 //   --no-pay  runs everything that costs nothing and writes no evidence file; --url checks a Worker that already runs (it is left running).
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport, getDefaultEnvironment } from '@modelcontextprotocol/sdk/client/stdio.js'
@@ -26,7 +26,7 @@ import { publicClient } from '../src/clients.ts'
 import { ADDRESSES, CHAIN_ID, DEFAULT_PAYEE, EXPLORER, NETWORK, addressUrl, txUrl } from '../src/config.ts'
 import { keyPaths, opsAccount, readKeyFile } from '../src/keys.ts'
 import { troveFromTail } from './lib/direct.ts'
-import { settlementProblems } from './lib/explorer.ts'
+import { settlementProblems } from './lib/receipts.ts'
 import { createReport } from './lib/report.ts'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -37,10 +37,11 @@ const noPay = process.argv.includes('--no-pay')
 const note = arg('--note')
 const BASE = (attach ?? 'http://127.0.0.1:8787').replace(/\/$/, '')
 const PORT = Number(new URL(BASE).port)
-const INSPECTOR = 9330
+const INSPECTOR = Number(arg('--inspector-port') ?? 9330) // wrangler dev's debugger port; if another program holds the default, name a free one
 const PRICE = 1_000_000_000_000_000n // $0.001 in MUSD base units (18 decimals)
 const PER_CALL = '0.01'
 const PER_SESSION = '0.1'
+const EXPECTED_ROUTES = ['GET /v1/pool/quote', 'GET /v1/redemption/:address', 'GET /v1/trove/:address', 'GET /v1/ve/:address', 'POST /plan/open', 'POST /plan/repay', 'POST /plan/sp-deposit', 'POST /plan/top-up'].join(', ')
 const TOOLS = ['allowance_status', 'gauge_rewards', 'pay_and_fetch', 'plan_open', 'plan_repay', 'plan_sp_deposit', 'plan_top_up', 'pool_quote', 'redemption_risk', 'sp_status', 'trove_health', 'trove_status', 've_locks', 've_status'] // the ve, trove and Stability Pool write tools exist only with MEZO_WRITE_ENABLE=testnet, which these scripts never set
 
 const { log, check, verdict, failures, save } = createReport()
@@ -63,7 +64,7 @@ const wranglerLog = () => (tempDir ? readFileSync(join(tempDir, 'wrangler.log'),
 const scrub = (s: string) => s.replaceAll(homedir(), '~')
 
 async function start() {
-  for (const port of [PORT, INSPECTOR]) if (await inUse(port)) throw new Error(`port ${port} is already in use; not touching whatever runs there`)
+  for (const port of [PORT, INSPECTOR]) if (await inUse(port)) throw new Error(`port ${port} is already in use; not touching whatever runs there${port === INSPECTOR ? ' (it is the debugger port: pass --inspector-port with a free one)' : ''}`)
   tempDir = mkdtempSync(join(tmpdir(), 'worker-smoke-'))
   const fd = openSync(join(tempDir, 'wrangler.log'), 'w')
   const env: NodeJS.ProcessEnv = { ...process.env, WRANGLER_SEND_METRICS: 'false', CI: '1' }
@@ -140,13 +141,14 @@ try {
   const health = await get('/health')
   check(health.status === 200 && same(await health.json(), { ok: true }), '/health: 200 {"ok":true}')
 
-  const status = (await (await get('/status')).json()) as { network: string; chainId: number; lens: { address: string; explorer: string }; payTo: string; price: string; facilitator: string; endpoints: Record<string, string>; lastSettlement: { transaction: string; payer: string } | null }
-  verdict('/status: Mezo testnet, the payee from wrangler.toml, price $0.001, the lens, four paid routes', [
+  const status = (await (await get('/status')).json()) as { network: string; chainId: number; lens: { address: string; explorer: string }; payTo: string; price: string; planPrice?: string; facilitator: string; endpoints: Record<string, string>; lastSettlement: { transaction: string; payer: string } | null }
+  verdict('/status: Mezo testnet, the payee from wrangler.toml, price $0.001 (plans $0.005), the lens, eight paid routes (four GET reads and four POST plans)', [
     ...(status.network === NETWORK && status.chainId === CHAIN_ID ? [] : [`network ${status.network} / ${status.chainId}`]),
     ...(status.payTo === DEFAULT_PAYEE ? [] : [`payTo ${status.payTo}`]),
     ...(status.price === '$0.001' ? [] : [`price ${status.price}`]),
     ...(/^0x[0-9a-fA-F]{40}$/.test(status.lens?.address ?? '') ? [] : ['no lens address']),
-    ...(Object.keys(status.endpoints ?? {}).length === 4 ? [] : [`${Object.keys(status.endpoints ?? {}).length} paid routes`]),
+    ...(status.planPrice === '$0.005' ? [] : [`planPrice ${status.planPrice}`]),
+    ...(Object.keys(status.endpoints ?? {}).sort().join(', ') === EXPECTED_ROUTES ? [] : [`paid routes: ${Object.keys(status.endpoints ?? {}).sort().join(', ')}`]),
   ])
   if (!attach) check(status.lastSettlement === null, 'a fresh Worker has settled nothing yet (/status lastSettlement is null)')
 
@@ -302,8 +304,8 @@ try {
     log(`MUSD after    buyer ${after.buyer}   payee ${after.payee}  (base units)`)
     check(before.buyer - after.buyer === PRICE && after.payee - before.payee === PRICE, `the buyer paid exactly ${PRICE} base units (0.001 MUSD) and the payee received exactly that (buyer ${before.buyer - after.buyer}, payee ${after.payee - before.payee})`)
     check(before.btc === after.btc && before.nonce === after.nonce, 'the buyer sent no transaction and spent no BTC: the facilitator paid the gas')
-    const s = await settlementProblems(settlementTx, { buyer: account.address, payee, amount: PRICE, afterBlock: startBlock })
-    verdict(`the explorer shows ${settlementTx.slice(0, 12)}...: status ok, block ${s.block}, sent by the facilitator (${s.sender.slice(0, 10)}...), MUSD buyer -> payee 0.001`, s.problems)
+    const s = await settlementProblems(pub, settlementTx, { buyer: account.address, payee, amount: PRICE, afterBlock: startBlock })
+    verdict(`the RPC receipt of ${settlementTx.slice(0, 12)}...: status success, block ${s.block}, sent by the facilitator (${s.sender.slice(0, 10)}...), MUSD buyer -> payee 0.001`, s.problems)
     const last = ((await (await get('/status')).json()) as { lastSettlement: { transaction: string; recovered: boolean } | null }).lastSettlement
     // A deployed Worker runs many instances and /status shows what the answering one saw (README: "The Worker's memory belongs to one instance").
     const edge = !['127.0.0.1', 'localhost'].includes(new URL(BASE).hostname)

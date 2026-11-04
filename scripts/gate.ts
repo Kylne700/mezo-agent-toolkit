@@ -1,10 +1,9 @@
 // The x402 gate, run against the real app and the real facilitator on Mezo testnet.
 // For each paid endpoint: an unpaid GET must return 402 with a payment challenge, then a paid GET (through the same buyer code the MCP tool uses,
-// under its spend limits) must return 200 with live chain data and a settlement transaction that the explorer knows.
+// under its spend limits) must return 200 with live chain data and a settlement transaction whose receipt the Mezo testnet RPC gives (no explorer lookup).
 // Writes the transcript to evidence/gate-402-then-200.log. Costs 0.001 MUSD per paid call (four calls). Exit code is non-zero if any check fails.
 import { decodePaymentRequiredHeader } from '@x402/core/http'
 import { HTTPFacilitatorClient, type FacilitatorClient } from '@x402/core/server'
-import { writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import type { Address } from 'viem'
 import { erc20Abi, sortedTrovesAbi, troveManagerAbi } from '../src/abis.ts'
@@ -15,19 +14,12 @@ import { createBuyer } from '../src/pay.ts'
 import { startServer } from '../src/serve.ts'
 import { SpendGuard } from '../src/spend.ts'
 import { discoverVeHolder } from './lib/holders.ts'
+import { settlementProblems } from './lib/receipts.ts'
+import { createReport } from './lib/report.ts'
 import { fixed } from '../src/lens.ts'
 
 const OUT = fileURLToPath(new URL('../evidence/gate-402-then-200.log', import.meta.url))
-const lines: string[] = []
-const log = (s: string) => {
-  lines.push(s)
-  console.log(s)
-}
-let failures = 0
-const check = (ok: boolean, what: string) => {
-  log(`${ok ? 'PASS' : 'FAIL'}  ${what}`)
-  if (!ok) failures++
-}
+const { log, check, verdict, failures, save } = createReport()
 
 const pub = publicClient()
 const balance = (a: Address) => pub.readContract({ address: ADDRESSES.musd, abi: erc20Abi, functionName: 'balanceOf', args: [a] }) as Promise<bigint>
@@ -57,6 +49,8 @@ const srv = await startServer({ port: 0, facilitator })
 const startBlock = await pub.getBlockNumber()
 const buyerBefore = await balance(account.address)
 const payeeBefore = await balance(srv.payTo)
+const buyerSent = async () => ({ btc: await pub.getBalance({ address: account.address }), nonce: await pub.getTransactionCount({ address: account.address }) })
+const sentBefore = await buyerSent()
 
 log(`x402 gate, real app + real facilitator   ${new Date().toISOString()}`)
 log(`network ${NETWORK}   app ${srv.url}   lens ${srv.lens.address}`)
@@ -110,30 +104,13 @@ if (troveJson) {
   check(direct[0]!.toString() === troveJson.raw.coll && (direct[1]! + direct[2]!).toString() === troveJson.raw.debt, `trove numbers equal a direct TroveManager read at block ${block}`)
 }
 
-// The explorer knows each settlement: it succeeded, it is new (mined after this run began), it was sent by the facilitator and not by the buyer
-// (the buyer needs no BTC for gas), and its token transfers include exactly this payment: buyer -> payee, 0.001 MUSD.
+// The RPC gives each settlement's receipt: it succeeded, it is new (mined after this run began), it was sent by the facilitator and not by the buyer
+// (the buyer needs no BTC for gas), and its logs include exactly this payment: a Transfer of 0.001 MUSD from the buyer to the payee.
 log('')
 check(new Set(settlements.map((h) => h.toLowerCase())).size === settlements.length, `the ${settlements.length} settlement hashes are all different`)
-const explorerGet = async (path: string, ready: (j: any) => boolean) => {
-  let j: any
-  for (let i = 0; i < 8 && !ready(j); i++) {
-    if (i) await new Promise((r) => setTimeout(r, 4000))
-    j = await fetch(`https://api.explorer.test.mezo.org/api/v2/${path}`).then((r) => r.json()).catch(() => undefined)
-  }
-  return j
-}
 for (const hash of settlements) {
-  const tx = await explorerGet(`transactions/${hash}`, (j) => !!j?.status)
-  const from = String(tx?.from?.hash ?? '')
-  check(
-    tx?.status === 'ok' && from.toLowerCase() !== account.address.toLowerCase() && BigInt(tx?.block_number ?? 0) > startBlock,
-    `explorer: ${hash} status ${tx?.status}, block ${tx?.block_number} (run began at ${startBlock}), sent by ${from} (not the buyer)`,
-  )
-  const moves = await explorerGet(`transactions/${hash}/token-transfers`, (j) => Array.isArray(j?.items))
-  const ok = (moves?.items ?? []).some(
-    (t: any) => String(t.from?.hash).toLowerCase() === account.address.toLowerCase() && String(t.to?.hash).toLowerCase() === srv.payTo.toLowerCase() && t.total?.value === '1000000000000000' && String(t.token?.address_hash ?? t.token?.address).toLowerCase() === ADDRESSES.musd.toLowerCase(),
-  )
-  check(ok, `explorer: ${hash} moved exactly 0.001 MUSD from the buyer to the payee`)
+  const s = await settlementProblems(pub, hash, { buyer: account.address, payee: srv.payTo, amount: 1_000_000_000_000_000n, afterBlock: startBlock })
+  verdict(`receipt: ${hash} succeeded in block ${s.block} (run began at ${startBlock}), sent by ${s.sender} (not the buyer), moved exactly 0.001 MUSD from the buyer to the payee`, s.problems)
 }
 
 const buyerAfter = await balance(account.address)
@@ -141,12 +118,14 @@ const payeeAfter = await balance(srv.payTo)
 log('')
 log(`MUSD after    buyer ${fixed(buyerAfter, 18, 6)}   payee ${fixed(payeeAfter, 18, 6)}`)
 check(buyerBefore - buyerAfter === payeeAfter - payeeBefore && payeeAfter - payeeBefore === 1_000_000_000_000_000n * BigInt(settlements.length), `buyer paid exactly ${settlements.length} x 0.001 MUSD and the payee received it`)
+const sentAfter = await buyerSent()
+check(sentBefore.btc === sentAfter.btc && sentBefore.nonce === sentAfter.nonce, `the buyer sent no transaction and spent no BTC (nonce ${sentBefore.nonce} before and after): the facilitator paid the gas`)
 log(`spend after: ${JSON.stringify(guard.snapshot())}`)
 const status = (await (await fetch(srv.url + '/status')).json()) as { recoveredSettlements?: number }
 log(`settlements the server recovered after the facilitator reported a failure (transfer found on chain): ${status.recoveredSettlements ?? 0}`)
 log(`explorer base ${EXPLORER}   first settlement ${settlements[0] ? txUrl(settlements[0]) : 'none'}`)
-log(failures === 0 ? 'GATE PASSED' : `GATE FAILED (${failures} failed check(s))`)
+log(failures() === 0 ? 'GATE PASSED' : `GATE FAILED (${failures()} failed check(s))`)
 
 await srv.close()
-writeFileSync(OUT, lines.join('\n') + '\n')
-process.exit(failures === 0 ? 0 : 1)
+save(OUT)
+process.exit(failures() === 0 ? 0 : 1)

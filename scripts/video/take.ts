@@ -5,7 +5,7 @@
 //   2. a plain x402 buyer pays one call: the unpaid 402, the signed Permit2 permit, the 200 with the settlement (every HTTP hop is recorded);
 //   3. the real stdio MCP server under limits of 0.001 MUSD per call and in total: the four free lens reads, one paid call that settles,
 //      one that the session limit refuses before anything is signed;
-//   4. the explorer, the MUSD balances and /api/payments must agree on both payments; the two no-double-pay unit tests run offline;
+//   4. the payments' RPC receipts, the MUSD balances and /api/payments must agree on both payments; the two no-double-pay unit tests run offline;
 //   5. record-live.mjs films the explorer page of the first payment and the Worker's console page while the Worker is still up.
 // Costs 2 x 0.001 MUSD, one attempt per payment, never retried; stops before a payment once the wallet has lost 0.004 MUSD.
 // The key is read in code from MEZO_KEY_FILE and never printed. Writes media/raw/take.json and
@@ -31,7 +31,7 @@ import { keyPaths, opsAccount, readKeyFile } from '../../src/keys.ts'
 import { createBuyer } from '../../src/pay.ts'
 import { SpendGuard } from '../../src/spend.ts'
 import { troveFromTail } from '../lib/direct.ts'
-import { settlementProblems } from '../lib/explorer.ts'
+import { settlementProblems } from '../lib/receipts.ts'
 import { discoverLiveLock, discoverVeHolder } from '../lib/holders.ts'
 import { createReport } from '../lib/report.ts'
 
@@ -250,8 +250,8 @@ try {
   ])
 
   const verify = async (hash: string, afterBlock: bigint) => {
-    const s = await settlementProblems(hash, { buyer: account.address, payee, amount: PRICE, afterBlock })
-    verdict(`the explorer shows ${short(hash)}: status ok, block ${s.block}, sent by the facilitator (${short(s.sender)}), MUSD buyer -> payee 0.001`, s.problems)
+    const s = await settlementProblems(pub, hash, { buyer: account.address, payee, amount: PRICE, afterBlock })
+    verdict(`the RPC receipt of ${short(hash)}: status success, block ${s.block}, sent by the facilitator (${short(s.sender)}), MUSD buyer -> payee 0.001`, s.problems)
     return { block: s.block, sender: s.sender, problems: s.problems }
   }
 

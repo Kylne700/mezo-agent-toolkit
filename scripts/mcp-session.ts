@@ -3,7 +3,7 @@
 //   - the four read tools are checked against direct reads of the protocol contracts at the block each answer names;
 //   - pay_and_fetch pays twice (0.001 MUSD each), is refused when a price is over the per-call limit, is refused when a third payment would go over the
 //     session limit, refuses a host that is not on the allow list and a bad URL, and fetches a free URL without paying;
-//   - the explorer and the MUSD balances confirm exactly what was paid, and that the buyer sent no transaction of its own (the facilitator pays the gas).
+//   - the settlements' receipts (read from the RPC) and the MUSD balances confirm exactly what was paid, and the buyer's nonce confirms that it sent no transaction of its own (the facilitator pays the gas).
 // Costs 0.002 MUSD. Writes evidence/mcp-session.log; exit code is non-zero if any check fails. The key path, the child's environment and its stderr are never logged.
 // Usage: tsx scripts/mcp-session.ts [--note "text added to the log header"]
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
@@ -19,8 +19,8 @@ import { keyPaths, opsAccount, readKeyFile } from '../src/keys.ts'
 import { createLens } from '../src/lens.ts'
 import { startServer } from '../src/serve.ts'
 import { differences, directPool, directQueue, directSystem, directTrove, directVe, lockDifferences, systemDifferences, troveFromTail } from './lib/direct.ts'
-import { settlementProblems } from './lib/explorer.ts'
 import { discoverLiveLock, discoverVeHolder } from './lib/holders.ts'
+import { settlementProblems } from './lib/receipts.ts'
 import { createReport } from './lib/report.ts'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -260,8 +260,8 @@ try {
   log('== on chain')
   check(new Set(settlements.map((h) => h.toLowerCase())).size === settlements.length && settlements.length === 2, `${settlements.length} settlement hashes, all different (expected 2)`)
   for (const hash of settlements) {
-    const s = await settlementProblems(hash, { buyer: account.address, payee: cheap.payTo, amount: PRICE, afterBlock: startBlock })
-    verdict(`explorer: ${hash} succeeded in block ${s.block} (run began at ${startBlock}), sent by the facilitator ${s.sender}, moved exactly 0.001 MUSD from the buyer to the payee`, s.problems)
+    const s = await settlementProblems(pub, hash, { buyer: account.address, payee: cheap.payTo, amount: PRICE, afterBlock: startBlock })
+    verdict(`receipt: ${hash} succeeded in block ${s.block} (run began at ${startBlock}), sent by the facilitator ${s.sender}, moved exactly 0.001 MUSD from the buyer to the payee`, s.problems)
   }
   const after = { buyer: await balance(account.address), payee: await balance(cheap.payTo), btc: await pub.getBalance({ address: account.address }), nonce: await pub.getTransactionCount({ address: account.address }) }
   log(`MUSD after    buyer ${after.buyer}   payee ${after.payee}  (base units)`)

@@ -11,7 +11,7 @@ import { decodePaymentRequiredHeader } from '@x402/core/http'
 import { HTTPFacilitatorClient } from '@x402/core/server'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { parseUnits, type Address, type Hex } from 'viem'
+import { parseUnits, type Address } from 'viem'
 import deployment from '../deployments/testnet.json' with { type: 'json' }
 import { publicClient } from '../src/clients.ts'
 import { ADDRESSES, CHAIN_ID, FACILITATOR_URL, LEGACY_VE, NETWORK } from '../src/config.ts'
@@ -19,6 +19,7 @@ import { createLens } from '../src/lens.ts'
 import { startServer } from '../src/serve.ts'
 import { differences, directPool, directQueue, directSystem, directTrove, directVe, lockDifferences, systemDifferences, troveFromTail } from './lib/direct.ts'
 import { discoverLiveLock, discoverVeHolder } from './lib/holders.ts'
+import { RECEIPT_TRIES, receiptOf } from './lib/receipts.ts'
 import { createReport } from './lib/report.ts'
 
 const { log, check, verdict, failures, save } = createReport()
@@ -129,20 +130,13 @@ for (const a of listed) {
 }
 verdict(`every address in the README table has code on chain (${listed.length} checked)`, empty)
 const hashes = [...new Set([...readme.matchAll(/\/tx\/(0x[0-9a-fA-F]{64})/g)].map((m) => m[1]!))]
-// The public RPC sometimes answers null or "method handler crashed" for a mined transaction (README), so ask each up to 6 times, 3 seconds apart. All go out together:
-// one after another the waits add up (measured 34 to 49 s for 23 receipts, against 2 to 4 s together).
-const receipts = await Promise.all(hashes.map(async (h) => {
-  let receipt: Awaited<ReturnType<typeof pub.getTransactionReceipt>> | undefined
-  for (let i = 0; i < 6 && !receipt; i++) {
-    if (i) await new Promise((r) => setTimeout(r, 3000))
-    receipt = await pub.getTransactionReceipt({ hash: h as Hex }).catch(() => undefined)
-  }
-  return receipt
-}))
+// receiptOf asks each up to 15 times, 2 seconds apart (the public RPC often answers not found, null or "method handler crashed" for a mined transaction). All go
+// out together: one after another the waits add up (measured 34 to 49 s for 23 receipts, against 2 to 4 s together).
+const receipts = await Promise.all(hashes.map((h) => receiptOf(pub, h)))
 const failed: string[] = []
 const blocks: bigint[] = []
 for (const [k, receipt] of receipts.entries()) {
-  if (receipt?.status !== 'success' || receipt.blockNumber == null) failed.push(`${hashes[k]}: the RPC receipt says ${receipt ? `${receipt.status}, block ${receipt.blockNumber}` : 'nothing after 6 tries'}`)
+  if (receipt?.status !== 'success' || receipt.blockNumber == null) failed.push(`${hashes[k]}: the RPC receipt says ${receipt ? `${receipt.status}, block ${receipt.blockNumber}` : `nothing after ${RECEIPT_TRIES} tries`}`)
   else blocks.push(receipt.blockNumber)
 }
 check(hashes.length >= 10, `the README links ${hashes.length} transactions (at least 10 expected)`)
