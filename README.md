@@ -43,8 +43,8 @@ Everything below was run for real on testnet. The logs are in [`evidence/`](evid
 
 | Criterion | Where to look |
 |---|---|
-| Mezo Integration | [Mezo integration: contract, address, call, why](#mezo-integration-contract-address-call-why): the ten contracts in the table, with the calls used and why. [Transactions](#transactions): 18 testnet transactions in one table, each linked to the explorer. |
-| Product and Business Viability | [Deck](docs/deck.pdf) slides 1, 9 and 10 (the problem, who pays, Wave 2) and [Limits, stated plainly](#limits-stated-plainly). |
+| Mezo Integration | [Mezo integration: contract, address, call, why](#mezo-integration-contract-address-call-why): the ten contracts in the table, with the calls used and why. [Transactions](#transactions): 18 testnet transactions in one table, each linked to the explorer. [EVIDENCE.md](EVIDENCE.md): the 14 Wave 2 testnet transactions with the `npm run w2:prove` check line of each. |
+| Product and Business Viability | [Deck](docs/deck.pdf) slides 1, 9 and 10 (the problem, who pays, Wave 2) and [Limits, stated plainly](#limits-stated-plainly). [docs/BUSINESS.md](docs/BUSINESS.md): who pays and why, gas per claim cycle from our own receipts, own and outside traffic counted apart. |
 | Technical Implementation | [How the numbers were checked](#how-the-numbers-were-checked): the tests, a smoke run against the chain, an MCP session and a Worker smoke. [CI](.github/workflows/test.yml) runs the typecheck, the tests and the repo checks on every push. |
 | User Experience | The [live console](https://mezo-agent-toolkit.kylne700.workers.dev) and [console-qa.log](evidence/console-qa.log) (51 checks: light and dark at 1280 and 390 px, light at 320 px, focus rings, no sideways overflow). |
 | Submission Materials | The [demo video](https://youtu.be/rVGGU6BSJxw) (1:33) and the [deck](docs/deck.pdf) (11 slides). |
@@ -74,7 +74,7 @@ Also used: Mezo's native BTC and MEZO ERC-20 precompiles (`0x7b7C…0000`, `0x7b
 
 | What | Transaction |
 |---|---|
-| Lens redeployed on the LIVE veBTC (block 16482080, 10650 bytes of code) | [`0x5342268a…32f3cb`](https://explorer.test.mezo.org/tx/0x5342268ad642bbc386da866a7626f4d7708f4a0f7cff0a608bb5d448b132f3cb) | | Wave 1 lens deployed (block 16229406, 10651 bytes of code; superseded, it reads the old veBTC) | [`0x4c673819…821dd1`](https://explorer.test.mezo.org/tx/0x4c673819554eaf1fa88131e463253cc8f40a04df01093f799b997ffe56821dd1) |
+| Lens redeployed on the LIVE veBTC (block 16482080, 10650 bytes of code) | [`0x5342268a…32f3cb`](https://explorer.test.mezo.org/tx/0x5342268ad642bbc386da866a7626f4d7708f4a0f7cff0a608bb5d448b132f3cb) |
 | Wave 1 lens deployed (block 16229406, 10651 bytes of code; superseded, it reads the old veBTC) | [`0x4c673819…821dd1`](https://explorer.test.mezo.org/tx/0x4c673819554eaf1fa88131e463253cc8f40a04df01093f799b997ffe56821dd1) |
 | BTC to MUSD swap on the Mezo DEX, to fund the buyer (0.0002 BTC for 15.74 MUSD) | [`0xe43a7aaf…c5be`](https://explorer.test.mezo.org/tx/0xe43a7aaf4a997a9b1a0242546874a8812f813e14b8cd293f304310fcd385c5be) |
 | **First paid call settled through the facilitator** (the day-one gate, [log](evidence/gate-first-run.log)) | [`0x1499eccd…7b9d`](https://explorer.test.mezo.org/tx/0x1499eccd92b3932c53de8f0d5510ca9e8efb955c7c1c1c7ea53f9a2bfa6f7b9d) |
@@ -235,7 +235,7 @@ The paid endpoint asks the chain itself about every settlement, whatever the fac
 ## Limits, stated plainly
 
 * **Testnet only.** Nothing here calls Mezo mainnet.
-* **The two claim tools have not sent a real transaction.** An epoch's fees can be claimed once the epoch ends (Thursday 00:00 UTC); the first one that matters ends 2026-11-05. Before that the claims were only simulated on the chain (they return 0), and the tools were tested against a fake chain.
+* **The two claim tools have sent one real claim each, for one epoch.** On 2026-11-05 `ve_claim_rebase` and `ve_claim_rewards` claimed the epoch that ended that day ([EVIDENCE.md](EVIDENCE.md), proof 1). A second epoch has not been claimed; its row is pending until after 2026-11-12 00:00 UTC. Fees and weights change every epoch, so one claim is not a forecast ([docs/BUSINESS.md](docs/BUSINESS.md#one-claim-cycle)).
 * **`sp_withdraw` and `approve_revoke` have not sent a real transaction.** The Stability Pool refused every non-zero withdrawal during the run (two troves were still under 110% after our liquidation), and no allowance was left open (the deposit used its exact approval up). Both tools were tested against a fake chain, and on the real chain only their refusals were seen. The 10 MUSD we deposited stays in the pool until the troves under 110% are liquidated, topped up or repaid.
 * **The facilitator is a third party** (`facilitator.vativ.io`). If it is down, paid calls fail; the free read tools do not depend on it. Its receipt flake is described above.
 * **The MCP read tools are free direct lens reads.** They do not go through x402. The paid path is the HTTP endpoint and `pay_and_fetch`; this keeps reads usable with no wallet, and shows paying in MUSD where an agent needs to buy data from someone else.
