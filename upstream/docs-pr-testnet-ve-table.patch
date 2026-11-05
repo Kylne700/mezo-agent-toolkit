@@ -1,0 +1,23 @@
+What this proves: the mechanics, on testnet. No real users or mainnet collateral claimed.
+
+diff --git a/src/content/docs/docs/developers/features/mezo-pools.md b/src/content/docs/docs/developers/features/mezo-pools.md
+index 5e46bcc..b238101 100644
+--- a/src/content/docs/docs/developers/features/mezo-pools.md
++++ b/src/content/docs/docs/developers/features/mezo-pools.md
+@@ -147,6 +147,16 @@ CL positions can be staked into gauges for MEZO emissions. Staked in-range liqui
+ 
+ ### Testnet — Governance Contracts
+ 
++| Name | Address |
++|------|---------|
++| VeBTC | `0x38E35d92E6Bfc6787272A62345856B13eA12130a` |
++| VeBTCVoter | `0x263F1Fd5fB7F866881e1B6cD7d5d6c40Fd985F0D` |
++| VeBTCRewardsDistributor | `0x9050218f89F0b5b17df4a30Ba4Fc97C72E307442` |
++
++### Testnet — Earlier Governance Contracts
++
++An earlier testnet deployment is still on chain. Its weekly epoch has not advanced since 2025-11-13 (`ChainFeeSplitter.activePeriod()` returns `1762992000`), so it no longer distributes. Use the addresses above for new work.
++
+ | Name | Address |
+ |------|---------|
+ | VeBTC | `0xB63fcCd03521Cf21907627bd7fA465C129479231` |
