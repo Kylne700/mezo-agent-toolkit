@@ -1,0 +1,12 @@
+--- ve_claim_rebase {"tokenId":"1729"}, tool answer:
+{
+ "sent": true,
+ "hash": "0xebd0e10d3206301284ecf7340df28184a8b2b64c62f1dd0b85fa6b21568fa8b2",
+ "status": "success",
+ "explorer": "https://explorer.test.mezo.org/tx/0xebd0e10d3206301284ecf7340df28184a8b2b64c62f1dd0b85fa6b21568fa8b2",
+ "blockNumber": "16578178",
+ "gasUsed": "665594",
+ "tokenId": "1729",
+ "expected": "0.000000071972908599",
+ "claimableAfter": "0"
+}

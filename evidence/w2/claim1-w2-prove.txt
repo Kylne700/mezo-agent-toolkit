@@ -1,0 +1,132 @@
+Wave 2 proof: https://rpc.test.mezo.org, chain 31611, head block 16578215
+PASS  eth_chainId is 31611
+
+# Transactions of evidence/w2/receipts.jsonl (one leg each)
+PASS  ve_approve_btc       nonce 5  0x52c8e63ad219c682f2630839530ef9c9a2f311a8b51843b762741ccbb1387b26
+        receipt status success at block 16482800 (2026-10-31T09:59:55.000Z); the ledger says success
+        sent by 0xea2d4b92ddd760959bb1d8119430640885851a91 to 0x7b7c000000000000000000000000000000000000, nonce 5, selector 0x095ea7b3: as the ledger says
+        gas limit 30648 (used 25540), max fee per gas 172: as the ledger says
+        the allow-list entry ve_approve_btc covers this target and function
+        ledger amounts musd 0, btc 4000000005271456 = the calldata and value on chain
+        BTC allowance of the wallet for 0x38E35d92E6Bfc6787272A62345856B13eA12130a (veBTC) at block 16482800 is 0.004; the approve asked for 0.004
+PASS  ve_lock              nonce 6  0xfed42ec9a5d3cb7390ef9e216df8e9249733692863878d260ac833dfe4231c2c
+        receipt status success at block 16482808 (2026-10-31T10:00:28.000Z); the ledger says success
+        sent by 0xea2d4b92ddd760959bb1d8119430640885851a91 to 0x38e35d92e6bfc6787272a62345856b13ea12130a, nonce 6, selector 0xb52c05fe: as the ledger says
+        gas limit 680763 (used 548254), max fee per gas 172: as the ledger says
+        the allow-list entry ve_lock covers this target and function
+        ledger amounts musd 0, btc 4000000117091236 = the calldata and value on chain
+        the receipt carries the LIVE veBTC event that mints a veNFT to the wallet
+        veNFT 1729 is owned by the wallet at block 16482808
+        veNFT 1729 locks 0.004 BTC; createLock asked for 0.004
+        the lock ends 2026-11-26T00:00:00.000Z, within the 2419200 s asked for (the contract rounds the end down to a Thursday)
+PASS  ve_vote              nonce 7  0xaca4dfa53ad82d7b91c6591cc1d3aaa2dc491125e74ca39efc52b90791d4e897
+        receipt status success at block 16482823 (2026-10-31T10:01:34.000Z); the ledger says success
+        sent by 0xea2d4b92ddd760959bb1d8119430640885851a91 to 0x263f1fd5fb7f866881e1b6cd7d5d6c40fd985f0d, nonce 7, selector 0x7ac09bf7: as the ledger says
+        gas limit 641325 (used 521580), max fee per gas 172: as the ledger says
+        the allow-list entry ve_vote covers this target and function
+        ledger amounts musd 0, btc 110307900 = the calldata and value on chain
+        veNFT 1729: voted() is true at block 16482823
+        lastVoted(1729) is 1793440894 (the block time 1793440894), usedWeights 3654606480510818
+        votes(1729, 0x6f461c68B2c5492C0F5CCEc5a264d692aA7A8e16) is 3654606480510818 at block 16482823 (weight asked 100)
+PASS  trove_open           nonce 8  0xd908acf9d8527f1b2aed152b94f739defe3d1ecaea3db17580ff69be17995cbc
+        receipt status success at block 16484113 (2026-10-31T11:31:03.000Z); the ledger says success
+        sent by 0xea2d4b92ddd760959bb1d8119430640885851a91 to 0xcdf7028ceab81fa0c6971208e83fa7872994bee5, nonce 8, selector 0x2f3a6d98: as the ledger says
+        gas limit 705228 (used 578967), max fee per gas 172: as the ledger says
+        the allow-list entry trove_open covers this target and function
+        ledger amounts musd 1900000000000000000000, btc 45000000121299216 = the calldata and value on chain
+        trove of the wallet: nonExistent before block 16484113, active at it
+        collateral +0.045 BTC; the tx carried 0.045 BTC
+        debt +2101.9 MUSD: at least the 1900 asked for plus the 200 reserve (the borrowing fee comes on top)
+        wallet MUSD +1900; openTrove asked for 1900
+PASS  trove_add_coll       nonce 9  0x27768c211b44e98431f15076626191b14f29fc454abd5a131386b4ee9502855b
+        receipt status success at block 16484121 (2026-10-31T11:31:36.000Z); the ledger says success
+        sent by 0xea2d4b92ddd760959bb1d8119430640885851a91 to 0xcdf7028ceab81fa0c6971208e83fa7872994bee5, nonce 9, selector 0x68647db1: as the ledger says
+        gas limit 456027 (used 371741), max fee per gas 172: as the ledger says
+        the allow-list entry trove_add_coll covers this target and function
+        ledger amounts musd 0, btc 300000078436644 = the calldata and value on chain
+        the trove is active before and at the block
+        collateral +0.0003 BTC; the tx carried 0.0003 BTC
+        debt 2101.900019315902245565 -> 2101.900021980164624264 MUSD: only interest
+PASS  trove_repay          nonce 10  0x03f45c0e57b1dbbaed3d75ef37aa8bca28723e70a8c9286ba3c8a8166d01054e
+        receipt status success at block 16484130 (2026-10-31T11:32:12.000Z); the ledger says success
+        sent by 0xea2d4b92ddd760959bb1d8119430640885851a91 to 0xcdf7028ceab81fa0c6971208e83fa7872994bee5, nonce 10, selector 0xdc283bb3: as the ledger says
+        gas limit 434908 (used 349620), max fee per gas 172: as the ledger says
+        the allow-list entry trove_repay covers this target and function
+        ledger amounts musd 10000000000000000000, btc 74804176 = the calldata and value on chain
+        the trove is active before and at the block, collateral unchanged
+        debt 2101.900043960329248528 -> 2091.900045958526032552 MUSD: down by the 10 repaid, within 0.001 of interest
+        wallet MUSD -10; repayMUSD asked for 10
+PASS  sp_approve_musd      nonce 11  0x61f55d466fe3a9675d2adc16a377d0a2553807283ac2ef90261dfe0abe39a78a
+        receipt status success at block 16485131 (2026-10-31T12:41:40.000Z); the ledger says success
+        sent by 0xea2d4b92ddd760959bb1d8119430640885851a91 to 0x118917a40faf1cd7a13db0ef56c86de7973ac503, nonce 11, selector 0x095ea7b3: as the ledger says
+        gas limit 55658 (used 46382), max fee per gas 172: as the ledger says
+        the allow-list entry sp_approve_musd covers this target and function
+        ledger amounts musd 10000000000000000000, btc 9573176 = the calldata and value on chain
+        MUSD allowance of the wallet for 0x1CCA7E410eE41739792eA0A24e00349Dd247680e (StabilityPool) at block 16485131 is 10; the approve asked for 10
+PASS  sp_deposit           nonce 12  0xce607af072d221d11b54438604ae1d93a8e1977ce8ee02d19f74dd3f38904b5a
+        receipt status success at block 16485134 (2026-10-31T12:41:55.000Z); the ledger says success
+        sent by 0xea2d4b92ddd760959bb1d8119430640885851a91 to 0x1cca7e410ee41739792ea0a24e00349dd247680e, nonce 12, selector 0x78c77a24: as the ledger says
+        gas limit 167079 (used 132705), max fee per gas 172: as the ledger says
+        the allow-list entry sp_deposit covers this target and function
+        ledger amounts musd 10000000000000000000, btc 28737588 = the calldata and value on chain
+        the receipt carries the MUSD Transfer wallet -> StabilityPool of 10
+        wallet MUSD -10; provideToSP asked for 10
+        the wallet's pool deposit 0 -> 10 MUSD (+10 asked for)
+        sp_status equals the direct StabilityPool reads at block 16485134 (deposit 10000000000000000000, compounded 10000000000000000000, BTC gain 0, pool total 86224464117764111279105888, pool BTC 176336610670446524085 wei)
+PASS  trove_liquidate      nonce 13  0x2eba8e0781420e3ea41dd2189d10ac7e7607530b4b0b3bb1eb37dbb70246dace
+        receipt status success at block 16485146 (2026-10-31T12:42:41.000Z); the ledger says success
+        sent by 0xea2d4b92ddd760959bb1d8119430640885851a91 to 0xe47c80e8c23f6b4a1ae41c34837a0599d5d16bb0, nonce 13, selector 0x2f865568: as the ledger says
+        gas limit 549192 (used 414865), max fee per gas 172: as the ledger says
+        the allow-list entry trove_liquidate covers this target and function
+        ledger amounts musd 0, btc 94461024 = the calldata and value on chain
+        the receipt carries TroveLiquidated for the borrower and the Liquidation totals
+        trove of 0x4799e9fB361Fb6a85473bB08dA00A4012E02Cf08: active at block 16485145, closedByLiquidation at 16485146
+        the trove was at 107.39% at block 16485145, under the 110% minimum (BTC price 77483.48)
+        wallet MUSD +200; the gas compensation in the event is 200
+        wallet BTC +0.000138623510762033: the 0.000138623571332323 collateral compensation minus the gas it paid
+        the pool absorbed it: deposits 86224464.117764111279105888 -> 86222463.837173247816627891 MUSD, BTC held 176.336610670446524085 -> 176.364196761141656386
+        sp_status equals the direct StabilityPool reads at block 16485146 (deposit 10000000000000000000, compounded 9999768014726292583, BTC gain 3199334550, pool total 86222463837173247816627891, pool BTC 176364196761141656386 wei)
+PASS  x402_plan_top_up     nonce 265  0x693383537b0b2d9f76d07626db79fce23c19a9224575a80e81433d3694a5624d
+        receipt status success at block 16485971 (2026-10-31T13:39:56.000Z); the ledger says success
+        sent by 0x7b384430907f15d3b658a2393fc98ca1a9d6cefa to 0x402085c248eea27d92e8b30b2c58ed07f9e20001, nonce 265, selector 0xfa340378, block 16485971: as the ledger says
+        the sender 0x7b384430907f15d3b658a2393fc98ca1a9d6cefa is not the paying wallet 0xea2D4b92DDd760959BB1D8119430640885851A91: the facilitator paid the gas
+        gas limit 250000 (used 125000), max fee per gas 2000000: as the ledger says
+        the receipt holds 1 MUSD Transfer log(s), 1 of them 0.005 MUSD from 0xea2D4b92DDd760959BB1D8119430640885851A91 to 0xea2D4b92DDd760959BB1D8119430640885851A91 (the wallet itself, so the net cost is zero)
+        e-paid-plan-top-up.json holds the answer bought by this transaction (planned at block 16485969, settled at block 16485971)
+        asking the top-up planner again at block 16485969 gives the saved answer (22 fields, gas left out)
+PASS  ve_claim_rebase      nonce 14  0xebd0e10d3206301284ecf7340df28184a8b2b64c62f1dd0b85fa6b21568fa8b2
+        receipt status success at block 16578178 (2026-11-05T00:14:59.000Z); the ledger says success
+        sent by 0xea2d4b92ddd760959bb1d8119430640885851a91 to 0x9050218f89f0b5b17df4a30ba4fc97c72e307442, nonce 14, selector 0x379607f5: as the ledger says
+        gas limit 826588 (used 665594), max fee per gas 172: as the ledger says
+        the allow-list entry ve_claim_rebase covers this target and function
+        ledger amounts musd 0, btc 142173136 = the calldata and value on chain
+        RewardsDistributor.claimable(1729): 0.000000071972908599 BTC before block 16578178, 0 at it
+        veNFT 1729 lock 0.004 -> 0.004000071972908599 BTC: up by the rebase claimed
+PASS  ve_claim_rewards     nonce 15  0x904762d69d7b4d2ea00d65d98e7c1c16145f8be16e68167142875bb2316dc32e
+        receipt status success at block 16578183 (2026-11-05T00:15:16.000Z); the ledger says success
+        sent by 0xea2d4b92ddd760959bb1d8119430640885851a91 to 0x263f1fd5fb7f866881e1b6cd7d5d6c40fd985f0d, nonce 15, selector 0xe494ab8b: as the ledger says
+        gas limit 153453 (used 120311), max fee per gas 172: as the ledger says
+        the allow-list entry ve_claim_rewards covers this target and function
+        ledger amounts musd 0, btc 26393916 = the calldata and value on chain
+        0x613F6386A6549d29a1488F5246C58cE54B128ED4 earned(0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503, 1729): 13.339052519580378833 before block 16578183, 0 at it; 13.339052519580378833 sent to the wallet
+PASS  trove_repay          nonce 16  0x57c61107c7b9c08a1a2566506b05d506231219c918c4e60b4a23d1ebae01fc85
+        receipt status success at block 16578195 (2026-11-05T00:16:07.000Z); the ledger says success
+        sent by 0xea2d4b92ddd760959bb1d8119430640885851a91 to 0xcdf7028ceab81fa0c6971208e83fa7872994bee5, nonce 16, selector 0xdc283bb3: as the ledger says
+        gas limit 444080 (used 330844), max fee per gas 172: as the ledger says
+        the allow-list entry trove_repay covers this target and function
+        ledger amounts musd 13339052519580378833, btc 76381760 = the calldata and value on chain
+        the trove is active before and at the block, collateral unchanged
+        debt 2092.15952429055556183 -> 2078.820474422562124548 MUSD: down by the 13.339052519580378833 repaid, within 0.001 of interest
+        wallet MUSD -13.339052519580378833; repayMUSD asked for 13.339052519580378833
+
+# The MezoLens deploy of deployments/testnet.json
+PASS  MezoLens deploy      0x5342268ad642bbc386da866a7626f4d7708f4a0f7cff0a608bb5d448b132f3cb
+        receipt status success at block 16482080; the record says 16482080
+        0xea2d4b92ddd760959bb1d8119430640885851a91 created 0x659203438789ce052a9148ef5a807508ab5ee40c; the record says 0xea2D4b92DDd760959BB1D8119430640885851A91 created 0x659203438789Ce052a9148Ef5A807508ab5eE40c
+        the contract has 10650 bytes of code; the record says 10650
+        the lens reads veBTC 0x38E35d92E6Bfc6787272A62345856B13eA12130a: the LIVE system (0x38E35d92E6Bfc6787272A62345856B13eA12130a), not the old one
+
+# 64-hex strings in evidence/w2/*.txt
+        14 distinct: 14 are ledger or deploy transactions (re-read above), 0 are ABI words, 0 are other and are not fetched
+
+result: 14 PASS, 0 FAIL, 0 SKIP

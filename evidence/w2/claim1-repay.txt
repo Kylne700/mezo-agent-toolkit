@@ -1,0 +1,75 @@
+--- trove_repay {"amountMusd":"13.339052519580378833"}, tool answer:
+{
+ "sent": true,
+ "hash": "0x57c61107c7b9c08a1a2566506b05d506231219c918c4e60b4a23d1ebae01fc85",
+ "status": "success",
+ "explorer": "https://explorer.test.mezo.org/tx/0x57c61107c7b9c08a1a2566506b05d506231219c918c4e60b4a23d1ebae01fc85",
+ "blockNumber": "16578195",
+ "gasUsed": "330844",
+ "planned": {
+  "action": "repay",
+  "planBlock": 16578193,
+  "icrBefore": "174.59",
+  "icrAfter": "175.71",
+  "hints": {
+   "upper": "0x3Db2f85e7A204aB666229E637A2B9eA92e566F49",
+   "lower": "0xd74f60bb70d2A8B412fF12d8ef0ffdaAe81B2B49",
+   "nicr": "2179120354955147",
+   "approxHint": "0x3Db2f85e7A204aB666229E637A2B9eA92e566F49"
+  },
+  "redemptionPosition": {
+   "musdAhead": "426452114.671",
+   "trovesAhead": 224,
+   "skippedBelowMcr": 0,
+   "walkComplete": true,
+   "redemptionsOpen": true,
+   "basis": "A redemption takes the lowest-ratio trove first and walks toward the highest, skipping troves under the minimum ratio; each trove offers its debt (principal + interest) minus the 200 MUSD gas reserve. musdAhead adds that up for the redeemable troves the sorted list puts before this trove, read with the MezoLens redemption walk at this block; a redemption has to be larger than it to reach this trove. Counted for the spot after this change (between 0x3Db2f85e7A204aB666229E637A2B9eA92e566F49 and 0xd74f60bb70d2A8B412fF12d8ef0ffdaAe81B2B49; the trove's own old debt is taken out)."
+  }
+ },
+ "troveAfter": {
+  "borrower": "0xea2D4b92DDd760959BB1D8119430640885851A91",
+  "blockNumber": 16578195,
+  "blockTime": "2026-11-05T00:16:07.000Z",
+  "chainId": 31611,
+  "btcPriceUsd": "80641.11",
+  "tcr": "289.58",
+  "recoveryMode": false,
+  "status": "active",
+  "active": true,
+  "trove": {
+   "collateralBtc": "0.0453",
+   "principalMusd": "2078.820474",
+   "interestMusd": "0",
+   "debtMusd": "2078.820474",
+   "netDebtMusd": "1878.820474"
+  },
+  "icr": "175.72",
+  "mcrDistance": {
+   "marginPoints": "65.72",
+   "priceDropToLiquidationPercent": "37.4",
+   "liquidationPriceUsd": "50479.08"
+  },
+  "liquidatable": false,
+  "maxBorrowingCapacity": "3162.847942",
+  "redemptionPosition": {
+   "musdAhead": "426452115.615071",
+   "trovesAhead": 224,
+   "skippedBelowMcr": 0,
+   "walkComplete": true,
+   "redemptionsOpen": true,
+   "basis": "A redemption takes the lowest-ratio trove first and walks toward the highest, skipping troves under the minimum ratio; each trove offers its debt (principal + interest) minus the 200 MUSD gas reserve. musdAhead adds that up for the redeemable troves the sorted list puts before this trove, read with the MezoLens redemption walk at this block; a redemption has to be larger than it to reach this trove. This is the trove's current spot in the list."
+  },
+  "warnings": [],
+  "summary": "Trove 0xea2D4b92DDd760959BB1D8119430640885851A91 at block 16578195: 0.0453 BTC against 2078.820474 MUSD of debt, ratio 175.72% (65.72 points above the 110% minimum). The system ratio is 289.58%. 426452115.615071 MUSD of redeemable debt is ahead of it in the redemption queue.",
+  "raw": {
+   "price": "80641111190000000000000",
+   "collateral": "45300000000000000",
+   "principal": "2078820474422562124548",
+   "interest": "0",
+   "debt": "2078820474422562124548",
+   "icr": "1757266864480788051",
+   "tcr": "2895804317784365557",
+   "maxBorrowingCapacity": "3162847942227272727272"
+  }
+ }
+}

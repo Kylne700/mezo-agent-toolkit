@@ -1,0 +1,19 @@
+--- ve_claim_rewards {"tokenId":"1729"}, tool answer:
+{
+ "sent": true,
+ "hash": "0x904762d69d7b4d2ea00d65d98e7c1c16145f8be16e68167142875bb2316dc32e",
+ "status": "success",
+ "explorer": "https://explorer.test.mezo.org/tx/0x904762d69d7b4d2ea00d65d98e7c1c16145f8be16e68167142875bb2316dc32e",
+ "blockNumber": "16578183",
+ "gasUsed": "120311",
+ "tokenId": "1729",
+ "expected": [
+  {
+   "kind": "fee",
+   "pool": "0x6f461c68B2c5492C0F5CCEc5a264d692aA7A8e16",
+   "token": "0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503",
+   "raw": "13339052519580378833"
+  }
+ ],
+ "stillClaimable": 0
+}

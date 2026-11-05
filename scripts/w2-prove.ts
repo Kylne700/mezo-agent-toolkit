@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url'
 import { isDeepStrictEqual } from 'node:util'
 import { decodeFunctionData, isAddressEqual, parseAbi, parseEventLogs, zeroAddress, type Abi, type Address, type Hex } from 'viem'
 import deployment from '../deployments/testnet.json' with { type: 'json' }
-import { borrowerOperationsAbi, erc20Abi, poolsVoterAbi, priceFeedAbi, stabilityPoolAbi, troveManagerAbi, veBtcAbi } from '../src/abis.ts'
+import { borrowerOperationsAbi, erc20Abi, poolsVoterAbi, priceFeedAbi, rewardAbi, rewardsDistributorAbi, stabilityPoolAbi, troveManagerAbi, veBtcAbi } from '../src/abis.ts'
 import { publicClient } from '../src/clients.ts'
 import { ADDRESSES, CHAIN_ID, RPC_URL } from '../src/config.ts'
 import { TROVE_STATUS, createLens, fixed, percent, withRetry } from '../src/lens.ts'
@@ -29,7 +29,7 @@ interface Ctx { line: Line; tx: Tx; rc: Receipt; block: bigint; ts: bigint; me: 
 const pub = publicClient()
 const r = createReport()
 const dir = fileURLToPath(new URL('../evidence/w2/', import.meta.url))
-const { stabilityPool: pool, musd, btc, veBTC, poolsVoter, troveManager, priceFeed } = ADDRESSES
+const { stabilityPool: pool, musd, btc, veBTC, poolsVoter, rewardsDistributor, troveManager, priceFeed } = ADDRESSES
 const transferAbi = parseAbi(['event Transfer(address indexed from, address indexed to, uint256 value)'])
 const lensAbi = parseAbi(['function veBTC() view returns (address)'])
 // 0.001 MUSD: the interest a trove accrues between two blocks (about 4 s) and a liquidation loss in the same block are far smaller than this.
@@ -108,6 +108,22 @@ const legs: Record<string, (c: Ctx) => Promise<void>> = {
       const v = await rd<bigint>(poolsVoter, poolsVoterAbi, 'votes', [id, pool], c.block)
       must(c, v > 0n, `votes(${id}, ${pool}) is ${v} at block ${c.block} (weight asked ${weights[i]})`)
     }
+  },
+  async ve_claim_rebase(c) {
+    const [id] = argsOf(rewardsDistributorAbi, c)
+    const [owed, left, l0, l1] = await Promise.all([rd<bigint>(rewardsDistributor, rewardsDistributorAbi, 'claimable', [id], c.block - 1n), rd<bigint>(rewardsDistributor, rewardsDistributorAbi, 'claimable', [id], c.block), rd<{ amount: bigint }>(veBTC, veBtcAbi, 'locked', [id], c.block - 1n), rd<{ amount: bigint }>(veBTC, veBtcAbi, 'locked', [id], c.block)])
+    must(c, owed > 0n && left === 0n, `RewardsDistributor.claimable(${id}): ${f(owed)} BTC before block ${c.block}, ${f(left)} at it`)
+    must(c, l1.amount - l0.amount === owed, `veNFT ${id} lock ${f(l0.amount)} -> ${f(l1.amount)} BTC: up by the rebase claimed`)
+  },
+  async ve_claim_rewards(c) {
+    const [contracts, tokens, id] = argsOf(poolsVoterAbi, c)
+    const logs = parseEventLogs({ abi: transferAbi, eventName: 'Transfer', logs: c.rc.logs })
+    for (const [i, reward] of (contracts as Address[]).entries())
+      for (const token of tokens[i] as Address[]) {
+        const [owed, left] = await Promise.all([rd<bigint>(reward, rewardAbi, 'earned', [token, id], c.block - 1n), rd<bigint>(reward, rewardAbi, 'earned', [token, id], c.block)])
+        const paid = logs.filter((l) => same(l.address, token) && same(l.args.from, reward) && same(l.args.to, c.me)).reduce((s, l) => s + l.args.value, 0n)
+        must(c, owed > 0n && left === 0n && paid === owed, `${reward} earned(${token}, ${id}): ${f(owed)} before block ${c.block}, ${f(left)} at it; ${f(paid)} sent to the wallet`)
+      }
   },
   async trove_open(c) {
     const [debt] = argsOf(borrowerOperationsAbi, c)
