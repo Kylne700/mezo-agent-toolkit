@@ -8,7 +8,7 @@ Built for the Mezo Buildathon on Akindo, Track 2: Access and Distribution. Wave 
 
 ## What changed since Wave 1
 
-Baseline: the last Wave 1 commit, `86526cb` (2026-10-26). Since then: [41 commits, 130 files](https://github.com/Kylne700/mezo-agent-toolkit/compare/86526cb...main).
+Baseline: the last Wave 1 commit, `86526cb` (2026-10-26). Since then: [42 commits, 130 files](https://github.com/Kylne700/mezo-agent-toolkit/compare/86526cb...main).
 
 | | Wave 1 | Now |
 |---|---|---|
@@ -52,7 +52,7 @@ For other MCP clients, add this server entry to the client's configuration; sett
 
 [![Watch the demo video (1:33): Mezo Agent Toolkit](docs/video-thumbnail.png)](https://youtu.be/rVGGU6BSJxw)
 
-Built by Kylne700 with AI coding agents (Claude Code): a lead session plans, reviews and checks; sub-agents write the code.
+Built with Claude Code (AI) by Kylne700.
 
 Three parts, all on **Mezo testnet (chain 31611)**:
 
