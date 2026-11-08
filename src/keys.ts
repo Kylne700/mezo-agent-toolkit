@@ -1,6 +1,6 @@
 // Loads a throwaway testnet key from a file path, inside code only. The key is never printed or logged,
 // and every error message here is generic on purpose (a parser error could echo the input).
-import { readFileSync } from 'node:fs'
+import { readFileSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { privateKeyToAccount } from 'viem/accounts'
 import type { Hex } from 'viem'
@@ -15,6 +15,12 @@ export function readKeyFile(path: string): Hex {
   try { raw = readFileSync(path, 'utf8').trim() } catch { throw new Error('cannot read the key file (set MEZO_KEY_FILE to a file that holds a 0x private key)') }
   const hex = (raw.startsWith('0x') ? raw : `0x${raw}`)
   if (!/^0x[0-9a-fA-F]{64}$/.test(hex)) throw new Error('the key file does not hold a 32-byte hex private key')
+  // Warn, do not refuse: the key still loads. stderr only (stdout carries the MCP messages), and never the path.
+  try {
+    if (process.platform !== 'win32' && (statSync(path).mode & 0o077) !== 0) console.warn('warning: other accounts on this machine can read or change the key file; run chmod 600 on it')
+  } catch {
+    // The file was just read; a failed stat only skips the warning.
+  }
   return hex as Hex
 }
 
