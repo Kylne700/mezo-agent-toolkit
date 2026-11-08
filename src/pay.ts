@@ -233,15 +233,17 @@ function whyUnsettled(res: Response): { reason: string; detail: string | null } 
   return res.ok ? { reason: 'no_settlement_receipt', detail: 'the server answered but sent no settlement receipt' } : { reason: `http_${res.status}`, detail: null }
 }
 
-/** http or https only, no credentials in the URL, and the host must be on the allow list when there is one. */
+/** https (plain http only to this machine), no credentials in the URL, and the host must be on the allow list when there is one. */
 export function checkUrl(raw: string, allowedHosts: string[]): string {
   let u: URL
   try {
     u = new URL(raw)
   } catch {
-    throw new Error('url must be a full http:// or https:// address')
+    throw new Error('url must be a full https:// address')
   }
-  if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('url must start with http:// or https://')
+  // Over plain http anyone on the network path could answer with their own 402 (who is paid) and their own answer.
+  const local = ['127.0.0.1', 'localhost', '[::1]'].includes(u.hostname)
+  if (u.protocol !== 'https:' && !(u.protocol === 'http:' && local)) throw new Error('url must start with https:// (http:// only for 127.0.0.1 or localhost)')
   if (u.username || u.password) throw new Error('url must not contain a user name or password')
   if (allowedHosts.length > 0 && !allowedHosts.includes(u.hostname) && !allowedHosts.includes(u.host)) throw new Error(`host ${u.host} is not on the allow list (MEZO_PAY_ALLOWED_HOSTS)`)
   return u.toString()
