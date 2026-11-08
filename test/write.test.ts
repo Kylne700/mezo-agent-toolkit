@@ -1,12 +1,12 @@
 // The write path against a mocked RPC: every refusal must stop before eth_sendRawTransaction (and those before the
 // simulation before eth_call too); the happy path must sign exactly what it simulated. No network, no real transaction:
 // the key is a throwaway generated here.
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { keccak256, parseTransaction, recoverTransactionAddress, toHex, type Hex } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it, vi } from 'vitest'
 import { ADDRESSES } from '../src/config.ts'
 import { DEFAULT_MAX_GAS } from '../src/policy.ts'
 import { createWriter, type WriteResult } from '../src/write.ts'
@@ -240,6 +240,61 @@ describe('the happy path (mocked RPC, no real transaction)', () => {
     expect(refused(results[2])).toMatch(/per-day cap of 2 MUSD/)
     expect(rpc.raws().map((raw) => parseTransaction(raw).nonce)).toEqual([7, 8])
     expect(lines().map((l: { nonce: number }) => l.nonce)).toEqual([7, 8])
+  })
+})
+
+// Two MCP sessions are two processes with their own queues; the lock next to the shared receipts file lets one of them write at a time.
+describe('one writer at a time across processes', () => {
+  it('a second writer on the same receipts file is refused while a send is in flight, then sees its line', async () => {
+    let release!: () => void
+    const held = new Promise<void>((r) => (release = r))
+    const slow = mockRpc({
+      eth_sendRawTransaction: async ([raw]) => {
+        await held
+        return keccak256(raw)
+      },
+    })
+    const a = setup({ MEZO_WRITE_MAX_MUSD_PER_DAY: '1' }, slow)
+    const other = mockRpc()
+    const b = createWriter({ env: { MEZO_WRITE_ENABLE: 'testnet', MEZO_KEY_FILE: keyFile, MEZO_WRITE_RECEIPTS_FILE: a.receipts, ...caps, MEZO_WRITE_MAX_MUSD_PER_DAY: '1' }, client: other.client, allow, now: () => NOW, receiptTimeoutMs: 200 })
+    const first = a.w.send(pay('0.6'))
+    await vi.waitFor(() => expect(slow.methods()).toContain('eth_sendRawTransaction'))
+    expect(refused(await b.send(pay('0.6')))).toMatch(/another write is running/)
+    expect(other.calls).toEqual([])
+    release()
+    expect(await first).toMatchObject({ sent: true, status: 'success' })
+    expect(refused(await b.send(pay('0.6')))).toMatch(/per-day cap of 1 MUSD \(0.4 MUSD left today\)/)
+    expect(other.methods()).not.toContain('eth_sendRawTransaction')
+    expect(a.lines()).toHaveLength(1)
+  })
+
+  it('a lock left behind keeps writes off before any RPC call, until the operator deletes it', async () => {
+    const { w, rpc, receipts, lines } = setup()
+    writeFileSync(`${receipts}.lock`, '')
+    const r = refused(await w.send(pay('0.1')))
+    expect(r).toMatch(/another write is running, or one stopped/)
+    expect(r).not.toContain(receipts)
+    expect(rpc.calls).toEqual([])
+    rmSync(`${receipts}.lock`)
+    expect(await w.send(pay('0.1'))).toMatchObject({ sent: true, status: 'success' })
+    expect(existsSync(`${receipts}.lock`)).toBe(false)
+    expect(lines()).toHaveLength(1)
+  })
+
+  it('a sent tx whose receipt line cannot be written keeps the lock, so no process writes until the operator checks', async () => {
+    const at: { receipts?: string } = {}
+    // The receipts path turns into a folder during the send, so the line cannot be appended.
+    const rpc = mockRpc({
+      eth_sendRawTransaction: ([raw]) => {
+        mkdirSync(at.receipts!)
+        return keccak256(raw)
+      },
+    })
+    const s = setup({}, rpc)
+    at.receipts = s.receipts
+    expect(await s.w.send(pay('0.1'))).toMatchObject({ sent: true, note: expect.stringMatching(/could not be written/) })
+    expect(existsSync(`${s.receipts}.lock`)).toBe(true)
+    expect(refused(await s.w.send(pay('0.1')))).toMatch(/another write is running, or one stopped/)
   })
 })
 
