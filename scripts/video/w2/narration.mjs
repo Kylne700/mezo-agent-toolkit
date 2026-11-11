@@ -26,7 +26,7 @@ export function script(f) {
       ['s05', 'This is the live tool list from the server.'],
       ['s06', `${f.tools.reads.length} tools are free and only look things up.`, 0.6],
       ['s07', `${f.tools.writes.length} more tools can send transactions, and they exist only when the operator switches them on.`, 0.6],
-      ['s09', 'Any send is refused when the switch is off.', 1],
+      ['s08', 'Writes fail while the switch is off.', 1],
     ] },
     { id: 'b3', sentences: [
       ['s10', 'A separate review of the code found one high and two medium problems, and all three are fixed.'],
@@ -53,7 +53,7 @@ export function script(f) {
   // the screen that is up from the start of the named sentence until the next segment starts
   const segments = [
     { screen: 'claim', from: 's01' }, { screen: 'repay', from: 's02' }, { screen: 'debt', from: 's03' },
-    { screen: 'tools', variant: 'reads', from: 's05' }, { screen: 'tools', variant: 'writes', from: 's07' }, { screen: 'refused', from: 's09' },
+    { screen: 'tools', variant: 'reads', from: 's05' }, { screen: 'tools', variant: 'writes', from: 's07' }, { screen: 'refused', from: 's08' },
     { screen: 'fixes', variant: 'none', from: 's10' }, { screen: 'fixes', variant: 'R1', from: 's11' }, { screen: 'fixes', variant: 'R2', from: 's12' },
     { screen: 'fixes', variant: 'R3', from: 's13' }, { screen: 'fixes', variant: 'all', from: 's14' },
     { screen: 'payments', from: 's15' }, { screen: 'notdone', from: 's17' }, { screen: 'end', from: 's20' },

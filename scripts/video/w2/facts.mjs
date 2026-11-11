@@ -92,7 +92,7 @@ export async function gather() {
   // 5. the "Not done" list of WAVE2.md (the bold lead of each bullet); the line marked for the next editor is not part of this video
   const w2 = lines('docs/WAVE2.md')
   const nd = w2.findIndex((l) => l.trim() === '## Not done')
-  const notDone = w2.slice(nd + 1).filter((l) => l.startsWith('- **') && !l.includes('<!-- D2 -->')).map((l) => need(l.match(/^- \*\*(.+?)\*\*/), 'bullet')[1].replace(/`/g, ''))
+  const notDone = w2.slice(nd + 1).filter((l) => l.startsWith('- **')).map((l) => need(l.match(/^- \*\*(.+?)\*\*/), 'bullet')[1].replace(/`/g, ''))
   if (notDone.length < 8) throw new Error(`facts: only ${notDone.length} Not done bullets`)
 
   // 6. end card

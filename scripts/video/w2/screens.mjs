@@ -1,6 +1,6 @@
 // The pictures of the Wave 2 video. Slides: HTML drawn from facts.json, rendered to PNG with headless Chromium. Live pages: the two explorer
 // transactions of Proof 1, filmed with Playwright recordVideo (headless, no display, free reads). Usage: node screens.mjs slides|live
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { FONTS, OUT, RAW, STAGE_H, W, browser, run } from './common.mjs'
@@ -54,7 +54,8 @@ const SLIDE = {
       `<div class=blue>tools/list -> ${t.reads.length + 1} tools, no write tool among them</div>` +
       `<div style="margin-top:14px">tools/call ${esc(t.call.name)} ${esc(args)}</div>` +
       `<div class=bad style="margin-top:6px">${esc(t.refusal.text)}</div></div>` +
-      `<div style="margin-top:22px;color:#8b98a5;font-size:21px">Nothing was sent and no key was loaded. With ${esc(t.writeEnv)} and no wallet, the ${t.writes.length} write tools are listed and refuse.</div>`,
+      `<div style="margin-top:22px;color:#8b98a5;font-size:21px">Nothing was sent and no key was loaded. With ${esc(t.writeEnv)} and no wallet, the ${t.writes.length} write tools are listed.</div>` +
+      `<div style="margin-top:14px;color:#8b98a5;font-size:21px">${esc(t.paid)} is a separate tool: it pays only when a wallet key file is set, within the operator limits.</div>`,
       'scripts/video/w2/facts.mjs (the session), src/mcp-env.ts')
   },
   fixes: (f, v) => {
@@ -96,6 +97,7 @@ export async function slides(f) {
       if (over[0] || over[1]) throw new Error(`slide ${k} does not fit ${W}x${STAGE_H} (height overflow ${over[0]}, width overflow ${over[1]})`)
       out[k] = join(SLIDES, `${k}.png`)
       await page.screenshot({ path: out[k] })
+      rmSync(file) // the html names this machine's font paths; only the png is kept
     }
   } finally { await b.close() }
   return out
