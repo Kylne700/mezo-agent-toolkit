@@ -2,7 +2,7 @@
 
 **What this proves: the mechanics, on testnet. No real users or mainnet collateral claimed.**
 
-Mezo testnet only (chain 31611), written on 2026-11-05 after the first claim cycle. Testnet fees are not a yield forecast, and testnet BTC and MUSD have no market value. Every number below is in a file of this repo or in a transaction linked from [EVIDENCE.md](../EVIDENCE.md); the one exception is what [The ask](#the-ask) quotes from the judge's review (its posting date and the payment count it gives), which is on our Akindo product page and not in this repo. The gas and payment counts come from [`scripts/w2-economics.ts`](../scripts/w2-economics.ts), which only reads the chain; its saved output is [`evidence/w2/b-economics.txt`](../evidence/w2/b-economics.txt) (head block 16578702). The second claim cycle has not happened yet: [Nov 12 cycle: pending](#nov-12-cycle-pending).
+Mezo testnet only (chain 31611), written on 2026-11-05 after the first claim cycle. Testnet fees are not a yield forecast, and testnet BTC and MUSD have no market value. Every number below is in a file of this repo or in a transaction linked from [EVIDENCE.md](../EVIDENCE.md); the one exception is what [The ask](#the-ask) quotes from the judge's review (its posting date and the payment count it gives), which is on our Akindo product page and not in this repo. The gas and payment counts come from [`scripts/w2-economics.ts`](../scripts/w2-economics.ts), which only reads the chain; its saved output is [`evidence/w2/b-economics.txt`](../evidence/w2/b-economics.txt) (head block 16578702). The second claim cycle has not happened yet: [Nov 12 cycle: pending](#nov-12-cycle-pending). <!-- D2 -->
 
 ## The ask
 
@@ -25,17 +25,17 @@ Gas is read from each receipt as `gasUsed x effectiveGasPrice`. The ledger's `bt
 
 ### One claim cycle
 
-| Item | Cycle 1, claimed 2026-11-05 | Nov 12 cycle: pending | Source (cycle 1) |
+| Item | Cycle 1, claimed 2026-11-05 | Nov 12 cycle: pending <!-- D2 --> | Source (cycle 1) |
 |---|---|---|---|
-| Transactions | `ve_claim_rebase`, `ve_claim_rewards`, `trove_repay` | pending | [EVIDENCE.md](../EVIDENCE.md) |
-| BTC gas spent | 163045354 wei = 0.000000000163045354 BTC (1116749 gas used) | pending | [b-economics.txt L30](../evidence/w2/b-economics.txt#L30) |
-| That gas in USD (EST) | 0.000013148158520926 USD. EST, basis: the protocol's PriceFeed at the repay block, 80641.11119 USD per BTC | pending | [L32](../evidence/w2/b-economics.txt#L32) |
-| MUSD claimed, liquid | 13.339052519580378833 MUSD (fees of pool 0) | pending | [L31](../evidence/w2/b-economics.txt#L31), [claim1-fees.txt L15](../evidence/w2/claim1-fees.txt#L15), [w2:prove L111](../evidence/w2/claim1-w2-prove.txt#L111) |
-| Rebase claimed, added to the lock (not liquid) | 0.000000071972908599 BTC | pending | [claim1-rebase.txt L10](../evidence/w2/claim1-rebase.txt#L10), [w2:prove L103-L104](../evidence/w2/claim1-w2-prove.txt#L103-L104) |
-| What we did with the MUSD | repaid the trove with exactly 13.339052519580378833 MUSD | pending | [b-economics.txt L29](../evidence/w2/b-economics.txt#L29), [w2:prove L120](../evidence/w2/claim1-w2-prove.txt#L120) |
-| Trove debt, before -> after the repay | 2092.15952429055556183 -> 2078.820474422562124548 MUSD | pending | [w2:prove L119](../evidence/w2/claim1-w2-prove.txt#L119) |
-| Trove ratio, before -> after the repay | 174.59% -> 175.71% in the plan (block 16578193); 175.72% when read after; 174.58% when read before the claims (block 16578173, a few blocks earlier) | pending | [claim1-repay.txt L11-L13](../evidence/w2/claim1-repay.txt#L11-L13), [L46](../evidence/w2/claim1-repay.txt#L46), [claim1-before.txt L366](../evidence/w2/claim1-before.txt#L366), [L381](../evidence/w2/claim1-before.txt#L381) |
-| Interest owed on the trove before the claim | 0.259421 MUSD on a principal of 2091.900045 MUSD (block 16578173) | pending | [claim1-before.txt L366](../evidence/w2/claim1-before.txt#L366), [L376-L377](../evidence/w2/claim1-before.txt#L376-L377) |
+| Transactions | `ve_claim_rebase`, `ve_claim_rewards`, `trove_repay` | pending <!-- D2 --> | [EVIDENCE.md](../EVIDENCE.md) |
+| BTC gas spent | 163045354 wei = 0.000000000163045354 BTC (1116749 gas used) | pending <!-- D2 --> | [b-economics.txt L30](../evidence/w2/b-economics.txt#L30) |
+| That gas in USD (EST) | 0.000013148158520926 USD. EST, basis: the protocol's PriceFeed at the repay block, 80641.11119 USD per BTC | pending <!-- D2 --> | [L32](../evidence/w2/b-economics.txt#L32) |
+| MUSD claimed, liquid | 13.339052519580378833 MUSD (fees of pool 0) | pending <!-- D2 --> | [L31](../evidence/w2/b-economics.txt#L31), [claim1-fees.txt L15](../evidence/w2/claim1-fees.txt#L15), [w2:prove L111](../evidence/w2/claim1-w2-prove.txt#L111) |
+| Rebase claimed, added to the lock (not liquid) | 0.000000071972908599 BTC | pending <!-- D2 --> | [claim1-rebase.txt L10](../evidence/w2/claim1-rebase.txt#L10), [w2:prove L103-L104](../evidence/w2/claim1-w2-prove.txt#L103-L104) |
+| What we did with the MUSD | repaid the trove with exactly 13.339052519580378833 MUSD | pending <!-- D2 --> | [b-economics.txt L29](../evidence/w2/b-economics.txt#L29), [w2:prove L120](../evidence/w2/claim1-w2-prove.txt#L120) |
+| Trove debt, before -> after the repay | 2092.15952429055556183 -> 2078.820474422562124548 MUSD | pending <!-- D2 --> | [w2:prove L119](../evidence/w2/claim1-w2-prove.txt#L119) |
+| Trove ratio, before -> after the repay | 174.59% -> 175.71% in the plan (block 16578193); 175.72% when read after; 174.58% when read before the claims (block 16578173, a few blocks earlier) | pending <!-- D2 --> | [claim1-repay.txt L11-L13](../evidence/w2/claim1-repay.txt#L11-L13), [L46](../evidence/w2/claim1-repay.txt#L46), [claim1-before.txt L366](../evidence/w2/claim1-before.txt#L366), [L381](../evidence/w2/claim1-before.txt#L381) |
+| Interest owed on the trove before the claim | 0.259421 MUSD on a principal of 2091.900045 MUSD (block 16578173) | pending <!-- D2 --> | [claim1-before.txt L366](../evidence/w2/claim1-before.txt#L366), [L376-L377](../evidence/w2/claim1-before.txt#L376-L377) |
 
 Read it with care:
 
@@ -97,6 +97,8 @@ What the count covers: one payee (the `PAYEE_ADDRESS` of [wrangler.toml](../wran
 - Why the facilitator pays the gas, and for how long it will.
 
 ## Nov 12 cycle: pending
+
+<!-- D2: fill the second column of the cycle table after Proof 2. If Proof 2 is not run, replace the column and this section with: "Proof 2 was not run: <reason>." -->
 
 The second claim and repay can happen from Thursday 2026-11-12 00:00 UTC, when the current epoch ends. The second column of the cycle table is filled then, with the same script and the same checks. Nothing is guessed here.
 

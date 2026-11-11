@@ -14,6 +14,8 @@ Files of this proof: [claim1-before.txt](evidence/w2/claim1-before.txt) (state b
 
 ## Proof 2: Nov 12 cycle: pending
 
+<!-- D2: fill after Proof 2 (rows below and the table row at the end). If Proof 2 is not run, replace this section with: "Proof 2 was not run: <reason>." -->
+
 The next claim can happen from Thursday 2026-11-12 00:00 UTC, when the current epoch ends. Its rows will be added to the table below with the same check. No numbers are guessed here.
 
 ## The transactions
@@ -44,7 +46,7 @@ The rows follow the product loop: trove, Stability Pool, veBTC lock, vote, claim
 | `x402_plan_top_up` | [block 16485971](evidence/w2/claim1-w2-prove.txt#L90)<br>2026-10-31 13:39:56Z | One paid plan call. The buyer signed; the facilitator sent the transaction and paid the gas. The settlement holds one MUSD transfer of 0.005, wallet to wallet (net cost zero). The saved answer is what the planner gives again. | [0x69338353…624d](https://explorer.test.mezo.org/tx/0x693383537b0b2d9f76d07626db79fce23c19a9224575a80e81433d3694a5624d) | [L89](evidence/w2/claim1-w2-prove.txt#L89): PASS<br>[L92](evidence/w2/claim1-w2-prove.txt#L92): the sender 0x7b384430907f15d3b658a2393fc98ca1a9d6cefa is not the paying wallet 0xea2D4b92DDd760959BB1D8119430640885851A91: the facilitator paid the gas<br>[L94](evidence/w2/claim1-w2-prove.txt#L94): the receipt holds 1 MUSD Transfer log(s), 1 of them 0.005 MUSD from 0xea2D4b92DDd760959BB1D8119430640885851A91 to 0xea2D4b92DDd760959BB1D8119430640885851A91 (the wallet itself, so the net cost is zero)<br>[L96](evidence/w2/claim1-w2-prove.txt#L96): asking the top-up planner again at block 16485969 gives the saved answer (22 fields, gas left out) |
 | **8. The lens (deploy)** | | | | |
 | `MezoLens deploy` | [block 16482080](evidence/w2/claim1-w2-prove.txt#L124) | Deployed the read-only MezoLens contract (10650 bytes of code); it reads the LIVE veBTC, not the old one. | [0x5342268a…f3cb](https://explorer.test.mezo.org/tx/0x5342268ad642bbc386da866a7626f4d7708f4a0f7cff0a608bb5d448b132f3cb) | [L123](evidence/w2/claim1-w2-prove.txt#L123): PASS<br>[L124](evidence/w2/claim1-w2-prove.txt#L124): receipt status success at block 16482080; the record says 16482080<br>[L125](evidence/w2/claim1-w2-prove.txt#L125): 0xea2d4b92ddd760959bb1d8119430640885851a91 created 0x659203438789ce052a9148ef5a807508ab5ee40c; the record says 0xea2D4b92DDd760959BB1D8119430640885851A91 created 0x659203438789Ce052a9148Ef5A807508ab5eE40c<br>[L126](evidence/w2/claim1-w2-prove.txt#L126): the contract has 10650 bytes of code; the record says 10650<br>[L127](evidence/w2/claim1-w2-prove.txt#L127): the lens reads veBTC 0x38E35d92E6Bfc6787272A62345856B13eA12130a: the LIVE system (0x38E35d92E6Bfc6787272A62345856B13eA12130a), not the old one |
-| **Nov 12 cycle: pending** | | | | |
+| **Nov 12 cycle: pending** <!-- D2 --> | | | | |
 
 ## Re-run it yourself
 
