@@ -3,9 +3,9 @@
 //   -> policy (allow-list, risky flag, caps from the calldata and value) -> eth_call simulation -> gas estimate under the gas cap
 //   -> caps again with the worst-case gas fee -> kill file again -> sign locally for chain 31611 -> eth_sendRawTransaction
 //   -> receipt -> one JSON line in the receipts file, whatever the outcome after the send.
-// Sends run one at a time, so two calls cannot share a nonce or both fit under the same daily total.
+// Sends run one at a time, also across processes (a lock file next to the receipts file), so two calls cannot share a nonce or both fit under the same daily total.
 // The read-only MCP server does not import this file; writes stay off unless the operator turns them on.
-import { existsSync } from 'node:fs'
+import { closeSync, existsSync, mkdirSync, openSync, unlinkSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { isAddress, isHex, keccak256, type Address, type Hex, type PublicClient } from 'viem'
 import { CHAIN_ID } from './config.ts'
@@ -32,6 +32,8 @@ export interface WriterOptions {
 }
 
 const KILLED = 'the kill file exists, so writes are stopped (the operator deletes it to resume)'
+const LOCKED =
+  "another write is running, or one stopped before its receipt line was written (the write lock next to the receipts file exists): try again in a minute; if none is running, the operator compares the wallet's latest transaction with the receipts file, then deletes the lock"
 const short = (e: unknown) => (e as { shortMessage?: string }).shortMessage ?? 'unknown error'
 
 export function createWriter(o: WriterOptions) {
@@ -53,8 +55,11 @@ export function createWriter(o: WriterOptions) {
   // The kill path comes from the environment only (never the policy file); by default a STOP file next to the receipts.
   const killFile = env.MEZO_WRITE_KILL_FILE || join(dirname(receipts), 'STOP')
   const unrecorded = new Map<string, Amounts>() // per UTC day: sends whose receipt line could not be written still count
+  // Two MCP sessions are two processes on one receipts file. A lock that outlives its send (a killed process, or a line that could not be written)
+  // keeps every writer off until the operator checks the chain against the ledger, so that send cannot go uncounted.
+  const lockFile = `${receipts}.lock`
 
-  async function sendOne(req: WriteRequest): Promise<WriteResult> {
+  async function sendLocked(req: WriteRequest, lock: { keep: boolean }): Promise<WriteResult> {
     const refuse = (reason: string): WriteResult => ({ sent: false, reason })
     if (off || !account || !policy) return refuse(off ?? 'writes are off')
     const p = policy
@@ -149,9 +154,32 @@ export function createWriter(o: WriterOptions) {
     } catch {
       const x = unrecorded.get(day) ?? { musd: 0n, btc: 0n }
       unrecorded.set(day, { musd: x.musd + final.musd, btc: x.btc + final.btc })
-      note = `${note ? `${note}; ` : ''}the receipt line could not be written (this process still counts it)`
+      lock.keep = true
+      note = `${note ? `${note}; ` : ''}the receipt line could not be written (this process still counts it, and the write lock stays until the operator records it)`
     }
     return { sent: true, hash, status, ...(note ? { note } : {}) }
+  }
+
+  async function sendOne(req: WriteRequest): Promise<WriteResult> {
+    if (off || !account || !policy) return { sent: false, reason: off ?? 'writes are off' }
+    let fd: number
+    try {
+      mkdirSync(dirname(receipts), { recursive: true })
+      fd = openSync(lockFile, 'wx', 0o600)
+    } catch (e) {
+      return { sent: false, reason: (e as { code?: string }).code === 'EEXIST' ? LOCKED : 'cannot create the write lock next to the receipts file, so nothing was sent' }
+    }
+    const lock = { keep: false }
+    try {
+      return await sendLocked(req, lock)
+    } finally {
+      try {
+        closeSync(fd)
+        if (!lock.keep) unlinkSync(lockFile)
+      } catch {
+        // A lock that cannot be removed only keeps writes off; the result of this send must still come back.
+      }
+    }
   }
 
   let queue: Promise<unknown> = Promise.resolve()

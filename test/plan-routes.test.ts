@@ -24,7 +24,7 @@ type Json = any
 
 const ME = getAddress('0x3333333333333333333333333333333333333333')
 const PLAN_UNITS = '5000000000000000' // $0.005 as MUSD base units
-const HOST = 'http://plans.test'
+const HOST = 'https://plans.test'
 
 type Tweak = (x: SpWorld) => void
 const noop: Tweak = () => {}

@@ -394,7 +394,7 @@ export function createMcpServer({ lens, buyer, payOffReason, ve, trove, sp }: Mc
         'Paid Mezo reads of this toolkit: GET /v1/trove/{address}, /v1/redemption/{address}, /v1/ve/{address} and /v1/pool/quote?tokenIn=&tokenOut=&amountIn= on the server that runs `npm run serve`. ' +
         'Paid plans (unsigned calldata, nothing is sent): method POST with a JSON body to /plan/open, /plan/top-up, /plan/repay or /plan/sp-deposit on the Worker, for the plan price.',
       inputSchema: {
-        url: z.string().max(2000).describe('Full http:// or https:// address'),
+        url: z.string().max(2000).describe('Full https:// address (http:// only for 127.0.0.1 or localhost)'),
         method: z.enum(['GET', 'POST']).optional().describe('GET (default) or POST. POST sends the body and needs it; GET refuses one'),
         body: z.record(z.string(), z.unknown()).optional().describe('The JSON object to POST (for example {"address":"0x...","amountBtc":"0.001"}); only with method POST'),
       },

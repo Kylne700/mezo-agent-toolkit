@@ -1,10 +1,11 @@
 // The paying side: spend limits stop a payment before anything is signed, and the URL, body and redirect rules hold.
 import { describe, expect, it, vi } from 'vitest'
 import { PaymentRefused, checkUrl, createBuyer, readCapped } from '../src/pay.ts'
+import { DEFAULT_PAY_HOSTS } from '../src/mcp-env.ts'
 import { SpendGuard } from '../src/spend.ts'
 import { TROVE, musdRequirement, payWorld as world, rawSeller, receiptCrash, testAccount, zeroReader } from './helpers/x402.ts'
 
-const url = `http://app.test/v1/trove/${TROVE}`
+const url = `https://app.test/v1/trove/${TROVE}`
 
 describe('spend limits at the buyer', () => {
   it('refuse a price over the per-call limit before anything is signed or sent to the facilitator', async () => {
@@ -40,7 +41,7 @@ describe('spend limits at the buyer', () => {
 describe('what the buyer will call', () => {
   it('refuses a host that is not on the allow list without making any request', async () => {
     const { buyer, calls } = world({ allowedHosts: ['app.test'] })
-    await expect(buyer.fetchPaid('http://evil.test/v1/trove/x')).rejects.toThrow(/not on the allow list/)
+    await expect(buyer.fetchPaid('https://evil.test/v1/trove/x')).rejects.toThrow(/not on the allow list/)
     expect(calls).toEqual([])
     expect((await buyer.fetchPaid(url)).status).toBe(200)
   })
@@ -120,6 +121,13 @@ describe('checkUrl', () => {
     expect(checkUrl('http://127.0.0.1:8402/v1/x', ['127.0.0.1:8402'])).toBe('http://127.0.0.1:8402/v1/x')
     expect(() => checkUrl('http://127.0.0.1:8403/', ['127.0.0.1:8402'])).toThrow(/allow list/)
     expect(checkUrl('http://127.0.0.1:8403/', ['127.0.0.1'])).toBe('http://127.0.0.1:8403/')
+  })
+
+  it('refuses plain http except to this machine, where nobody on the network path can rewrite the 402', () => {
+    expect(() => checkUrl('http://mezo-agent-toolkit.kylne700.workers.dev/v1/pool/quote', DEFAULT_PAY_HOSTS)).toThrow(/https:\/\//)
+    expect(() => checkUrl('http://app.test/x', ['app.test'])).toThrow(/https:\/\//)
+    for (const ok of ['http://127.0.0.1:8402/v1/x', 'http://localhost:8402/v1/x']) expect(checkUrl(ok, DEFAULT_PAY_HOSTS)).toBe(ok)
+    expect(checkUrl('http://[::1]:8402/v1/x', ['[::1]:8402'])).toBe('http://[::1]:8402/v1/x')
   })
 })
 

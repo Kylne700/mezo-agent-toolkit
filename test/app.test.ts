@@ -68,7 +68,7 @@ describe('unpaid requests', () => {
 describe('paid requests', () => {
   it('get 200 with the lens data and a settlement, and cost exactly one verify and one settle', async () => {
     const { buyer, facilitator, get } = setup()
-    const r = await buyer.fetchPaid(`http://app.test/v1/trove/${TROVE}`)
+    const r = await buyer.fetchPaid(`https://app.test/v1/trove/${TROVE}`)
     expect(r.status).toBe(200)
     expect(r.paid).toBe(true)
     expect(r.unsettled).toBeNull()
@@ -83,14 +83,14 @@ describe('paid requests', () => {
 
   it('pass the query of the pool route through to the lens', async () => {
     const { buyer } = setup()
-    const r = await buyer.fetchPaid(`http://app.test${POOL}`)
+    const r = await buyer.fetchPaid(`https://app.test${POOL}`)
     expect(r.json).toMatchObject({ amountIn: '0.001' })
   })
 
   it('are not charged when the lens fails: 502 and no settlement', async () => {
     const lens = fakeLens({ troveHealth: async () => { throw new Error('rpc down') } })
     const { buyer, facilitator } = setup({ lens })
-    const r = await buyer.fetchPaid(`http://app.test/v1/trove/${TROVE}`)
+    const r = await buyer.fetchPaid(`https://app.test/v1/trove/${TROVE}`)
     expect(r.status).toBe(502)
     expect(r.paid).toBe(false)
     expect(facilitator.settles).toBe(0)
@@ -108,7 +108,7 @@ const theTransfer = (facilitator: FakeFacilitator, value = BigInt(PRICE_BASE_UNI
 describe('when the facilitator reports success', () => {
   it('withholds the answer when the chain does not show this payment', async () => {
     const { buyer } = setup({ facilitator: fakeFacilitator(), chain: fakeChain([]) })
-    const r = await buyer.fetchPaid(`http://app.test/v1/trove/${TROVE}`)
+    const r = await buyer.fetchPaid(`https://app.test/v1/trove/${TROVE}`)
     expect(r.status).toBe(402)
     expect(r.paid).toBe(false)
     expect(r.json).not.toHaveProperty('blockNumber')
@@ -117,7 +117,7 @@ describe('when the facilitator reports success', () => {
   it('serves it once the chain shows this payment, with the transaction found on chain', async () => {
     const facilitator = fakeFacilitator()
     const { buyer, get } = setup({ facilitator, chain: fakeChain([theTransfer(facilitator)]) })
-    const r = await buyer.fetchPaid(`http://app.test/v1/trove/${TROVE}`)
+    const r = await buyer.fetchPaid(`https://app.test/v1/trove/${TROVE}`)
     expect(r).toMatchObject({ status: 200, paid: true })
     expect(r.settlement?.transaction).toBe(txHash(0xabc))
     const status = (await (await get('/status')).json()) as { recoveredSettlements: number }
@@ -126,9 +126,9 @@ describe('when the facilitator reports success', () => {
 
   it('searches the chain once, not again after turning the success into a failure (the buyer stops waiting at 45 seconds)', async () => {
     const afterFailure = fakeChain([])
-    await setup({ facilitator: fakeFacilitator(receiptCrash), chain: afterFailure }).buyer.fetchPaid(`http://app.test/v1/trove/${TROVE}`)
+    await setup({ facilitator: fakeFacilitator(receiptCrash), chain: afterFailure }).buyer.fetchPaid(`https://app.test/v1/trove/${TROVE}`)
     const afterSuccess = fakeChain([])
-    await setup({ facilitator: fakeFacilitator(), chain: afterSuccess }).buyer.fetchPaid(`http://app.test/v1/trove/${TROVE}`)
+    await setup({ facilitator: fakeFacilitator(), chain: afterSuccess }).buyer.fetchPaid(`https://app.test/v1/trove/${TROVE}`)
     expect(afterSuccess.logCalls.length).toBe(afterFailure.logCalls.length)
   })
 })
@@ -139,7 +139,7 @@ describe('when the facilitator reports a failed settlement', () => {
     const facilitator = fakeFacilitator(receiptCrash)
     const chain = fakeChain([theTransfer(facilitator)])
     const { buyer, get } = setup({ facilitator, chain })
-    const r = await buyer.fetchPaid(`http://app.test/v1/trove/${TROVE}`)
+    const r = await buyer.fetchPaid(`https://app.test/v1/trove/${TROVE}`)
     expect(r.status).toBe(200)
     expect(r.paid).toBe(true)
     expect(r.settlement?.transaction).toBe(txHash(0xabc))
@@ -152,7 +152,7 @@ describe('when the facilitator reports a failed settlement', () => {
 
   it('stays at 402 when no transfer is on chain, and tells the buyer the settlement is unconfirmed', async () => {
     const { buyer } = setup({ facilitator: fakeFacilitator(receiptCrash), chain: fakeChain([]) })
-    const r = await buyer.fetchPaid(`http://app.test/v1/trove/${TROVE}`)
+    const r = await buyer.fetchPaid(`https://app.test/v1/trove/${TROVE}`)
     expect(r.status).toBe(402)
     expect(r.paid).toBe(false)
     expect(r.json).not.toHaveProperty('blockNumber') // the lens data is withheld
@@ -162,7 +162,7 @@ describe('when the facilitator reports a failed settlement', () => {
   it('does not accept an earlier payment of the same size (its transaction carries another signature)', async () => {
     const stale = { hash: txHash(0x111), value: BigInt(PRICE_BASE_UNITS), input: `0xfa340378${'ab'.repeat(65)}` }
     const { buyer } = setup({ facilitator: fakeFacilitator(receiptCrash), chain: fakeChain([stale]) })
-    const r = await buyer.fetchPaid(`http://app.test/v1/trove/${TROVE}`)
+    const r = await buyer.fetchPaid(`https://app.test/v1/trove/${TROVE}`)
     expect(r.status).toBe(402)
     expect(r.paid).toBe(false)
   })
@@ -170,7 +170,7 @@ describe('when the facilitator reports a failed settlement', () => {
   it('does not accept a transfer of the wrong size', async () => {
     const facilitator = fakeFacilitator(receiptCrash)
     const { buyer } = setup({ facilitator, chain: fakeChain([theTransfer(facilitator, 1n)]) })
-    expect((await buyer.fetchPaid(`http://app.test/v1/trove/${TROVE}`)).status).toBe(402)
+    expect((await buyer.fetchPaid(`https://app.test/v1/trove/${TROVE}`)).status).toBe(402)
   })
 
   it('lets one transaction vouch for one answer only', async () => {
@@ -178,9 +178,9 @@ describe('when the facilitator reports a failed settlement', () => {
     const { app } = setup({ facilitator, chain: fakeChain([theTransfer(facilitator)]) })
     const fetchImpl: typeof fetch = (input, init) => Promise.resolve(app.fetch(new Request(input as Request | string, init)))
     const buyer = createBuyer({ account: testAccount(), chainReader: zeroReader, guard: guard(), fetchImpl })
-    expect((await buyer.fetchPaid(`http://app.test/v1/trove/${TROVE}`)).status).toBe(200)
+    expect((await buyer.fetchPaid(`https://app.test/v1/trove/${TROVE}`)).status).toBe(200)
     // The chain still lists the same transfer, and the fake says its calldata carries the newest signature too: only the "one answer per transaction" rule stops it.
-    const second = await buyer.fetchPaid(`http://app.test/v1/ve/${TROVE}`)
+    const second = await buyer.fetchPaid(`https://app.test/v1/ve/${TROVE}`)
     expect(second.status).toBe(402)
   })
 
@@ -195,24 +195,24 @@ describe('when the facilitator reports a failed settlement', () => {
   it('finds the payment while the RPC answers null by hash for every mined transaction (seen live for minutes), by reading it by block and index', async () => {
     const facilitator = fakeFacilitator(receiptCrash)
     const { buyer } = setup({ facilitator, chain: fakeChain([theTransfer(facilitator)], { hashIndexDown: true }) })
-    expect(await buyer.fetchPaid(`http://app.test/v1/trove/${TROVE}`)).toMatchObject({ status: 200, paid: true })
+    expect(await buyer.fetchPaid(`https://app.test/v1/trove/${TROVE}`)).toMatchObject({ status: 200, paid: true })
   })
 
   it('keeps looking while the node does not show the mined payment yet (seen live: three looks were not enough)', async () => {
     const facilitator = fakeFacilitator(receiptCrash)
     const { buyer } = setup({ facilitator, chain: fakeChain([theTransfer(facilitator)], { blindLooks: 3 }) })
-    expect(await buyer.fetchPaid(`http://app.test/v1/trove/${TROVE}`)).toMatchObject({ status: 200, paid: true })
+    expect(await buyer.fetchPaid(`https://app.test/v1/trove/${TROVE}`)).toMatchObject({ status: 200, paid: true })
   })
 
   it('survives a chain that cannot be read: still 402, no crash', async () => {
     const { buyer } = setup({ facilitator: fakeFacilitator(receiptCrash), chain: fakeChain([], { failReads: true }) })
-    const r = await buyer.fetchPaid(`http://app.test/v1/trove/${TROVE}`)
+    const r = await buyer.fetchPaid(`https://app.test/v1/trove/${TROVE}`)
     expect(r.status).toBe(402)
     expect(r.unsettled?.reason).toBe('unexpected_error')
   })
 
   it('does not look at the chain when no chain reader is given', async () => {
     const { buyer } = setup({ facilitator: fakeFacilitator(receiptCrash) })
-    expect((await buyer.fetchPaid(`http://app.test/v1/trove/${TROVE}`)).status).toBe(402)
+    expect((await buyer.fetchPaid(`https://app.test/v1/trove/${TROVE}`)).status).toBe(402)
   })
 })

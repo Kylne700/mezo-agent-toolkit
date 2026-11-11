@@ -41,7 +41,7 @@ async function connect(o: McpOptions) {
 }
 const call = (client: Client, name: string, args: Record<string, unknown> = {}) => client.callTool({ name, arguments: args }) as Promise<ToolReply>
 
-const url = `http://app.test/v1/trove/${TROVE}`
+const url = `https://app.test/v1/trove/${TROVE}`
 
 describe('tools', () => {
   it('are exactly the five promised ones, and pay_and_fetch takes a url, an optional method and a JSON body, and no amount or limit', async () => {
@@ -158,7 +158,7 @@ describe('pay_and_fetch', () => {
     const w = payWorld({ allowedHosts: ['app.test'] })
     const client = await connect({ lens: fakeLens(), buyer: w.buyer })
     const at = '@' // spelled out so the privacy check does not read the test URL as an email address
-    for (const bad of ['ftp://app.test/x', 'not a url', 'http://evil.test/x', `http://user:pw${at}app.test/x`]) {
+    for (const bad of ['ftp://app.test/x', 'not a url', 'https://evil.test/x', `https://user:pw${at}app.test/x`, 'http://app.test/x']) {
       const r = await call(client, 'pay_and_fetch', { url: bad })
       expect(r.isError, bad).toBe(true)
       expect(r.structuredContent, bad).toMatchObject({ refused: false, spend: { payments: 0 } })
@@ -180,7 +180,7 @@ describe('pay_and_fetch', () => {
 })
 
 describe('pay_and_fetch with POST (the paid /plan routes)', () => {
-  const planUrl = 'http://app.test/plan/top-up'
+  const planUrl = 'https://app.test/plan/top-up'
   const body = { address: TROVE, amountBtc: '0.001' }
   const planned: unknown[] = []
   // The real app behind the paywall; only the planner is fake. It runs only for a payment that was verified.
@@ -282,7 +282,7 @@ describe('buyerFromEnv', () => {
 
   it('applies the host allow list', async () => {
     const r = buyerFromEnv({ MEZO_KEY_FILE: keyFile, MEZO_PAY_ALLOWED_HOSTS: ' a.test , b.test ' }, zeroReader)
-    await expect(r.buyer!.fetchPaid('http://evil.test/')).rejects.toThrow(/not on the allow list/)
+    await expect(r.buyer!.fetchPaid('https://evil.test/')).rejects.toThrow(/not on the allow list/)
   })
 
   it('allows only our own endpoint when the allow list is unset or blank, never any host', async () => {
