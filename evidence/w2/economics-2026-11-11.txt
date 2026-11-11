@@ -1,0 +1,46 @@
+Wave 2 economics: https://rpc.test.mezo.org, chain 31611, head block 16714465 (2026-11-11T13:32:12.000Z)
+PASS  eth_chainId is 31611
+
+# Gas of the 13 legs in evidence/w2/receipts.jsonl: gasUsed x effectiveGasPrice from each receipt
+leg                time (UTC)            block      gasUsed   wei/gas  fee (wei)     fee (BTC)               paid by
+ve_approve_btc     2026-10-31T09:59:55   16482800   25540     146      3728840       0.00000000000372884     our wallet
+ve_lock            2026-10-31T10:00:32   16482808   548254    146      80045084      0.000000000080045084    our wallet
+ve_vote            2026-10-31T10:01:35   16482823   521580    146      76150680      0.00000000007615068     our wallet
+trove_open         2026-10-31T11:31:03   16484113   578967    146      84529182      0.000000000084529182    our wallet
+trove_add_coll     2026-10-31T11:31:37   16484121   371741    146      54274186      0.000000000054274186    our wallet
+trove_repay        2026-10-31T11:32:12   16484130   349620    146      51044520      0.00000000005104452     our wallet
+sp_approve_musd    2026-10-31T12:41:40   16485131   46382     146      6771772       0.000000000006771772    our wallet
+sp_deposit         2026-10-31T12:41:54   16485134   132705    146      19374930      0.00000000001937493     our wallet
+trove_liquidate    2026-10-31T12:42:42   16485146   414865    146      60570290      0.00000000006057029     our wallet
+x402_plan_top_up   2026-10-31T13:39:53   16485971   125000    130      16250000      0.00000000001625        the facilitator (0x7b3844)
+ve_claim_rebase    2026-11-05T00:14:58   16578178   665594    146      97176724      0.000000000097176724    our wallet
+ve_claim_rewards   2026-11-05T00:15:21   16578183   120311    146      17565406      0.000000000017565406    our wallet
+trove_repay        2026-11-05T00:16:06   16578195   330844    146      48303224      0.000000000048303224    our wallet
+
+legs sent and paid by our wallet: 12, 599534838 wei = 0.000000000599534838 BTC
+legs paid by the facilitator: 1, 16250000 wei = 0.00000000001625 BTC
+
+# The first three runs: the same method must give the totals their own checks wrote down
+PASS  veBTC approve + lock + vote: 159924604 wei, expected 159924604
+PASS  trove open + add collateral + repay: 189847888 wei, expected 189847888
+PASS  pool approve + deposit + liquidate: 86716992 wei, expected 86716992
+
+# Claim -> repay cycle 1: ve_claim_rebase, ve_claim_rewards, trove_repay
+PASS  MUSD that the fee claim sent to the wallet (13.339052519580378833) equals the MUSD the repay paid (13.339052519580378833)
+gas of the cycle: 163045354 wei = 0.000000000163045354 BTC; gasUsed 1116749
+MUSD claimed: 13.339052519580378833
+PriceFeed at block 16578195: 80641.11119 USD per BTC; the cycle's gas = 0.000013148158520926 USD
+
+# MUSD transfers to the demo payee 0xa37a04189696C371f487ff8da414192D62f39A4f (PAYEE_ADDRESS of wrangler.toml), blocks 16200000 to 16714465
+50 transfers, 0.05 MUSD in all; first at block 16229227, last at block 16648290
+  50 transfers of 0.001 MUSD
+  from 0xea2D4b92DDd760959BB1D8119430640885851A91 (our wallet): 50 transfers, 0.05 MUSD
+  mined on 2026-10-18: 34 transfers (34 so far)
+  mined on 2026-10-19: 5 transfers (39 so far)
+  mined on 2026-10-24: 1 transfers (40 so far)
+  mined on 2026-10-27: 1 transfers (41 so far)
+  mined on 2026-11-04: 8 transfers (49 so far)
+  mined on 2026-11-08: 1 transfers (50 so far)
+PASS  every transfer to the demo payee came from our wallet: outside payers 0, outside transfers 0
+
+result: 0 FAIL
