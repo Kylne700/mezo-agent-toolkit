@@ -2,9 +2,10 @@
 //   env -u DISPLAY TZ=UTC node scripts/deck/build.mjs
 // TZ=UTC keeps a local offset out of the PDF's CreationDate. Every request that is not file:// is aborted and counted; one is a failure.
 // playwright-core is not a dependency of the toolkit: set PLAYWRIGHT_CORE to its folder (else the copy under ~/.local/share/claude-playwright-mcp, else a normal import).
-// CHROMIUM overrides the browser binary (default /usr/bin/chromium). DECK_FACTS overrides evidence/take-facts.json.
+// CHROMIUM overrides the browser binary (default /usr/bin/chromium). DECK_FACTS names an optional facts file (default evidence/deck-facts.json, absent in Wave 2).
 // The facts file feeds three blocks of docs/deck.html (between <!--facts:NAME--> markers): the test count and the new transactions (slide 8) and the lens walk (slide 6).
-// Without it the test count comes from the README and no run is shown. Only those blocks are rewritten, so the same inputs always give the same HTML.
+// Without it the test count comes from the README and the blocks stay empty; the Wave 2 slides carry their transactions in the HTML itself, and every hash there must also appear
+// in README.md, EVIDENCE.md or docs/WAVE2.md. Only the marked blocks are rewritten, so the same inputs always give the same HTML.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
@@ -13,11 +14,13 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const HTML = join(ROOT, 'docs', 'deck.html')
 const PDF = join(ROOT, 'docs', 'deck.pdf')
-const FACTS = process.env.DECK_FACTS ?? join(ROOT, 'evidence', 'take-facts.json')
+const FACTS = process.env.DECK_FACTS ?? join(ROOT, 'evidence', 'deck-facts.json')
 const CHROMIUM = process.env.CHROMIUM ?? '/usr/bin/chromium'
 const EXPLORER_TX = 'https://explorer.test.mezo.org/tx/'
 const LINKS = ['https://github.com/Kylne700', 'https://github.com/Kylne700/mezo-agent-toolkit', 'https://mezo-agent-toolkit.kylne700.workers.dev']
 const SLIDES = 11
+const FOOTER = 'Mezo Agent Toolkit - Wave 2 - testnet'
+const MAX_TX_LINKS = 8 // slide 8 lists 7 Wave 2 transactions
 const FONT_FILES = ['Inter-Regular.otf', 'Inter-SemiBold.otf', 'Inter-Bold.otf', 'JetBrainsMono-Regular.ttf', 'JetBrainsMono-Bold.ttf', 'OFL-Inter.txt', 'OFL-JetBrainsMono.txt']
 
 let failed = 0
@@ -84,7 +87,8 @@ const xmlns = 'xmlns="http://www.w3.org/2000/svg"'
 const urls = html.replaceAll(xmlns, '').match(/https?:\/\/[^\s"'<>)]+/g) ?? []
 const foreign = urls.filter((u) => !u.startsWith(EXPLORER_TX) && !LINKS.includes(u))
 const cssUrls = [...html.matchAll(/url\(([^)]*)\)/g)].map((m) => m[1].replace(/['"]/g, '')).filter((u) => !u.startsWith('#')) // #id references are the SVG arrowheads
-const known = new Set([...(readme.match(/0x[0-9a-fA-F]{64}/g) ?? []), ...(facts?.txs ?? []).map((t) => t.hash)].map((h) => h.toLowerCase()))
+const proofText = ['EVIDENCE.md', join('docs', 'WAVE2.md')].map((f) => readFileSync(join(ROOT, f), 'utf8')).join('\n')
+const known = new Set([...(readme.match(/0x[0-9a-fA-F]{64}/g) ?? []), ...(proofText.match(/0x[0-9a-fA-F]{64}/g) ?? []), ...(facts?.txs ?? []).map((t) => t.hash)].map((h) => h.toLowerCase()))
 const txLinks = [...html.matchAll(/<a href="([^"]*)">([^<]*)<\/a>/g)].filter((m) => m[1].startsWith(EXPLORER_TX))
 const txGood = txLinks.filter((m) => {
   const h = m[1].slice(EXPLORER_TX.length)
@@ -97,7 +101,7 @@ check((html.match(/<section class="slide"/g) ?? []).length === SLIDES, `${SLIDES
 check(!/<script|<link\b|<img\b|<iframe|<object|<embed|@import|\bsrcset=|\bsrc=/i.test(html), 'source has 0 script, link, img, iframe, object, embed or import')
 check(foreign.length === 0 && cssUrls.length === 5 && cssUrls.every((u) => /^fonts\/[A-Za-z-]+\.(otf|ttf)$/.test(u)), `external URLs: ${foreign.length} (only links to the explorer, to GitHub and to the live Worker); font URLs: ${cssUrls.length}, all relative`)
 check(FONT_FILES.every((f) => existsSync(join(ROOT, 'docs', 'fonts', f))), `docs/fonts holds ${FONT_FILES.length} files (5 fonts, 2 licence texts)`)
-check(txLinks.length > 0 && txGood.length === txLinks.length && txLinks.length <= 4 + (facts?.txs?.length ?? 0) && (html.match(/0x[0-9a-fA-F]{64}/g) ?? []).length === txLinks.length, `${txGood.length} of ${txLinks.length} transaction links have a full hash from README.md or the facts file, shown as first 10 + ... + last 6`)
+check(txLinks.length > 0 && txGood.length === txLinks.length && txLinks.length <= MAX_TX_LINKS + (facts?.txs?.length ?? 0) && (html.match(/0x[0-9a-fA-F]{64}/g) ?? []).length === txLinks.length, `${txGood.length} of ${txLinks.length} transaction links have a full hash from README.md or the facts file, shown as first 10 + ... + last 6`)
 check(addresses.every((a) => readmeLower.includes(a.toLowerCase())), `${addresses.length} addresses printed, ${addresses.filter((a) => !readmeLower.includes(a.toLowerCase())).length} missing from README.md`)
 
 // 4. Render in headless Chromium, print media, offline.
@@ -131,7 +135,7 @@ try {
   await page.goto(pathToFileURL(HTML).href, { waitUntil: 'load' })
   await page.evaluate(() => document.fonts.ready)
 
-  const info = await page.evaluate((total) => {
+  const info = await page.evaluate(({ total, footer }) => {
     const faces = [...document.fonts].map((f) => ({ family: f.family.replace(/['"]/g, ''), status: f.status }))
     const slides = [...document.querySelectorAll('section.slide')].map((s, i) => {
       const box = s.getBoundingClientRect()
@@ -158,11 +162,11 @@ try {
         gap: Math.round(foot.getBoundingClientRect().top - box.top - bottom),
         minFont,
         words,
-        number: foot.lastElementChild.textContent === `${i + 1} / ${total}` && foot.firstElementChild.textContent === 'Mezo Agent Toolkit - Wave 1 - testnet',
+        number: foot.lastElementChild.textContent === `${i + 1} / ${total}` && foot.firstElementChild.textContent === footer,
       }
     })
     return { faces, slides }
-  }, SLIDES)
+  }, { total: SLIDES, footer: FOOTER })
 
   const s = info.slides
   const count = (family) => info.faces.filter((f) => f.family === family && f.status === 'loaded').length
@@ -172,6 +176,7 @@ try {
   check(s.every((x) => x.minFont >= 18), `smallest text on any slide: ${Math.min(...s.map((x) => x.minFont))} px (limit 18)`)
   check(s.every((x) => x.number), `footer text and "n / ${SLIDES}" correct on ${s.filter((x) => x.number).length} of ${s.length} slides`)
   check(info.faces.length === 5 && count('Inter') === 3 && count('JetBrains Mono') === 2, `document.fonts: Inter ${count('Inter')} of 3 loaded, JetBrains Mono ${count('JetBrains Mono')} of 2 loaded (${info.faces.length} faces declared)`)
+  console.log(`INFO  gap above footer (px): ${s.map((x) => x.gap).join(' ')}`)
   const top = s.reduce((a, x, i) => (x.words > s[a].words ? i : a), 0)
   console.log(`INFO  words per slide: ${s.map((x) => x.words).join(' ')} (most: slide ${top + 1} with ${s[top].words}; guide is about 60)`)
 

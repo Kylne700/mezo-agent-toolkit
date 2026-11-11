@@ -52,6 +52,7 @@ a{color:var(--accent);text-decoration:underline;text-decoration-thickness:1px;te
 .two{display:flex;gap:32px;align-items:stretch}
 .two .card{flex:1}
 .names div{padding:5px 0;font-size:24px}
+.names.row{display:flex;gap:22px;flex-wrap:wrap}.names.row div{padding:2px 0;font-size:22px}
 .env{padding:10px 0;border-bottom:1px solid var(--line)}
 .env:last-child{border-bottom:0}
 .env .mono{display:block;font-size:19px}
@@ -83,6 +84,7 @@ a{color:var(--accent);text-decoration:underline;text-decoration-thickness:1px;te
 /* 10 */
 .ms .big{display:block;margin-bottom:14px;font-size:56px;color:var(--accent)}
 .ms p{margin:0;font-size:22px;line-height:1.4}
+.ms4{gap:20px}.ms4 .card{min-height:0;padding:22px 22px}.ms4 .big{margin-bottom:8px}.ms4 p{font-size:21px}.ms4 b{display:block;margin-bottom:6px;font-size:22px}
 /* 11 */
 .handle{margin:0 0 6px;font-size:76px;font-weight:700;letter-spacing:-.02em;line-height:1.05}
 .links div{padding:14px 0;border-bottom:1px solid var(--line);font-size:22px}
@@ -102,19 +104,19 @@ svg.seq .mu{fill:#a7adb3}
 
 <!-- 1 Problem -->
 <section class="slide" id="s1">
-  <p class="kicker">Problem</p>
-  <h1>Agents can read Mezo but cannot pay for data</h1>
+  <p class="kicker">Track 2: Access and Distribution - Wave 2 - Problem</p>
+  <h1>Agents can read Mezo but cannot pay or act</h1>
   <div class="cols">
     <div style="flex:1;padding-top:6px">
       <p class="lead">An agent has no BTC for gas and cannot click through wallet screens.</p>
-      <p class="lead">So it cannot buy data on its own.</p>
+      <p class="lead">So it cannot buy data, or open a trove, on its own.</p>
     </div>
     <div class="card" style="flex:1">
       <div class="stat"><span class="big">0.001</span><span class="stat-t">MUSD per paid call</span></div>
       <div class="stat" style="border-bottom:0;padding-bottom:0"><span class="big accent">0</span><span class="stat-t">BTC spent by the agent in the paid runs</span></div>
     </div>
   </div>
-  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>1 / 11</span></div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 2 - testnet</span><span>1 / 11</span></div>
 </section>
 
 <!-- 2 Solution -->
@@ -123,11 +125,11 @@ svg.seq .mu{fill:#a7adb3}
   <h1>One toolkit, three parts</h1>
   <div class="grid3">
     <div class="card"><span class="tag">1</span><h2>Lens contract</h2><p>Read-only. One call replaces many reads.</p></div>
-    <div class="card"><span class="tag">2</span><h2>MCP server</h2><p>Five tools. The four read tools are free.</p></div>
+    <div class="card"><span class="tag">2</span><h2>MCP server</h2><p>28 tools: 13 free reads, 14 guarded writes (off by default) and pay_and_fetch.</p></div>
     <div class="card"><span class="tag">3</span><h2>Pay-per-call endpoint</h2><p>HTTP with x402. 0.001 MUSD per call.</p></div>
   </div>
-  <p class="lead">An agent reads for free and pays 0.001 MUSD per call, with no BTC for gas.</p>
-  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>2 / 11</span></div>
+  <p class="lead">An agent reads for free, pays 0.001 MUSD per call with no BTC for gas and, if its operator allows, acts on testnet.</p>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 2 - testnet</span><span>2 / 11</span></div>
 </section>
 
 <!-- 3 How it works -->
@@ -175,7 +177,7 @@ svg.seq .mu{fill:#a7adb3}
     <text x="156" y="418"><tspan class="n">8</tspan><tspan dx="12">200 + data +</tspan></text>
     <text x="179" y="440" class="m">PAYMENT-RESPONSE (tx hash)</text>
   </svg>
-  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>3 / 11</span></div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 2 - testnet</span><span>3 / 11</span></div>
 </section>
 
 <!-- 4 The MUSD integration -->
@@ -192,36 +194,38 @@ svg.seq .mu{fill:#a7adb3}
     <div>Facilitator</div><div><span class="mono">facilitator.vativ.io</span>, a third party</div>
   </div>
   <div class="callout">MUSD has no EIP-3009, so only Permit2 payments land.</div>
-  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>4 / 11</span></div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 2 - testnet</span><span>4 / 11</span></div>
 </section>
 
 <!-- 5 MCP tools and the spend cap -->
 <section class="slide" id="s5">
-  <p class="kicker">MCP tools and the spend cap</p>
-  <h1>Five tools, one spend cap</h1>
+  <p class="kicker">MCP tools and the limits</p>
+  <h1>28 tools; writes are off by default</h1>
   <div class="two">
     <div class="card">
-      <p class="label">Free direct lens reads</p>
-      <div class="names mono"><div>trove_health</div><div>redemption_risk</div><div>pool_quote</div><div>ve_locks</div></div>
-      <p class="label" style="margin-top:18px">Pays x402 sellers</p>
+      <p class="label">13 free reads, for example</p>
+      <div class="names row mono"><div>trove_health</div><div>ve_status</div><div>sp_status</div></div>
+      <p class="label" style="margin-top:14px">14 guarded writes, for example</p>
+      <div class="names row mono"><div>trove_open</div><div>sp_deposit</div><div>ve_vote</div></div>
+      <p class="label" style="margin-top:14px">Pays x402 sellers</p>
       <div class="names mono"><div class="accent">pay_and_fetch</div></div>
     </div>
     <div class="card">
-      <p class="label">Limits from the operator environment</p>
+      <p class="label">Payment limits from the operator environment</p>
       <div class="env"><span class="mono">MEZO_MAX_PER_CALL_MUSD</span><span class="v">default 0.01</span></div>
       <div class="env"><span class="mono">MEZO_MAX_PER_SESSION_MUSD</span><span class="v">default 0.1</span></div>
       <div class="env"><span class="mono">MEZO_PAY_ALLOWED_HOSTS</span><span class="v">default: local endpoint and live Worker</span></div>
     </div>
   </div>
-  <div class="pills"><div>Never from a tool argument</div><div>Check and reserve before signing</div><div>Amounts in bigint base units</div></div>
-  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>5 / 11</span></div>
+  <div class="pills"><div>Writes need MEZO_WRITE_ENABLE=testnet</div><div>Allow-list; caps read from the signed bytes</div><div>A kill file stops every write</div></div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 2 - testnet</span><span>5 / 11</span></div>
 </section>
 
 <!-- 6 The lens contract -->
 <section class="slide" id="s6">
   <p class="kicker">The lens contract</p>
   <h1>MezoLens: one call instead of many</h1>
-  <div class="meta"><span class="mono">0xBDfD1C0B544319E25b4b99ee1f355e55230f6130</span><span>read-only, Mezo testnet, source verified on the explorer</span></div>
+  <div class="meta"><span class="mono">0x659203438789Ce052a9148Ef5A807508ab5eE40c</span><span>read-only, Mezo testnet, source verified on the explorer</span></div>
   <table class="reads mono">
     <tr><td>troveHealth</td><td style="font-family:'Inter',sans-serif">collateral ratio, debt, liquidation price</td></tr>
     <tr><td>systemSnapshot</td><td style="font-family:'Inter',sans-serif">system ratio, recovery mode, where a redemption starts</td></tr>
@@ -229,32 +233,31 @@ svg.seq .mu{fill:#a7adb3}
     <tr><td>poolQuote</td><td style="font-family:'Inter',sans-serif">swap quote and price impact</td></tr>
     <tr><td>veLocks</td><td style="font-family:'Inter',sans-serif">veBTC and veMEZO locks of a wallet, with voting power</td></tr>
   </table>
-  <!--facts:lens-->
-  <div class="callout">Testnet run, 2026-10-19: redemptionQueue walked <b class="mono">31</b> of 259 list nodes.</div>
-  <!--/facts:lens-->
-  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>6 / 11</span></div>
+  <!--facts:lens--><!--/facts:lens-->
+  <div class="callout">Redeployed on the LIVE vote-escrow system on 2026-10-31 (block 16482080). The Wave 1 lens is superseded.</div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 2 - testnet</span><span>6 / 11</span></div>
 </section>
 
 <!-- 7 Safety -->
 <section class="slide" id="s7">
   <p class="kicker">Safety</p>
-  <h1>What the payment review fixed</h1>
+  <h1>A review of the code found 3 issues; all fixed</h1>
   <div class="two">
     <div class="card pad0">
-      <p class="label">Buyer side</p>
-      <div class="fix"><span class="tag">B3</span><span>No unlimited approval</span></div>
-      <div class="fix"><span class="tag">B2</span><span>Validity at most 300 s</span></div>
-      <div class="fix"><span class="tag">B1</span><span>Allow list defaults to our own endpoint</span></div>
-      <div class="fix"><span class="tag">B4</span><span>No double pay: unconfirmed nonce and deadline remembered per URL</span></div>
+      <p class="label">Security review, Wave 2</p>
+      <div class="fix"><span class="tag">R1</span><span>High: daily caps held in one process only. Now one writer at a time.</span></div>
+      <div class="fix"><span class="tag">R2</span><span>Medium: plain http accepted for payments. Now https only, except on this machine.</span></div>
+      <div class="fix"><span class="tag">R3</span><span>Medium: key file mode never checked. Now a warning.</span></div>
     </div>
     <div class="card pad0">
-      <p class="label">Seller side</p>
-      <div class="fix"><span class="tag">R1</span><span>One tx vouches once</span></div>
-      <div class="fix"><span class="tag">R2</span><span>Data only when the chain shows the payment</span></div>
-      <div class="fix"><span class="tag">R3</span><span>Recovery by block and index, not by hash</span></div>
+      <p class="label">How a write is held</p>
+      <div class="fix"><span class="tag">1</span><span>Simulated first; a revert sends nothing</span></div>
+      <div class="fix"><span class="tag">2</span><span>Contract and function on an allow-list</span></div>
+      <div class="fix"><span class="tag">3</span><span>Caps read from the signed bytes</span></div>
+      <div class="fix"><span class="tag">4</span><span>A kill file stops every write</span></div>
     </div>
   </div>
-  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>7 / 11</span></div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 2 - testnet</span><span>7 / 11</span></div>
 </section>
 
 <!-- 8 Status -->
@@ -263,35 +266,32 @@ svg.seq .mu{fill:#a7adb3}
   <h1>Tested on Mezo testnet</h1>
   <div class="cols">
     <div style="width:420px;flex:none">
-      <div style="display:flex;align-items:center;gap:20px;margin-bottom:22px"><!--facts:tests--><span class="big accent">173</span><span class="big-t">tests passed in 10 files</span><!--/facts:tests--></div>
-      <p class="label">Earlier runs, checks passed</p>
+      <div style="display:flex;align-items:center;gap:20px;margin-bottom:22px"><!--facts:tests--><span class="big accent">474</span><span class="big-t">tests in 20 files</span><!--/facts:tests--></div>
+      <p class="label">Other checks passed</p>
       <div class="tiles">
         <div class="tile"><b>23</b><span>smoke</span></div>
         <div class="tile"><b>29</b><span>mcp:session</span></div>
         <div class="tile"><b>28</b><span>worker:smoke</span></div>
         <div class="tile"><b>51</b><span>console QA</span></div>
       </div>
-      <p class="big-t" style="margin:0"><b>0.039 MUSD</b> paid in all, 2026-10-19</p>
-      <p class="note" style="margin-top:8px">Live on Cloudflare since 2026-10-19. A wallet with no BTC at all was not tried.</p>
+      <p class="big-t" style="margin:0"><b>50 payments</b>, 0.05 MUSD, all from our wallet</p>
+      <p class="note" style="margin-top:8px">Counted on 2026-11-11. Testnet only; nothing on mainnet.</p>
     </div>
     <div style="flex:1">
-      <!--facts:txs-->
-      <p class="label">Testnet runs, 2026-10-19</p>
+      <!--facts:txs--><!--/facts:txs-->
+      <p class="label">Testnet transactions, 2026-10-31 and 2026-11-05</p>
       <table class="tx">
-        <tr><td>x402 buyer, one paid call<span class="muted"> - block 16245841</span></td><td class="mono"><a href="https://explorer.test.mezo.org/tx/0x72589fc2d3fd4b60e4a4bf53cf5c5c99b4c9328ff338ab75f89a48dfa6085a9a">0x72589fc2...085a9a</a></td></tr>
-        <tr><td>MCP pay_and_fetch, one paid call<span class="muted"> - block 16245844</span></td><td class="mono"><a href="https://explorer.test.mezo.org/tx/0x74482a3e70490754642b63d5de1565d01a508eb4fb3f053fa8f8875314675404">0x74482a3e...675404</a></td></tr>
-      </table>
-      <!--/facts:txs-->
-      <p class="label">Testnet transactions in the README</p>
-      <table class="tx">
-        <tr><td>MezoLens deployed</td><td class="mono"><a href="https://explorer.test.mezo.org/tx/0x4c673819554eaf1fa88131e463253cc8f40a04df01093f799b997ffe56821dd1">0x4c673819...821dd1</a></td></tr>
-        <tr><td>First paid call, via the facilitator</td><td class="mono"><a href="https://explorer.test.mezo.org/tx/0x1499eccd92b3932c53de8f0d5510ca9e8efb955c7c1c1c7ea53f9a2bfa6f7b9d">0x1499eccd...6f7b9d</a></td></tr>
-        <tr><td>pay_and_fetch, after the review</td><td class="mono"><a href="https://explorer.test.mezo.org/tx/0xb15e02af41c68da22d05e63afeeed84165cfb8f6446224a83504e97ee9cd9119">0xb15e02af...cd9119</a></td></tr>
-        <tr><td>pay_and_fetch, to the Worker</td><td class="mono"><a href="https://explorer.test.mezo.org/tx/0x779df435a79b4a61486b17ebb300898a2f63590c2188974f9c94a46f4a89d4d8">0x779df435...89d4d8</a></td></tr>
+        <tr><td><span class="mono">trove_open</span><span class="muted"> - block 16484113</span></td><td class="mono"><a href="https://explorer.test.mezo.org/tx/0xd908acf9d8527f1b2aed152b94f739defe3d1ecaea3db17580ff69be17995cbc">0xd908acf9...995cbc</a></td></tr>
+        <tr><td><span class="mono">sp_deposit</span><span class="muted"> - block 16485134</span></td><td class="mono"><a href="https://explorer.test.mezo.org/tx/0xce607af072d221d11b54438604ae1d93a8e1977ce8ee02d19f74dd3f38904b5a">0xce607af0...904b5a</a></td></tr>
+        <tr><td><span class="mono">trove_liquidate</span><span class="muted"> - block 16485146</span></td><td class="mono"><a href="https://explorer.test.mezo.org/tx/0x2eba8e0781420e3ea41dd2189d10ac7e7607530b4b0b3bb1eb37dbb70246dace">0x2eba8e07...46dace</a></td></tr>
+        <tr><td><span class="mono">ve_lock</span><span class="muted"> - block 16482808</span></td><td class="mono"><a href="https://explorer.test.mezo.org/tx/0xfed42ec9a5d3cb7390ef9e216df8e9249733692863878d260ac833dfe4231c2c">0xfed42ec9...231c2c</a></td></tr>
+        <tr><td><span class="mono">ve_vote</span><span class="muted"> - block 16482823</span></td><td class="mono"><a href="https://explorer.test.mezo.org/tx/0xaca4dfa53ad82d7b91c6591cc1d3aaa2dc491125e74ca39efc52b90791d4e897">0xaca4dfa5...d4e897</a></td></tr>
+        <tr><td><span class="mono">ve_claim_rewards (fees)</span><span class="muted"> - block 16578183</span></td><td class="mono"><a href="https://explorer.test.mezo.org/tx/0x904762d69d7b4d2ea00d65d98e7c1c16145f8be16e68167142875bb2316dc32e">0x904762d6...6dc32e</a></td></tr>
+        <tr><td><span class="mono">trove_repay, with the claim</span><span class="muted"> - block 16578195</span></td><td class="mono"><a href="https://explorer.test.mezo.org/tx/0x57c61107c7b9c08a1a2566506b05d506231219c918c4e60b4a23d1ebae01fc85">0x57c61107...01fc85</a></td></tr>
       </table>
     </div>
   </div>
-  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>8 / 11</span></div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 2 - testnet</span><span>8 / 11</span></div>
 </section>
 
 <!-- 9 Who pays -->
@@ -308,21 +308,22 @@ svg.seq .mu{fill:#a7adb3}
       <p>Sells Mezo reads over HTTP. Deploys the Worker with its own payee address. Each paid call is one MUSD transfer to it; this toolkit takes no cut.</p>
     </div>
   </div>
-  <div class="callout">Not there yet: users, revenue, anything beyond testnet. Paid use so far: our own test and demo runs, 39 transfers, 0.039 MUSD, up to 2026-10-19.</div>
-  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>9 / 11</span></div>
+  <div class="callout">Not there yet: outside users, outside payers (0), revenue, anything beyond testnet. Paid use so far: 50 payments, 0.05 MUSD, all from our own wallet, up to 2026-11-11.</div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 2 - testnet</span><span>9 / 11</span></div>
 </section>
 
 <!-- 10 Next milestones -->
 <section class="slide" id="s10">
   <p class="kicker">Wave 2: 2026-11-02 to 2026-11-15</p>
-  <h1>Next three milestones</h1>
-  <div class="grid3 ms">
-    <div class="card"><span class="big">1</span><p>One settlement ledger for all Worker instances, so a tx vouches once everywhere. A run measured against Cloudflare's real limits (CPU time, subrequests).</p></div>
-    <div class="card"><span class="big">2</span><p>Spend limits that survive a restart (daily cap). An installable MCP server package: one config line to add it.</p></div>
-    <div class="card"><span class="big">3</span><p>A ve gauge vote helper. More pool quotes in the lens, as free reads.</p></div>
+  <h1>The four Wave 1 asks, and where they stand</h1>
+  <div class="grid3 ms ms4">
+    <div class="card"><span class="big">1</span><p><b>Act on Mezo</b>14 write tools. 14 testnet transactions, one a contract deploy. Claimed fees repaid a trove.</p></div>
+    <div class="card"><span class="big">2</span><p><b>Outside payers</b>0. Fifty payments, 0.05 MUSD, all from our own wallet.</p></div>
+    <div class="card"><span class="big">3</span><p><b>Business case</b>Reads stay free. One claim cycle: 13.339 MUSD for 163045354 wei of gas.</p></div>
+    <div class="card"><span class="big">4</span><p><b>Install</b>One config line from the v0.2.0 release. Not on the npm registry.</p></div>
   </div>
-  <p class="note" style="font-size:20px">Plans, not promises. Testnet only.</p>
-  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>10 / 11</span></div>
+  <p class="note" style="font-size:20px">Still open: an outside payer, one settlement ledger for all Worker instances, a run on Cloudflare's real limits. Details: docs/WAVE2.md. Testnet only.</p>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 2 - testnet</span><span>10 / 11</span></div>
 </section>
 
 <!-- 11 Team -->
@@ -340,7 +341,7 @@ svg.seq .mu{fill:#a7adb3}
       <div><b>Live demo</b><a class="mono" href="https://mezo-agent-toolkit.kylne700.workers.dev">https://mezo-agent-toolkit.kylne700.workers.dev</a></div>
     </div>
   </div>
-  <div class="foot"><span>Mezo Agent Toolkit - Wave 1 - testnet</span><span>11 / 11</span></div>
+  <div class="foot"><span>Mezo Agent Toolkit - Wave 2 - testnet</span><span>11 / 11</span></div>
 </section>
 
 </body>
