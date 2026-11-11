@@ -4,7 +4,7 @@
 
 Let an AI agent read Mezo, pay for those reads in MUSD with no BTC for gas, and, only if its operator switches writes on, act on Mezo testnet: open and repay a trove, use the Stability Pool, lock, vote and claim on the LIVE veBTC, and repay debt with the fees it just claimed.
 
-Built for the Mezo Buildathon on Akindo, Track 2: Access and Distribution. Wave 1 (build period 16-26 October 2026) shipped the read-and-pay toolkit; this is the Wave 2 entry, which adds guarded writes on the LIVE Mezo contracts: see [What changed since Wave 1](#what-changed-since-wave-1). First commit 2026-10-18. Mezo testnet only.
+Built for the Mezo Buildathon on Akindo, Track 2: Access and Distribution. Wave 1 (build period 16-26 October 2026) shipped the read-and-pay toolkit; this is the Wave 2 entry, which adds guarded writes on the LIVE Mezo contracts: see [What changed since Wave 1](#what-changed-since-wave-1) and the page for the judges, [docs/WAVE2.md](docs/WAVE2.md) (the Wave 1 review quoted, one row per ask, what is not done). First commit 2026-10-18. Mezo testnet only.
 
 ## What changed since Wave 1
 

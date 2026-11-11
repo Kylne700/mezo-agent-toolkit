@@ -1,0 +1,11 @@
+Install proof of the v0.2.0 release asset (tag v0.2.0 = commit 7fb283b), run 2026-11-11 from an empty directory with an empty HOME and an empty npm cache; node v24.18.0, npm 11.16.0
+The asset has 14 tools with writes off; the review fixes R1 to R3 are on main only (docs/SECURITY-REVIEW-W2.md).
+
+$ npx -y <release tarball URL> --doctor    # live Mezo testnet RPC, no key
+mezo-agent-toolkit 0.2.0 doctor (node v24.18.0)
+ok   rpc       https://rpc.test.mezo.org answered at block 16714591
+ok   chain id  31611 (Mezo testnet)
+ok   tools     14: trove_health, redemption_risk, pool_quote, ve_locks, ve_status, gauge_rewards, plan_open, plan_top_up, plan_repay, trove_status, sp_status, allowance_status, plan_sp_deposit, pay_and_fetch
+     writes    enabled: no, no wallet is configured (the operator sets MEZO_KEY_FILE to a file that holds a funded Mezo testnet key)
+result: ok
+(exit 0)
