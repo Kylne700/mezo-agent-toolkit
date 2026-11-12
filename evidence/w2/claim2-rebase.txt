@@ -1,0 +1,5 @@
+--- ve_claim_rebase {"tokenId":"1729"}, tool answer (ERROR):
+{
+ "sent": false,
+ "reason": "the LIVE RewardsDistributor has no rebase to claim for NFT 1729 now"
+}

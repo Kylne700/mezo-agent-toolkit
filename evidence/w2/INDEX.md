@@ -1,6 +1,6 @@
 # Index of evidence/w2/
 
-One row per file in this folder (55 files besides this index): what it shows, the transactions it covers (explorer links) and the date. The dates are the days the files were committed; the ledger spans two days. All 14 transactions are in [EVIDENCE.md](../../EVIDENCE.md#the-transactions) with their blocks and what each one does. Every link on this page is checked by `npm run w2:check`.
+One row per file in this folder (61 files besides this index): what it shows, the transactions it covers (explorer links) and the date. The dates are the days the files were committed; the ledger spans three days. All 16 transactions are in [EVIDENCE.md](../../EVIDENCE.md#the-transactions) with their blocks and what each one does. Every link on this page is checked by `npm run w2:check`.
 
 Everything here is Mezo testnet (chain 31611). Nothing here is mainnet.
 
@@ -31,6 +31,12 @@ Everything here is Mezo testnet (chain 31611). Nothing here is mainnet.
 | [claim1-rebase.txt](claim1-rebase.txt) | The ve_claim_rebase tool call and its answer (2026-11-05). | [0xebd0e10d…a8b2](https://explorer.test.mezo.org/tx/0xebd0e10d3206301284ecf7340df28184a8b2b64c62f1dd0b85fa6b21568fa8b2) | 2026-11-05 |
 | [claim1-repay.txt](claim1-repay.txt) | The trove_repay tool call that repaid with the claimed 13.339052519580378833 MUSD, and its answer (2026-11-05). | [0x57c61107…fc85](https://explorer.test.mezo.org/tx/0x57c61107c7b9c08a1a2566506b05d506231219c918c4e60b4a23d1ebae01fc85) | 2026-11-05 |
 | [claim1-w2-prove.txt](claim1-w2-prove.txt) | `npm run w2:prove` (no key) at block 16578215: 14 PASS, 0 FAIL, 0 SKIP. Each ledger transaction and the lens deploy re-read from the chain. | 14 of the 14 (all linked in [EVIDENCE.md](../../EVIDENCE.md#the-transactions)) | 2026-11-05 |
+| [claim2-after.txt](claim2-after.txt) | Wallet and ve_status after the 2026-11-12 claim and repay. | none | 2026-11-12 |
+| [claim2-before.txt](claim2-before.txt) | Wallet and ve_status before the 2026-11-12 claim. | none | 2026-11-12 |
+| [claim2-fees.txt](claim2-fees.txt) | The ve_claim_rewards tool call and its answer (2026-11-12). | [0x81186028…9705](https://explorer.test.mezo.org/tx/0x811860281098a760eb1f718c4fa5ba62d0f9f67947008a6dabc3c4d220669705) | 2026-11-12 |
+| [claim2-rebase.txt](claim2-rebase.txt) | The ve_claim_rebase tool call and its answer (2026-11-12): refused, the RewardsDistributor had no rebase to claim, nothing sent. | none | 2026-11-12 |
+| [claim2-repay.txt](claim2-repay.txt) | The trove_repay tool call that repaid with the claimed 13.086605731207608957 MUSD, and its answer (2026-11-12). | [0xda6a0815…6967](https://explorer.test.mezo.org/tx/0xda6a0815f13dcf753d2a3e484daee62d5d1bb34306e3501e03647f534a746967) | 2026-11-12 |
+| [claim2-w2-prove.txt](claim2-w2-prove.txt) | `npm run w2:prove` (no key) at block 16723493: 16 PASS, 0 FAIL, 0 SKIP. Each ledger transaction and the lens deploy re-read from the chain. | 16 of the 16 (all linked in [EVIDENCE.md](../../EVIDENCE.md#the-transactions)) | 2026-11-12 |
 | [e-paid-plan-call.txt](e-paid-plan-call.txt) | One real paid plan call over x402: our wallet paid its own server 0.005 MUSD; the facilitator sent the transaction. | [0x69338353…624d](https://explorer.test.mezo.org/tx/0x693383537b0b2d9f76d07626db79fce23c19a9224575a80e81433d3694a5624d) | 2026-10-31 |
 | [e-paid-plan-top-up.json](e-paid-plan-top-up.json) | The JSON answer of the paid POST /plan/top-up call (price $0.005). | [0x69338353…624d](https://explorer.test.mezo.org/tx/0x693383537b0b2d9f76d07626db79fce23c19a9224575a80e81433d3694a5624d) | 2026-10-31 |
 | [e-w2-prove.txt](e-w2-prove.txt) | `npm run w2:prove` (no key) run after the paid plan call. | 11 of the 14 (all linked in [EVIDENCE.md](../../EVIDENCE.md#the-transactions)) | 2026-10-31 |
@@ -38,7 +44,7 @@ Everything here is Mezo testnet (chain 31611). Nothing here is mainnet.
 | [install-release-2026-11-11.txt](install-release-2026-11-11.txt) | `--doctor` of the v0.2.0 release tarball, run from an empty directory, empty HOME and empty npm cache: result ok, 14 tools, writes off. | none | 2026-11-11 |
 | [install.txt](install.txt) | Install proof of a build from the committed tree on 2026-10-31 (5 tools, Wave 1 lens). Superseded by install-release-2026-11-11.txt. | none | 2026-10-31 |
 | [lens-redeploy.txt](lens-redeploy.txt) | MezoLens redeployed on the live vote-escrow system: deploy transaction, address 0x659203438789Ce052a9148Ef5A807508ab5eE40c, explorer verification. | [0x5342268a…f3cb](https://explorer.test.mezo.org/tx/0x5342268ad642bbc386da866a7626f4d7708f4a0f7cff0a608bb5d448b132f3cb) | 2026-10-31 |
-| [receipts.jsonl](receipts.jsonl) | The ledger: one line per real transaction the write core logged (13 lines), with sender, target, nonce, selector, gas and amounts. | 13 of the 14 (all linked in [EVIDENCE.md](../../EVIDENCE.md#the-transactions)) | 2026-10-31 to 2026-11-05 |
+| [receipts.jsonl](receipts.jsonl) | The ledger: one line per real transaction the write core logged (15 lines), with sender, target, nonce, selector, gas and amounts. | 15 of the 16 (all linked in [EVIDENCE.md](../../EVIDENCE.md#the-transactions)) | 2026-10-31 to 2026-11-12 |
 | [trove-agreement.txt](trove-agreement.txt) | 96 PASS, 1 FAIL over two runs of the same checks. The FAIL (line 67) is a driver check that counted the countdown field epoch.secondsToNext as a change; line 71 explains it, and the second run passes (line 99). | none | 2026-10-31 |
 | [trove-plan-open-pre.txt](trove-plan-open-pre.txt) | plan_open (read only, nothing sent), 0.045 BTC against 1900 MUSD. | none | 2026-10-31 |
 | [trove-plan-open.txt](trove-plan-open.txt) | plan_open (read only) just before the real trove_open. | none | 2026-10-31 |
