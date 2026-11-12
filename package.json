@@ -1,6 +1,6 @@
 {
   "name": "mezo-agent-toolkit",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Let any AI agent read Mezo and pay for it in MUSD with no BTC for gas: a lens contract, an MCP server and an x402 pay-per-call endpoint.",
   "license": "MIT",
   "type": "module",

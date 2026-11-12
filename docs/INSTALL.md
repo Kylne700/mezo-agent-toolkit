@@ -1,6 +1,6 @@
 # Install the Mezo Agent Toolkit MCP server
 
-The v0.2.0 GitHub release tarball of `mezo-agent-toolkit` is the MCP server in one file (`dist/mcp.js`, its libraries are inside it). Nothing is cloned and nothing else is installed: your MCP client runs it with `npx`, which downloads the tarball from the URL below. It talks to **Mezo testnet (chain 31611)**.
+The v0.2.1 GitHub release tarball of `mezo-agent-toolkit` is the MCP server in one file (`dist/mcp.js`, its libraries are inside it). Nothing is cloned and nothing else is installed: your MCP client runs it with `npx`, which downloads the tarball from the URL below. It talks to **Mezo testnet (chain 31611)**.
 
 - Thirteen read tools work with no key and no funds: `trove_health`, `redemption_risk`, `pool_quote`, `ve_locks`, `ve_status` (the LIVE vote-escrow system, the epoch and one NFT), `gauge_rewards` (the pools ranked by fees per unit of vote weight, and what an NFT can claim), `plan_open`, `plan_top_up` and `plan_repay` (what opening a trove, adding collateral or repaying would do: the exact calldata with sorted-list hints, the ratio after, Recovery Mode, the borrow cap, the redeemable MUSD ahead of the trove, or the reason it is refused), `trove_status` (one trove for any address), `sp_status` (one wallet's Stability Pool deposit, the MUSD it lost to liquidations, its BTC gain, and whether a withdrawal is blocked right now by a trove under the 110% minimum, with the lowest ratio found and how it was found), `plan_sp_deposit` (what a Stability Pool deposit would do: the `provideToSP` call data, the approval it needs first and the withdrawal lock) and `allowance_status` (the non-zero BTC and MUSD allowances one wallet has given, for example before `approve_revoke`).
 - `pay_and_fetch` spends testnet MUSD and is **off** until you point `MEZO_KEY_FILE` at a throwaway testnet key (see "Settings").
@@ -11,7 +11,7 @@ Needs Node.js 22.12 or newer (the package says `^22.12.0 || ^24.0.0 || >=26.0.0`
 ## Claude Code
 
 ```
-claude mcp add mezo -- npx -y https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v0.2.0/mezo-agent-toolkit-0.2.0.tgz
+claude mcp add mezo -- npx -y https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v0.2.1/mezo-agent-toolkit-0.2.1.tgz
 ```
 
 ## Other MCP clients
@@ -23,24 +23,24 @@ Most clients take an `mcpServers` entry in a JSON configuration file. The file n
   "mcpServers": {
     "mezo": {
       "command": "npx",
-      "args": ["-y", "https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v0.2.0/mezo-agent-toolkit-0.2.0.tgz"]
+      "args": ["-y", "https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v0.2.1/mezo-agent-toolkit-0.2.1.tgz"]
     }
   }
 }
 ```
 
-Restart the client after you change its configuration. The URL already pins version 0.2.0. The toolkit is not on the npm registry, and a package of the same name there would not be ours: install it only from this URL.
+Restart the client after you change its configuration. The URL already pins version 0.2.1. The toolkit is not on the npm registry, and a package of the same name there would not be ours: install it only from this URL.
 
 ## Check it
 
 ```
-npx -y https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v0.2.0/mezo-agent-toolkit-0.2.0.tgz --doctor
+npx -y https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v0.2.1/mezo-agent-toolkit-0.2.1.tgz --doctor
 ```
 
 The check needs no key. It reads from the RPC and sends no transaction. It prints one line per check and exits with 0 when the RPC answers on chain 31611 and the server lists its tools, and with 1 otherwise. Whether payments are on is reported, not judged: "no" is a normal answer.
 
 ```
-mezo-agent-toolkit 0.2.0 doctor (node v24.18.0)
+mezo-agent-toolkit 0.2.1 doctor (node v24.18.0)
 ok   rpc       https://rpc.test.mezo.org answered at block 16485201
 ok   chain id  31611 (Mezo testnet)
 ok   tools     14: trove_health, redemption_risk, pool_quote, ve_locks, ve_status, gauge_rewards, plan_open, plan_top_up, plan_repay, trove_status, sp_status, allowance_status, plan_sp_deposit, pay_and_fetch
@@ -55,10 +55,10 @@ result: ok
 Set them in the environment of the server. Claude Code takes them with `-e` (write the server name before it):
 
 ```
-claude mcp add mezo -e MEZO_KEY_FILE=/path/to/testnet.key -- npx -y https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v0.2.0/mezo-agent-toolkit-0.2.0.tgz
+claude mcp add mezo -e MEZO_KEY_FILE=/path/to/testnet.key -- npx -y https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v0.2.1/mezo-agent-toolkit-0.2.1.tgz
 ```
 
-In a JSON configuration, add `"env": { "MEZO_KEY_FILE": "/path/to/testnet.key" }` next to `command` and `args`. `--doctor` reads these variables from your shell, not from the client's configuration, so export them in the terminal to check a setting before the client uses it (for example `MEZO_KEY_FILE=/path/to/testnet.key npx -y https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v0.2.0/mezo-agent-toolkit-0.2.0.tgz --doctor`).
+In a JSON configuration, add `"env": { "MEZO_KEY_FILE": "/path/to/testnet.key" }` next to `command` and `args`. `--doctor` reads these variables from your shell, not from the client's configuration, so export them in the terminal to check a setting before the client uses it (for example `MEZO_KEY_FILE=/path/to/testnet.key npx -y https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v0.2.1/mezo-agent-toolkit-0.2.1.tgz --doctor`).
 
 | Variable | Meaning | Default |
 | --- | --- | --- |
@@ -75,7 +75,7 @@ A limit that does not parse switches payments off instead of falling back to a d
 The six `ve_*` write tools work on the LIVE vote-escrow system (veBTC, the pools voter, the rewards distributor); the three `trove_*` write tools call BorrowerOperations (open a trove, add collateral, repay); the five Stability Pool tools call the pool (`sp_deposit`, `sp_withdraw`), the MUSD token (`sp_approve_musd`, and `approve_revoke` on MUSD or BTC) and TroveManager (`trove_liquidate`). No tool argument can set a key, a cap or a gas value: the operator's environment does, and the model cannot change it.
 
 ```
-claude mcp add mezo -e MEZO_KEY_FILE=/path/to/testnet.key -e MEZO_WRITE_ENABLE=testnet -e MEZO_WRITE_RECEIPTS_FILE=/path/to/receipts.jsonl -e MEZO_WRITE_MAX_BTC_PER_CALL=0.0041 -e MEZO_WRITE_MAX_BTC_PER_DAY=0.0082 -e MEZO_WRITE_RISKY=1 -- npx -y https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v0.2.0/mezo-agent-toolkit-0.2.0.tgz
+claude mcp add mezo -e MEZO_KEY_FILE=/path/to/testnet.key -e MEZO_WRITE_ENABLE=testnet -e MEZO_WRITE_RECEIPTS_FILE=/path/to/receipts.jsonl -e MEZO_WRITE_MAX_BTC_PER_CALL=0.0041 -e MEZO_WRITE_MAX_BTC_PER_DAY=0.0082 -e MEZO_WRITE_RISKY=1 -- npx -y https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v0.2.1/mezo-agent-toolkit-0.2.1.tgz
 ```
 
 | Variable | Meaning | Default |
@@ -93,7 +93,7 @@ An approve and the lock it pays for each count as the full BTC amount, so lockin
 
 ## Troubleshooting
 
-- **The client cannot start the server.** Run `npx -y https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v0.2.0/mezo-agent-toolkit-0.2.0.tgz --doctor` in a terminal. If that works but the client fails, the client may have a different `PATH`: put the full path of `npx` in `command`.
+- **The client cannot start the server.** Run `npx -y https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v0.2.1/mezo-agent-toolkit-0.2.1.tgz --doctor` in a terminal. If that works but the client fails, the client may have a different `PATH`: put the full path of `npx` in `command`.
 - **`rpc` fails in the check.** The RPC did not answer. Check the network, or set `MEZO_RPC_URL` to another Mezo testnet RPC. The check prints the host of the URL, not its path.
 - **`chain id` fails.** `MEZO_RPC_URL` points at a different chain than Mezo testnet (31611).
 - **`pay_and_fetch` says it is switched off.** Read `writes` in the check output: it names the reason (no `MEZO_KEY_FILE`, an unreadable key file, or a limit that does not parse). The read tools are not affected.

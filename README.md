@@ -15,7 +15,7 @@ Baseline: the last Wave 1 commit, `86526cb` (2026-10-26). Since then: [56 commit
 | MCP tools | 5: four reads and `pay_and_fetch` | 28: 13 free reads, `pay_and_fetch`, 14 write tools (off by default, testnet only, allow-list, caps read from the signed bytes, kill file) |
 | What an agent can do on Mezo | read troves, quote swaps, read ve locks, pay x402 calls in MUSD | also open, top up and repay a trove, use the Stability Pool, lock, vote and claim on the LIVE veBTC, and repay with the fees it claimed |
 | Evidence | the payment transactions in [Transactions](#transactions) | 16 testnet transactions on the LIVE system in [EVIDENCE.md](EVIDENCE.md), re-read from the chain by `npm run w2:prove` (16 PASS, no key) |
-| Install | clone and run | one config line, from the v0.2.0 release (not on the npm registry) |
+| Install | clone and run | one config line, from the v0.2.1 release (not on the npm registry) |
 | Business case | in the submission text | [docs/BUSINESS.md](docs/BUSINESS.md): who pays, unit economics from two real claims, own traffic vs outside traffic (no outside payer yet) |
 
 What we planned for Wave 2 in Wave 1, and what happened:
@@ -33,17 +33,17 @@ What we planned for Wave 2 in Wave 1, and what happened:
 
 Live demo: https://mezo-agent-toolkit.kylne700.workers.dev
 
-**Install the MCP server without cloning** (the v0.2.0 GitHub release tarball, Node 22.12 or newer; the thirteen read tools need no key and no funds):
+**Install the MCP server without cloning** (the v0.2.1 GitHub release tarball, Node 22.12 or newer; the thirteen read tools need no key and no funds):
 
 ```
-claude mcp add mezo -- npx -y https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v0.2.0/mezo-agent-toolkit-0.2.0.tgz
-npx -y https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v0.2.0/mezo-agent-toolkit-0.2.0.tgz --doctor    # checks the RPC, chain 31611 and the tool list; needs no key
+claude mcp add mezo -- npx -y https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v0.2.1/mezo-agent-toolkit-0.2.1.tgz
+npx -y https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v0.2.1/mezo-agent-toolkit-0.2.1.tgz --doctor    # checks the RPC, chain 31611 and the tool list; needs no key
 ```
 
 For other MCP clients, add this server entry to the client's configuration; settings and troubleshooting are in [docs/INSTALL.md](docs/INSTALL.md).
 
 ```json
-{ "mcpServers": { "mezo": { "command": "npx", "args": ["-y", "https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v0.2.0/mezo-agent-toolkit-0.2.0.tgz"] } } }
+{ "mcpServers": { "mezo": { "command": "npx", "args": ["-y", "https://github.com/Kylne700/mezo-agent-toolkit/releases/download/v0.2.1/mezo-agent-toolkit-0.2.1.tgz"] } } }
 ```
 
 **Check it in a minute (no key, no funds):** `npm ci`, then `npm run smoke` (about 40 s; 23 checks: every lens answer equals a direct read of the protocol at one pinned block, and an unpaid call to the endpoint gets a 402; it ends with `SMOKE PASSED`). To see it first: the [demo video](https://youtu.be/rVGGU6BSJxw), the [deck](docs/deck.pdf) and the [live console](https://mezo-agent-toolkit.kylne700.workers.dev).
