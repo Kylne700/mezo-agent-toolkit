@@ -21,7 +21,7 @@ The Wave 1 judge (`civ_defi_mezo`, 2026-10-30), quoted in full:
 
 Proof 2, a second claim and repay on the next epoch (2026-11-12, the first minutes after 00:00 UTC): done. [ve_claim_rewards 0x81186028…9705](https://explorer.test.mezo.org/tx/0x811860281098a760eb1f718c4fa5ba62d0f9f67947008a6dabc3c4d220669705) claimed 13.086605731207608957 MUSD of fees and [trove_repay (with the claim) 0xda6a0815…6967](https://explorer.test.mezo.org/tx/0xda6a0815f13dcf753d2a3e484daee62d5d1bb34306e3501e03647f534a746967) repaid the trove with exactly that amount, so its debt went from 2079.218477220099478699 to 2066.131874123899806405 MUSD. Both have status success and are re-read from the chain by `npm run w2:prove` (16 PASS: [output](../evidence/w2/claim2-w2-prove.txt)). `ve_claim_rebase` was tried and refused, because the RewardsDistributor had no rebase to claim, so this cycle has two transactions. Details: [EVIDENCE.md, proof 2](../EVIDENCE.md#proof-2-done-on-2026-11-12-the-next-epochs-fees-then-repay-with-them), [BUSINESS.md](BUSINESS.md#two-claim-cycles).
 
-Demo video: the Wave 1 video is [here](https://youtu.be/rVGGU6BSJxw); the Wave 2 video is VIDEO-URL <!-- D2 -->
+Demo video: the Wave 1 video is [here](https://youtu.be/rVGGU6BSJxw); the Wave 2 video is https://youtu.be/fUIUI9w8Iyk
 
 ## Name overlap
 
