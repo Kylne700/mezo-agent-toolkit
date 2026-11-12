@@ -1,6 +1,6 @@
 # Index of evidence/w2/
 
-One row per file in this folder (62 files besides this index): what it shows, the transactions it covers (explorer links) and the date. The dates are the days the files were committed; the ledger spans three days. All 16 transactions are in [EVIDENCE.md](../../EVIDENCE.md#the-transactions) with their blocks and what each one does. Every link on this page is checked by `npm run w2:check`.
+One row per file in this folder (63 files besides this index): what it shows, the transactions it covers (explorer links) and the date. The dates are the days the files were committed; the ledger spans three days. All 16 transactions are in [EVIDENCE.md](../../EVIDENCE.md#the-transactions) with their blocks and what each one does. Every link on this page is checked by `npm run w2:check`.
 
 Everything here is Mezo testnet (chain 31611). Nothing here is mainnet.
 
@@ -42,6 +42,7 @@ Everything here is Mezo testnet (chain 31611). Nothing here is mainnet.
 | [e-paid-plan-top-up.json](e-paid-plan-top-up.json) | The JSON answer of the paid POST /plan/top-up call (price $0.005). | [0x69338353…624d](https://explorer.test.mezo.org/tx/0x693383537b0b2d9f76d07626db79fce23c19a9224575a80e81433d3694a5624d) | 2026-10-31 |
 | [e-w2-prove.txt](e-w2-prove.txt) | `npm run w2:prove` (no key) run after the paid plan call. | 11 of the 14 (all linked in [EVIDENCE.md](../../EVIDENCE.md#the-transactions)) | 2026-10-31 |
 | [economics-2026-11-11.txt](economics-2026-11-11.txt) | Payer count re-read from the chain at block 16714465: 50 payments to the demo payee, all from our wallet; outside payers 0 (made by `scripts/w2-economics.ts`). | none | 2026-11-11 |
+| [install-021-2026-11-12.txt](install-021-2026-11-12.txt) | `--doctor` and `--version` of the v0.2.1 tarball (sha256 in the file), run under `env -i` from an empty directory, empty HOME and empty npm cache: result ok, 14 tools, writes off, version 0.2.1. | none | 2026-11-12 |
 | [install-release-2026-11-11.txt](install-release-2026-11-11.txt) | `--doctor` of the v0.2.0 release tarball, run from an empty directory, empty HOME and empty npm cache: result ok, 14 tools, writes off. | none | 2026-11-11 |
 | [install.txt](install.txt) | Install proof of a build from the committed tree on 2026-10-31 (5 tools, Wave 1 lens). Superseded by install-release-2026-11-11.txt. | none | 2026-10-31 |
 | [lens-redeploy.txt](lens-redeploy.txt) | MezoLens redeployed on the live vote-escrow system: deploy transaction, address 0x659203438789Ce052a9148Ef5A807508ab5eE40c, explorer verification. | [0x5342268a…f3cb](https://explorer.test.mezo.org/tx/0x5342268ad642bbc386da866a7626f4d7708f4a0f7cff0a608bb5d448b132f3cb) | 2026-10-31 |
