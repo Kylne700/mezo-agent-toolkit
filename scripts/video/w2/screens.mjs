@@ -70,7 +70,7 @@ const SLIDE = {
   payments: (f) => {
     const p = f.payments
     const L = p.block.map((l, i) => `<div class="${i === 0 || i === p.block.length - 1 ? 'hl' : ''}" style="padding:2px 12px;white-space:pre">${esc(l)}</div>`).join('')
-    return frame('Payments to the demo payee, counted from the chain', 'Read with no key by scripts/w2-economics.ts on 2026-11-11.', `<div class=mono style="font-size:19px;line-height:32px">${L}</div>`,
+    return frame('Payments to the demo payee, counted from the chain', 'Read with no key by scripts/w2-economics.ts on 2026-11-12 (block 16723537).', `<div class=mono style="font-size:19px;line-height:32px">${L}</div>`,
       `${p.source} L${p.first}-L${p.last}`)
   },
   notdone: (f) => frame('Not done', 'Copied from docs/WAVE2.md, the Not done list.', `<div style="font-size:27px;line-height:1.28">${f.notDone.map((n) => `<div style="margin:0 0 8px"><span class=warn>-</span> ${esc(n)}</div>`).join('')}</div>`, 'docs/WAVE2.md, section Not done'),

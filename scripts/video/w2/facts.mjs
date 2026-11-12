@@ -81,13 +81,13 @@ export async function gather() {
   })
   const vitest = { files: want.length, tests: results.length, passed: results.filter((x) => x.status === 'passed').length }
 
-  // 4. payments on chain (economics-2026-11-11.txt L35-L44) and the same count on WAVE2.md
-  const eco = lines('evidence/w2/economics-2026-11-11.txt')
-  const block = eco.slice(34, 44)
+  // 4. payments on chain (b-economics2.txt L43-L53, block 16723537) and the same count on WAVE2.md
+  const eco = lines('evidence/w2/b-economics2.txt')
+  const block = eco.slice(42, 53)
   const count = Number(need(block[0].match(/^(\d+) transfers/), 'payment count line')[1])
-  const outside = Number(need(block[9].match(/outside payers (\d+)/), 'outside payers line')[1])
+  const outside = Number(need(block[block.length - 1].match(/outside payers (\d+)/), 'outside payers line')[1])
   if (!file('docs/WAVE2.md').includes(`Payments to the demo payee: ${count} of`)) throw new Error('facts: WAVE2.md does not carry the same payment count')
-  const payments = { count, outside, block, first: 35, last: 44, source: 'evidence/w2/economics-2026-11-11.txt' }
+  const payments = { count, outside, block, first: 43, last: 53, source: 'evidence/w2/b-economics2.txt' }
 
   // 5. the "Not done" list of WAVE2.md (the bold lead of each bullet); the line marked for the next editor is not part of this video
   const w2 = lines('docs/WAVE2.md')
