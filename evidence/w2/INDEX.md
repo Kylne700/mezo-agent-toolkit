@@ -1,6 +1,6 @@
 # Index of evidence/w2/
 
-One row per file in this folder (61 files besides this index): what it shows, the transactions it covers (explorer links) and the date. The dates are the days the files were committed; the ledger spans three days. All 16 transactions are in [EVIDENCE.md](../../EVIDENCE.md#the-transactions) with their blocks and what each one does. Every link on this page is checked by `npm run w2:check`.
+One row per file in this folder (62 files besides this index): what it shows, the transactions it covers (explorer links) and the date. The dates are the days the files were committed; the ledger spans three days. All 16 transactions are in [EVIDENCE.md](../../EVIDENCE.md#the-transactions) with their blocks and what each one does. Every link on this page is checked by `npm run w2:check`.
 
 Everything here is Mezo testnet (chain 31611). Nothing here is mainnet.
 
@@ -25,6 +25,7 @@ Everything here is Mezo testnet (chain 31611). Nothing here is mainnet.
 | [a3-w2-prove.txt](a3-w2-prove.txt) | `npm run w2:prove` (no key) run after the Stability Pool transactions, on the ledger as it was then. | 10 of the 14 (all linked in [EVIDENCE.md](../../EVIDENCE.md#the-transactions)) | 2026-10-31 |
 | [a3-withdraw.txt](a3-withdraw.txt) | A read-only simulation (eth_call from the wallet) of withdrawFromSP(1 MUSD) reverted; nothing was sent. | none | 2026-10-31 |
 | [b-economics.txt](b-economics.txt) | Claim-cycle economics at block 16578702: gas of the cycle 163045354 wei, 13.339052519580378833 MUSD claimed and the same amount repaid. | none | 2026-11-05 |
+| [b-economics2.txt](b-economics2.txt) | Economics of both claim cycles and the payer count at block 16723537 (2026-11-12): cycle 2 gas 63342100 wei, 13.086605731207608957 MUSD claimed and repaid; 51 payments of 0.001 MUSD, 0 from outside our wallet. | none | 2026-11-12 |
 | [claim1-after.txt](claim1-after.txt) | Wallet and ve_status after the 2026-11-05 claims and repay. | none | 2026-11-05 |
 | [claim1-before.txt](claim1-before.txt) | Wallet and ve_status before the 2026-11-05 claims. | none | 2026-11-05 |
 | [claim1-fees.txt](claim1-fees.txt) | The ve_claim_rewards tool call and its answer (2026-11-05). | [0x904762d6…c32e](https://explorer.test.mezo.org/tx/0x904762d69d7b4d2ea00d65d98e7c1c16145f8be16e68167142875bb2316dc32e) | 2026-11-05 |

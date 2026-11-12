@@ -1,7 +1,7 @@
 // What the Wave 2 transactions cost and who paid us, read from the chain itself: no key, no transaction, only reads from the Mezo testnet RPC.
 // Part 1: for every line of evidence/w2/receipts.jsonl (our own ledger) it reads the receipt and prints gasUsed x effectiveGasPrice, so the BTC each leg cost
 //   and who paid it. The three older groups of legs must add up to the totals already committed in evidence/w2/*-agreement.txt, which were computed another way.
-//   Each claim -> repay cycle (rebase claim, fee claim, repay) is then set against the MUSD it claimed, read from the Transfer in the claim's receipt.
+//   Each claim -> repay cycle (rebase claim when there is one, fee claim, repay) is then set against the MUSD it claimed, read from the Transfer in the claim's receipt.
 // Part 2: it counts every MUSD transfer to the demo payee of wrangler.toml since FROM_BLOCK and splits them into our wallet and everyone else.
 // Only hashes of our own ledger are fetched; no explorer or indexer is asked for anything. The exit code is 1 on any FAIL.
 // Usage: npx tsx scripts/w2-economics.ts [--from <block>]
@@ -65,16 +65,19 @@ for (const g of EARLIER) {
   r.check(ok, `${g.what}: ${legs.every(Boolean) ? sum(legs as Line[]) : '?'} wei, expected ${g.wei}`, [g.file])
 }
 
-// ---- cycles: claim rebase, claim fees, repay -----------------------------------------------------------------------------------------------
+// ---- cycles: claim rebase (if any), claim fees, repay -----------------------------------------------------------------------------------------------
 const cycles: Line[][] = []
 for (const l of ledger) {
-  const open = cycles.at(-1)
-  if (l.name === 've_claim_rebase') cycles.push([l])
-  else if (open && open.length < 3 && l.name === (open.length === 1 ? 've_claim_rewards' : 'trove_repay')) open.push(l)
+  const last = cycles.at(-1)
+  const open = last?.at(-1)?.name === 'trove_repay' ? undefined : last // a finished cycle ends with its repay
+  // A cycle starts at the rebase claim, or at the fee claim when the rebase had nothing to claim (cycle 2, 2026-11-12).
+  if (l.name === 've_claim_rebase' || (l.name === 've_claim_rewards' && !open)) cycles.push([l])
+  else if (open && l.name === (open.at(-1)!.name === 've_claim_rebase' ? 've_claim_rewards' : 'trove_repay')) open.push(l)
 }
 for (const [i, c] of cycles.entries()) {
   r.log(`\n# Claim -> repay cycle ${i + 1}: ${c.map((l) => l.name).join(', ')}`)
-  const [, claim, repay] = c
+  const claim = c.find((l) => l.name === 've_claim_rewards')!
+  const repay = c.at(-1)!
   const gas = sum(c)
   const claimed = receipts.get(claim.hash)!.logs.filter((lg) => lg.address.toLowerCase() === ADDRESSES.musd.toLowerCase() && lg.topics[0] === '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef' && lg.topics[2] && getAddress('0x' + lg.topics[2].slice(26)) === wallet)
     .reduce((a, lg) => a + BigInt(lg.data), 0n)
